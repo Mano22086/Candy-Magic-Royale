@@ -368,12 +368,59 @@
     }
     const companions=[{root:queenRoot,phase:0,speed:1.1,baseY:4.2},{root:dragonRoot,phase:1.7,speed:1.5,baseY:4.2}];
 
-    applyKingdomTheme=(index)=>{const active=Math.max(0,Math.min(themes.length-1,index));const theme=themes[active];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],0);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);landmarkSets.forEach((set,i)=>set.setEnabled(i===active));};
+    // Detailed 3D kingdom scenery visible around the playable board.
+    const worldSets=[],waterMeshes=[];
+    const makeWorldMat=(name,color,alpha=1)=>{const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=BABYLON.Color3.FromHexString(color);m.emissiveColor=BABYLON.Color3.FromHexString(color).scale(.32);m.specularColor=new BABYLON.Color3(.95,.88,1);m.specularPower=80;m.alpha=alpha;return m;};
+    themes.forEach((theme,idx)=>{
+      const world=new BABYLON.TransformNode("world-scene-"+idx,scene);
+      const stone=makeWorldMat("world-stone-"+idx,idx===4?"#67354c":"#49306f");
+      const trim=makeWorldMat("world-trim-"+idx,theme.glow);
+      const glass=makeWorldMat("world-glass-"+idx,theme.crystal,.78);
+      const dark=makeWorldMat("world-gate-"+idx,"#20143e");
+      const part=(name,shape,opts,pos,scale,mat,rot)=>{const m=shape(name,opts,scene);m.parent=world;m.position.set(...pos);if(scale)m.scaling.set(...scale);if(rot)m.rotation.set(...rot);m.material=mat;return m;};
+      if(idx===0||idx===2){
+        const n=idx===0?"enchanted-palace":"royal-castle";
+        part(n+"-hall",BABYLON.MeshBuilder.CreateBox,{width:2.5,height:.68,depth:.72},[0,4.68,1.55],[1,1,1],stone);
+        part(n+"-roof",BABYLON.MeshBuilder.CreateCylinder,{height:.42,diameterTop:0,diameterBottom:2.9,tessellation:4},[0,5.18,1.55],[1,1,.42],trim,[0,0,Math.PI/4]);
+        for(const x of [-1.42,1.42]){
+          part(n+"-tower",BABYLON.MeshBuilder.CreateCylinder,{height:.82,diameter:.62,tessellation:12},[x,4.82,1.55],[1,1,.82],stone);
+          part(n+"-spire",BABYLON.MeshBuilder.CreateCylinder,{height:.42,diameterTop:0,diameterBottom:.7,tessellation:10},[x,5.42,1.55],[1,1,.82],trim);
+          part(n+"-window",BABYLON.MeshBuilder.CreateSphere,{diameter:.18,segments:12},[x,4.83,1.13],[.72,1,.32],glass);
+        }
+        part(n+"-gate",BABYLON.MeshBuilder.CreateBox,{width:.5,height:.52,depth:.08},[0,4.54,1.12],[1,1,1],dark);
+        part(n+"-gate-ring",BABYLON.MeshBuilder.CreateTorus,{diameter:.64,thickness:.045,tessellation:32},[0,4.75,1.05],[1,.9,1],trim,[Math.PI/2,0,0]);
+      }else if(idx===1){
+        for(const side of [-1,1]){
+          part("crystal-falls-cliff",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.72},[side*1.75,4.83,1.5],[1.15,1.2,.6],stone,[0,0,side*.18]);
+          for(let j=0;j<3;j++)part("falls-spire",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.34},[side*(1.25+j*.4),5.05+(j%2)*.12,1.15],[.65,1.55,.5],trim,[0,0,(j-1)*.2]);
+        }
+      }else if(idx===3){
+        for(let j=0;j<3;j++)part("starlight-bridge-arch",BABYLON.MeshBuilder.CreateTorus,{diameter:1.5+j*.34,thickness:.06,tessellation:40},[0,4.78,1.45+j*.12],[1,.72,1],trim,[Math.PI/2,0,0]);
+        for(let x=-2;x<=2;x++)part("bridge-star",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.13},[x*.62,4.55+Math.sin(x)*.12,1.08],[1,1,.5],glass,[0,0,Math.PI/4]);
+      }else{
+        part("dragon-volcano",BABYLON.MeshBuilder.CreateCylinder,{height:1.25,diameterTop:.12,diameterBottom:2.9,tessellation:7},[0,4.75,1.55],[1,1,.58],stone,[0,0,.08]);
+        part("summit-crystal",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.42},[0,5.25,1.08],[.7,1.35,.55],trim,[0,0,.2]);
+        for(let x=-1;x<=1;x+=2)part("magma-rift",BABYLON.MeshBuilder.CreateBox,{width:.06,height:.72,depth:.035},[x*.6,4.68,1.02],[1,1,1],glass,[0,0,x*.28]);
+      }
+      for(const side of [-1,1]){
+        part("side-rock-wall",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.65},[side*4.68,-.05,1.48],[.78,3.25,.55],stone,[0,0,side*.12]);
+        const water=part("waterfall-ribbon",BABYLON.MeshBuilder.CreatePlane,{width:.38,height:4.15,sideOrientation:BABYLON.Mesh.DOUBLESIDE},[side*4.72,-.05,.98],[1,1,1],glass);
+        waterMeshes.push({mesh:water,phase:side*.8,x:side*4.72});
+        for(let j=0;j<3;j++)part("side-crystal",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.2},[side*(4.24+j*.16),-1.4+j*1.3,.72],[.72,1.5,.6],trim,[0,0,side*.24]);
+        part("floating-island-rock",BABYLON.MeshBuilder.CreateSphere,{diameter:1.15,segments:16},[side*3.52,-4.78,1.35],[1.35,.46,.72],stone);
+        part("floating-island-rim",BABYLON.MeshBuilder.CreateCylinder,{height:.1,diameter:1.02,tessellation:16},[side*3.52,-4.48,1.2],[1,1,.72],trim);
+        for(let j=0;j<3;j++)part("island-crystal",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.16},[side*(3.22+j*.27),-4.3+(j%2)*.1,.78],[.7,1.4,.65],glass);
+      }
+      for(let j=0;j<10;j++)part("sky-star",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.05+(j%3)*.02},[-3.8+(j%5)*1.9,4.08+Math.floor(j/5)*.58,2.05],[1,1,.45],trim,[0,0,Math.PI/4]);
+      worldSets.push(world);
+    });
+    applyKingdomTheme=(index)=>{const active=Math.max(0,Math.min(themes.length-1,index));const theme=themes[active];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],0);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);landmarkSets.forEach((set,i)=>set.setEnabled(i===active));worldSets.forEach((set,i)=>set.setEnabled(i===active));};
     applyKingdomTheme(level-1);
     scene.onBeforeRenderObservable.add(()=>{
       const t=performance.now()*.001;
       ornaments.forEach(o=>{o.mesh.rotation.y=t*o.speed+o.phase;o.mesh.rotation.z=Math.sin(t*.8+o.phase)*.16;o.mesh.position.y=o.baseY+Math.sin(t*1.15+o.phase)*.10;});
       stars.forEach((o,i)=>{o.mesh.position.y=o.baseY+Math.sin(t*1.4+o.phase)*.16;o.mesh.visibility=.45+.55*(.5+.5*Math.sin(t*2+o.phase));});
+      waterMeshes.forEach(w=>{w.mesh.position.x=w.x+Math.sin(t*1.5+w.phase)*.025;w.mesh.scaling.y=1+Math.sin(t*3+w.phase)*.025;});
       companions.forEach(o=>{o.root.position.y=o.baseY+Math.sin(t*o.speed+o.phase)*.09;o.root.rotation.z=Math.sin(t*.9+o.phase)*.055;});
       queenRoot.rotation.y=Math.sin(t*.65)*.12;
       queenArms.forEach(a=>{a.mesh.rotation.z=a.side*.45+Math.sin(t*1.7+a.side)*.14;});
