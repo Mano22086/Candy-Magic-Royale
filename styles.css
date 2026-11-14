@@ -96,3 +96,11 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .queen-art.royal-celebrate,.win-card .map-characters img:first-of-type.royal-celebrate{animation:royalCelebrate 1.25s ease-in-out 2}
 .dragon-art.royal-celebrate,.win-card .map-characters img:last-of-type.royal-celebrate{animation:royalCelebrate 1.1s ease-in-out 2 reverse}
 @media(prefers-reduced-motion:reduce){.royal-react,.royal-super,.royal-celebrate{animation:none!important}}
+
+/* Illustrated royal world map — first major world-art pass */
+.world-map-frame{position:relative;width:100%;margin:14px 0 10px;padding:7px;border-radius:19px;overflow:hidden;background:linear-gradient(145deg,#b78bff66,#ff9bdc33 55%,#70e8ff33);border:1px solid #fbe2ff77;box-shadow:0 12px 28px #10052299,inset 0 1px #fff7}
+.world-map-frame:after{content:"";position:absolute;inset:7px;border:1px solid #fff5;border-radius:13px;pointer-events:none}
+.world-map-art{display:block;width:100%;height:auto;max-height:48svh;object-fit:contain;border-radius:13px;background:#211044}
+.modal-card:has(.world-map-art){width:min(100%,520px);padding:20px 16px}
+.modal-card:has(.world-map-art) .map-route-caption{margin:10px 0 14px}
+@media(max-width:380px){.world-map-frame{padding:5px}.world-map-art{max-height:43svh}.modal-card:has(.world-map-art){padding:18px 12px}}
