@@ -126,16 +126,39 @@
     for(const k of hit){const [r,c]=parse(k);const candy=getCandy(r,c);if(candy){const world=candy.getAbsolutePosition().clone();candyBurst(world,board[r][c],hit.size>=6||!!specials.get(k));candy.dispose();}board[r][c]=null;specials.delete(k);}
     setTimeout(dropAndRefill,150);
   }
+  function animateDrop(mesh,target,duration=22){
+    const a=new BABYLON.Animation("candy-drop","position",30,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+    a.setKeys([{frame:0,value:mesh.position.clone()},{frame:Math.max(1,duration-4),value:new BABYLON.Vector3(target.x,target.y+.12,target.z)},{frame:duration,value:target.clone()}]);
+    const easing=new BABYLON.CubicEase();easing.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEOUT);a.setEasingFunction(easing);
+    mesh.animations=[a];scene.beginAnimation(mesh,0,duration,false,1);
+  }
   function dropAndRefill(){
+    const oldMeshes=new Map(candyMeshes);candyMeshes.clear();
     for(let c=0;c<SIZE;c++){
-      const keep=[];for(let r=SIZE-1;r>=0;r--)if(board[r][c]!==null)keep.push({type:board[r][c],sp:specials.get(key(r,c))});
-      for(let r=0;r<SIZE;r++)specials.delete(key(r,c));
-      let row=SIZE-1;for(const item of keep){board[row][c]=item.type;if(item.sp)specials.set(key(row,c),item.sp);row--;}
-      while(row>=0)board[row--][c]=randType();
+      const keep=[];for(let r=SIZE-1;r>=0;r--)if(board[r][c]!==null)keep.push({type:board[r][c],sp:specials.get(key(r,c)),fromR:r});
+      for(let r=0;r<SIZE;r++){specials.delete(key(r,c));board[r][c]=null;}
+      let row=SIZE-1;
+      for(const item of keep){
+        board[row][c]=item.type;if(item.sp)specials.set(key(row,c),item.sp);
+        const mesh=oldMeshes.get(key(item.fromR,c));
+        if(mesh&&!mesh.isDisposed()){
+          mesh.metadata={r:row,c,type:item.type};candyMeshes.set(key(row,c),mesh);
+          animateDrop(mesh,new BABYLON.Vector3(c-3.5,3.5-row,0),18+Math.min(12,row-item.fromR));
+        }else{
+          const fresh=createCandy(item.type,row,c,item.sp);fresh.parent=boardRoot;animateDrop(fresh,new BABYLON.Vector3(c-3.5,3.5-row,0),18);
+        }
+        row--;
+      }
+      while(row>=0){
+        const type=randType();board[row][c]=type;
+        const fresh=createCandy(type,row,c,null);fresh.parent=boardRoot;
+        fresh.position.y=4.35+(SIZE-1-row)*.08;
+        animateDrop(fresh,new BABYLON.Vector3(c-3.5,3.5-row,0),22+(SIZE-1-row)*2);
+        row--;
+      }
     }
-    for(const m of candyMeshes.values())if(m&&!m.isDisposed())m.dispose();candyMeshes.clear();
-    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)createCandy(board[r][c],r,c,specials.get(key(r,c))).parent=boardRoot;
-    setTimeout(()=>{if(findRuns().length)resolveMatches(null);else{busy=false;updateHud();if(score>=goal())winLevel();else if(moves<=0)toast("No moves left — try again!");}},220);
+    for(const mesh of oldMeshes.values())if(mesh&&!mesh.isDisposed()&&!Array.from(candyMeshes.values()).includes(mesh))mesh.dispose();
+    setTimeout(()=>{if(findRuns().length)resolveMatches(null);else{busy=false;updateHud();if(score>=goal())winLevel();else if(moves<=0)toast("No moves left — try again!");}},850);
   }
   function trySwap(a,b){
     if(busy||moves<=0||score>=goal()||!neighbors(a,b))return;busy=true;selected=null;
