@@ -37,68 +37,56 @@
   function createCandy(type,r,c,special){
     const root=new BABYLON.TransformNode("candy-"+r+"-"+c,scene);
     root.position.set(c-3.5,3.5-r,0);
-    // Soft contact shadow gives each sweet a visible lift above its tile.
-    const shadow=BABYLON.MeshBuilder.CreateSphere("candy-shadow",{diameter:.82,segments:16},scene);
-    shadow.parent=root;shadow.position.set(.055,-.075,.12);shadow.scaling.set(1,.82,.13);
-    const shadowMat=new BABYLON.StandardMaterial("candy-shadow-mat-"+r+"-"+c,scene);
-    shadowMat.diffuseColor=new BABYLON.Color3(.055,.018,.11);shadowMat.emissiveColor=new BABYLON.Color3(.025,.008,.045);shadowMat.alpha=.34;shadow.material=shadowMat;
-    // Six distinct candy silhouettes instead of six identical spheres.
-    let body;
-    if(type===1){
-      body=BABYLON.MeshBuilder.CreateCapsule?BABYLON.MeshBuilder.CreateCapsule("sweet",{height:.88,radius:.34,tessellation:24,subdivisions:8},scene):BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:24},scene);
-      body.rotation.z=Math.PI/2;
-      body.scaling.set(1,.92,.98);
+    const color=BABYLON.Color3.FromHexString(COLORS[type]);
+    const mat=new BABYLON.StandardMaterial("sweet-glaze-"+r+"-"+c,scene);
+    mat.diffuseColor=color;mat.specularColor=new BABYLON.Color3(.95,.9,1);mat.specularPower=96;mat.emissiveColor=color.scale(.12);
+    const pearl=new BABYLON.StandardMaterial("sweet-pearl-"+r+"-"+c,scene);
+    pearl.diffuseColor=new BABYLON.Color3(1,.88,.98);pearl.specularColor=BABYLON.Color3.White();pearl.specularPower=110;
+    const gold=new BABYLON.StandardMaterial("sweet-gold-"+r+"-"+c,scene);
+    gold.diffuseColor=new BABYLON.Color3(1,.72,.22);gold.emissiveColor=new BABYLON.Color3(.22,.1,.015);
+    const add=(name,shape,opts,pos,scale,rot,material=mat)=>{
+      const m=shape(name,opts,scene);m.parent=root;m.position.set(pos[0],pos[1],pos[2]);
+      if(scale)m.scaling.set(scale[0],scale[1],scale[2]);if(rot)m.rotation.set(rot[0],rot[1],rot[2]);m.material=material;return m;
+    };
+    const shadowMat=new BABYLON.StandardMaterial("sweet-shadow-"+r+"-"+c,scene);
+    shadowMat.diffuseColor=new BABYLON.Color3(.035,.012,.075);shadowMat.emissiveColor=new BABYLON.Color3(.018,.006,.035);shadowMat.alpha=.42;
+    add("contact-shadow",BABYLON.MeshBuilder.CreateSphere,{diameter:.86,segments:16},[.045,-.12,.15],[1,.72,.12],null,shadowMat);
+    if(type===0){
+      add("jelly-center",BABYLON.MeshBuilder.CreateSphere,{diameter:.78,segments:28},[0,-.015,0],[1,.82,.86]);
+      add("icing-crown",BABYLON.MeshBuilder.CreateTorus,{diameter:.52,thickness:.095,tessellation:32},[0,.22,-.04],[1,.72,.7],[.12,0,0],pearl);
+      for(let i=0;i<3;i++)add("sugar-pearl",BABYLON.MeshBuilder.CreateSphere,{diameter:.075,segments:10},[-.19+i*.19,.25,-.31],[1,1,.65],null,pearl);
+    }else if(type===1){
+      add("candy-roll",BABYLON.MeshBuilder.CreateSphere,{diameter:.72,segments:28},[0,0,0],[1.18,.68,.82]);
+      for(let i=-1;i<=1;i++)add("sugar-band",BABYLON.MeshBuilder.CreateTorus,{diameter:.57,thickness:.045,tessellation:24},[i*.2,0,-.025],[.72,1,.78],[0,0,Math.PI/2],pearl);
+      add("end-cap-left",BABYLON.MeshBuilder.CreateSphere,{diameter:.2,segments:14},[-.39,0,0],[.72,1,.9],null,pearl);
+      add("end-cap-right",BABYLON.MeshBuilder.CreateSphere,{diameter:.2,segments:14},[.39,0,0],[.72,1,.9],null,pearl);
     }else if(type===2){
-      body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.62,diameterTop:.64,diameterBottom:.78,tessellation:16},scene);
-      body.rotation.z=.12;
-      body.scaling.z=.96;
+      add("cupcake-wrapper",BABYLON.MeshBuilder.CreateCylinder,{height:.48,diameterTop:.48,diameterBottom:.66,tessellation:20},[0,-.12,0],[1,1,.82]);
+      for(let i=0;i<8;i++){const ang=i*Math.PI/4;add("wrapper-ridge",BABYLON.MeshBuilder.CreateBox,{width:.035,height:.38,depth:.025},[Math.cos(ang)*.285,-.12,Math.sin(ang)*.23],[1,1,1],[0,-ang,0],gold);}
+      add("frosting",BABYLON.MeshBuilder.CreateSphere,{diameter:.68,segments:24},[0,.19,-.015],[1,.67,.86],null,pearl);
+      add("frosting-swirl",BABYLON.MeshBuilder.CreateTorus,{diameter:.36,thickness:.09,tessellation:28},[0,.39,-.08],[.82,.82,.72],[.2,0,0]);
+      add("cherry",BABYLON.MeshBuilder.CreateSphere,{diameter:.17,segments:16},[.04,.49,-.17],[1,1,.8],null,gold);
     }else if(type===3){
-      body=BABYLON.MeshBuilder.CreatePolyhedron("sweet",{type:1,size:.48},scene);
-      body.scaling.set(1.02,1.02,.94);
-      body.rotation.z=Math.PI/4;
+      add("crystal-heart",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.48},[0,0,0],[1.02,1.08,.86],[0,0,Math.PI/4]);
+      add("crystal-girdle",BABYLON.MeshBuilder.CreateTorus,{diameter:.61,thickness:.035,tessellation:28},[0,0,-.04],[1,.72,.75],[Math.PI/2,0,0],pearl);
+      add("crystal-tip",BABYLON.MeshBuilder.CreateCylinder,{height:.28,diameterTop:0,diameterBottom:.3,tessellation:6},[0,.36,0],[1,1,.85],[0,0,0],pearl);
     }else if(type===4){
-      body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.76,segments:24},scene);
-      body.scaling.set(.82,1,.92);
-    }else if(type===5){
-      body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.68,diameterTop:.72,diameterBottom:.72,tessellation:12},scene);
-      body.rotation.z=Math.PI/2;
-      body.scaling.z=.82;
+      add("berry-body",BABYLON.MeshBuilder.CreateSphere,{diameter:.76,segments:28},[0,-.015,0],[.82,1.05,.82]);
+      for(let i=0;i<5;i++){const ang=i*Math.PI*2/5;add("berry-leaf",BABYLON.MeshBuilder.CreateSphere,{diameter:.25,segments:12},[Math.cos(ang)*.12,.37,Math.sin(ang)*.09],[.55,.28,.38],[0,0,-.35],gold);}
+      for(let i=0;i<5;i++){const ang=i*2.4;add("sugar-dot",BABYLON.MeshBuilder.CreateSphere,{diameter:.045,segments:8},[Math.cos(ang)*.2,-.03+Math.sin(ang)*.23,-.31],[1,1,.55],null,pearl);}
     }else{
-      body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:28},scene);
-      body.scaling.set(1,.76,.82);
-    }
-    body.parent=root;
-    const candyColor=BABYLON.Color3.FromHexString(COLORS[type]);
-    const mat=new BABYLON.PBRMaterial("candyMat-"+r+"-"+c,scene);
-    mat.albedoColor=candyColor;mat.metallic=.12;mat.roughness=.16;
-    mat.emissiveColor=candyColor.scale(.2);if(mat.clearCoat){mat.clearCoat.isEnabled=true;mat.clearCoat.intensity=.9;mat.clearCoat.roughness=.1;}
-    body.material=mat;
-    // Sugar-glaze highlight and small decorative details.
-    const shine=BABYLON.MeshBuilder.CreateSphere("candy-glint",{diameter:.17,segments:16},scene);
-    shine.parent=root;shine.position.set(-.19,.2,-.31);shine.scaling.set(1.35,.62,.32);
-    const sm=new BABYLON.StandardMaterial("shineMat-"+r+"-"+c,scene);
-    sm.diffuseColor=BABYLON.Color3.White();sm.emissiveColor=new BABYLON.Color3(.55,.55,.55);sm.alpha=.96;shine.material=sm;
-    if(type===0||type===2||type===5){
-      const stripe=BABYLON.MeshBuilder.CreateTorus("sugar-swirl",{diameter:type===5?.58:.66,thickness:.035,tessellation:32},scene);
-      stripe.parent=root;stripe.rotation.x=Math.PI/2;stripe.rotation.y=.45;stripe.position.z=-.025;
-      const stripeMat=new BABYLON.StandardMaterial("sugar-swirl-mat-"+r+"-"+c,scene);
-      stripeMat.emissiveColor=new BABYLON.Color3(1,.9,.98);stripeMat.diffuseColor=new BABYLON.Color3(1,.9,.98);stripeMat.alpha=.8;stripe.material=stripeMat;
-    }
-    if(type===5){
+      add("bonbon-center",BABYLON.MeshBuilder.CreateSphere,{diameter:.62,segments:24},[0,0,0],[.92,.9,.82]);
       for(const side of [-1,1]){
-        const twist=BABYLON.MeshBuilder.CreateCylinder("wrapper-tip",{height:.22,diameterTop:.05,diameterBottom:.23,tessellation:8},scene);
-        twist.parent=root;twist.position.x=side*.39;twist.rotation.z=side*Math.PI/2;
-        twist.material=mat;
+        add("foil-knot",BABYLON.MeshBuilder.CreateSphere,{diameter:.25,segments:14},[side*.39,0,0],[1.25,.58,.68],[0,0,side*.18],pearl);
+        add("foil-tail",BABYLON.MeshBuilder.CreateCylinder,{height:.34,diameterTop:.035,diameterBottom:.22,tessellation:8},[side*.58,0,0],[1,1,.82],[0,0,side*Math.PI/2],mat);
       }
+      add("bonbon-ribbon",BABYLON.MeshBuilder.CreateTorus,{diameter:.5,thickness:.035,tessellation:28},[0,0,-.04],[1,.78,.75],[Math.PI/2,0,0],pearl);
     }
-    if(type===3){
-      const gemHalo=BABYLON.MeshBuilder.CreateTorus("crystal-girdle",{diameter:.66,thickness:.025,tessellation:24},scene);
-      gemHalo.parent=root;gemHalo.rotation.x=Math.PI/2;gemHalo.material=sm;
-    }
+    add("specular-glint",BABYLON.MeshBuilder.CreateSphere,{diameter:.14,segments:14},[-.19,.2,-.32],[1.35,.62,.3],null,pearl);
     if(special){
-      const ring=BABYLON.MeshBuilder.CreateTorus("magic-ring",{diameter:.9,thickness:.06,tessellation:32},scene);ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.z=-.08;
-      const rm=new BABYLON.StandardMaterial("ringMat-"+r+"-"+c,scene);rm.emissiveColor=new BABYLON.Color3(1,.86,.35);rm.diffuseColor=new BABYLON.Color3(1,.86,.35);ring.material=rm;
-      const mark=BABYLON.MeshBuilder.CreateSphere("magic-core",{diameter:.2,segments:16},scene);mark.parent=root;mark.position.z=-.43;mark.material=rm;
+      const ring=add("royal-special-ring",BABYLON.MeshBuilder.CreateTorus,{diameter:.94,thickness:.055,tessellation:36},[0,0,-.08],[1,1,.7],[Math.PI/2,0,0],gold);
+      ring.rotation.y=.3;
+      add("special-star",BABYLON.MeshBuilder.CreatePolyhedron,{type:1,size:.17},[0,0,-.42],[1,1,.45],[0,0,Math.PI/4],gold);
     }
     root.metadata={r,c,type};candyMeshes.set(key(r,c),root);return root;
   }
