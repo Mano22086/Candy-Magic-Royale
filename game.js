@@ -37,14 +37,63 @@
   function createCandy(type,r,c,special){
     const root=new BABYLON.TransformNode("candy-"+r+"-"+c,scene);
     root.position.set(c-3.5,3.5-r,0);
-    const body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:24},scene);body.parent=root;body.scaling.set(1,1,.76);
-    const mat=new BABYLON.PBRMaterial("candyMat-"+r+"-"+c,scene);mat.albedoColor=BABYLON.Color3.FromHexString(COLORS[type]);mat.metallic=.08;mat.roughness=.2;mat.emissiveColor=BABYLON.Color3.FromHexString(COLORS[type]).scale(.12);body.material=mat;
-    const shine=BABYLON.MeshBuilder.CreateSphere("shine",{diameter:.16,segments:12},scene);shine.parent=root;shine.position.set(-.18,.2,-.28);shine.scaling.set(1.35,.7,.35);
-    const sm=new BABYLON.StandardMaterial("shineMat-"+r+"-"+c,scene);sm.diffuseColor=BABYLON.Color3.White();sm.emissiveColor=new BABYLON.Color3(.35,.35,.35);sm.alpha=.9;shine.material=sm;
+    // Six distinct candy silhouettes instead of six identical spheres.
+    let body;
+    if(type===1){
+      body=BABYLON.MeshBuilder.CreateCapsule("sweet",{height:.88,radius:.34,tessellation:24,subdivisions:8},scene);
+      body.rotation.z=Math.PI/2;
+      body.scaling.set(1,.92,.82);
+    }else if(type===2){
+      body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.62,diameterTop:.64,diameterBottom:.78,tessellation:16},scene);
+      body.rotation.z=.12;
+      body.scaling.z=.82;
+    }else if(type===3){
+      body=BABYLON.MeshBuilder.CreatePolyhedron("sweet",{type:1,size:.48},scene);
+      body.scaling.set(1.02,1.02,.78);
+      body.rotation.z=Math.PI/4;
+    }else if(type===4){
+      body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.76,segments:24},scene);
+      body.scaling.set(.82,1,.76);
+    }else if(type===5){
+      body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.68,diameterTop:.72,diameterBottom:.72,tessellation:12},scene);
+      body.rotation.z=Math.PI/2;
+      body.scaling.z=.82;
+    }else{
+      body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:28},scene);
+      body.scaling.set(1,.76,.82);
+    }
+    body.parent=root;
+    const candyColor=BABYLON.Color3.FromHexString(COLORS[type]);
+    const mat=new BABYLON.PBRMaterial("candyMat-"+r+"-"+c,scene);
+    mat.albedoColor=candyColor;mat.metallic=.12;mat.roughness=.16;
+    mat.emissiveColor=candyColor.scale(.16);mat.clearCoat.isEnabled=true;mat.clearCoat.intensity=.8;mat.clearCoat.roughness=.12;
+    body.material=mat;
+    // Sugar-glaze highlight and small decorative details.
+    const shine=BABYLON.MeshBuilder.CreateSphere("candy-glint",{diameter:.17,segments:16},scene);
+    shine.parent=root;shine.position.set(-.19,.2,-.31);shine.scaling.set(1.35,.62,.32);
+    const sm=new BABYLON.StandardMaterial("shineMat-"+r+"-"+c,scene);
+    sm.diffuseColor=BABYLON.Color3.White();sm.emissiveColor=new BABYLON.Color3(.55,.55,.55);sm.alpha=.96;shine.material=sm;
+    if(type===0||type===2||type===5){
+      const stripe=BABYLON.MeshBuilder.CreateTorus("sugar-swirl",{diameter:type===5?.58:.66,thickness:.035,tessellation:32},scene);
+      stripe.parent=root;stripe.rotation.x=Math.PI/2;stripe.rotation.y=.45;stripe.position.z=-.025;
+      const stripeMat=new BABYLON.StandardMaterial("sugar-swirl-mat-"+r+"-"+c,scene);
+      stripeMat.emissiveColor=new BABYLON.Color3(1,.9,.98);stripeMat.diffuseColor=new BABYLON.Color3(1,.9,.98);stripeMat.alpha=.8;stripe.material=stripeMat;
+    }
+    if(type===5){
+      for(const side of [-1,1]){
+        const twist=BABYLON.MeshBuilder.CreateCylinder("wrapper-tip",{height:.22,diameterTop:.05,diameterBottom:.23,tessellation:8},scene);
+        twist.parent=root;twist.position.x=side*.39;twist.rotation.z=side*Math.PI/2;
+        twist.material=mat;
+      }
+    }
+    if(type===3){
+      const gemHalo=BABYLON.MeshBuilder.CreateTorus("crystal-girdle",{diameter:.66,thickness:.025,tessellation:24},scene);
+      gemHalo.parent=root;gemHalo.rotation.x=Math.PI/2;gemHalo.material=sm;
+    }
     if(special){
-      const ring=BABYLON.MeshBuilder.CreateTorus("magic-ring",{diameter:.83,thickness:.055,tessellation:24},scene);ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.z=-.04;
+      const ring=BABYLON.MeshBuilder.CreateTorus("magic-ring",{diameter:.9,thickness:.06,tessellation:32},scene);ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.z=-.08;
       const rm=new BABYLON.StandardMaterial("ringMat-"+r+"-"+c,scene);rm.emissiveColor=new BABYLON.Color3(1,.86,.35);rm.diffuseColor=new BABYLON.Color3(1,.86,.35);ring.material=rm;
-      const mark=BABYLON.MeshBuilder.CreateSphere("magic-core",{diameter:.19,segments:12},scene);mark.parent=root;mark.position.z=-.43;mark.material=rm;
+      const mark=BABYLON.MeshBuilder.CreateSphere("magic-core",{diameter:.2,segments:16},scene);mark.parent=root;mark.position.z=-.43;mark.material=rm;
     }
     root.metadata={r,c,type};candyMeshes.set(key(r,c),root);return root;
   }
@@ -53,8 +102,10 @@
     const back=BABYLON.MeshBuilder.CreateBox("board-back",{width:8.45,height:8.45,depth:.35},scene);back.parent=boardRoot;back.position.z=.22;
     const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.18,.08,.32);bm.emissiveColor=new BABYLON.Color3(.08,.025,.15);back.material=bm;
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-      const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.94,height:.94,depth:.12},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,0);
-      const tm=new BABYLON.StandardMaterial("tileMat-"+r+"-"+c,scene);tm.diffuseColor=new BABYLON.Color3(.38,.22,.55);tm.alpha=.62;tile.material=tm;
+      const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.94,height:.94,depth:.16},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,0);
+      const tm=new BABYLON.PBRMaterial("tileMat-"+r+"-"+c,scene);tm.albedoColor=new BABYLON.Color3(.31,.17,.49);tm.metallic=.22;tm.roughness=.3;tm.alpha=.78;tm.emissiveColor=new BABYLON.Color3(.055,.025,.10);tile.material=tm;
+      const rim=BABYLON.MeshBuilder.CreateBox("tile-rim",{width:.985,height:.985,depth:.055},scene);rim.parent=boardRoot;rim.position.set(c-3.5,3.5-r,.105);
+      const rimMat=new BABYLON.StandardMaterial("tile-rim-mat-"+r+"-"+c,scene);rimMat.diffuseColor=new BABYLON.Color3(.72,.48,.92);rimMat.emissiveColor=new BABYLON.Color3(.12,.055,.2);rimMat.alpha=.42;rim.material=rimMat;
     }
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)createCandy(board[r][c],r,c,specials.get(key(r,c))).parent=boardRoot;
   }
@@ -233,6 +284,13 @@
       const t=performance.now()*.001;
       ornaments.forEach(o=>{o.mesh.rotation.y=t*o.speed+o.phase;o.mesh.rotation.z=Math.sin(t*.8+o.phase)*.16;o.mesh.position.y=o.baseY+Math.sin(t*1.15+o.phase)*.10;});
       stars.forEach((o,i)=>{o.mesh.position.y=o.baseY+Math.sin(t*1.4+o.phase)*.16;o.mesh.visibility=.45+.55*(.5+.5*Math.sin(t*2+o.phase));});
+      // Gentle living motion keeps every candy visibly glossy and alive.
+      for(const candy of candyMeshes.values()){
+        if(!candy||candy.isDisposed())continue;
+        const md=candy.metadata||{};
+        candy.rotation.y=Math.sin(t*1.25+md.r*.7+md.c*.45)*.075;
+        candy.rotation.z=Math.sin(t*1.7+md.r+md.c)*.022;
+      }
     });
   }
   function init(){
