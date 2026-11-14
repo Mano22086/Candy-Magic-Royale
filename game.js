@@ -321,7 +321,7 @@
           star.parent=cluster;star.position.y=.32;star.rotation.z=Math.PI/4;star.material=solid;
         }
         cluster.rotation.y=i*Math.PI/2;
-        ornaments.push({mesh:cluster,phase:i*.8,speed:i%2?.22:-.18,baseY:y});
+        ornaments.push({mesh:cluster,phase:i*.8,speed:i%2?.22:-.18,baseY:0});
       });
       return root;
     });
