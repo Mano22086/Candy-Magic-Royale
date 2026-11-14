@@ -149,6 +149,37 @@
   }
   function restart(){startLevel(level);}
   function shuffle(){if(busy||moves<=0)return;makeInitialBoard();for(const m of candyMeshes.values())if(m&&!m.isDisposed())m.dispose();drawBoard();toast("Candies shuffled!");}
+  function createKingdomAmbience(){
+    // Small 3D set dressing around the board: floating crystals and drifting star motes.
+    const crystalMat=new BABYLON.StandardMaterial("kingdomCrystalMat",scene);
+    crystalMat.diffuseColor=new BABYLON.Color3(.55,.28,.9);
+    crystalMat.emissiveColor=new BABYLON.Color3(.32,.12,.62);
+    crystalMat.specularColor=new BABYLON.Color3(.9,.75,1);
+    const goldMat=new BABYLON.StandardMaterial("kingdomStarMat",scene);
+    goldMat.emissiveColor=new BABYLON.Color3(1,.65,.86);
+    goldMat.diffuseColor=new BABYLON.Color3(1,.75,.9);
+    const ornaments=[];
+    const crystalSpots=[[-4.65,3.5,.65],[-4.65,-3.5,.65],[4.65,3.5,.65],[4.65,-3.5,.65],[-4.55,0,.65],[4.55,0,.65]];
+    crystalSpots.forEach((p,i)=>{
+      const gem=BABYLON.MeshBuilder.CreatePolyhedron("kingdom-crystal-"+i,{type:1,size:.34},scene);
+      gem.position.set(p[0],p[1],p[2]);gem.material=crystalMat;
+      ornaments.push({mesh:gem,phase:i*.9,speed:i%2?.55:-.42,baseY:p[1]});
+      const halo=BABYLON.MeshBuilder.CreateTorus("crystal-halo-"+i,{diameter:.58,thickness:.018,tessellation:24},scene);
+      halo.position.copyFrom(gem.position);halo.rotation.x=Math.PI/2;halo.material=goldMat;
+      ornaments.push({mesh:halo,phase:i*.9,speed:i%2?-.35:.3,baseY:p[1]});
+    });
+    const stars=[];
+    for(let i=0;i<18;i++){
+      const star=BABYLON.MeshBuilder.CreateSphere("kingdom-mote-"+i,{diameter:.045+(i%3)*.018,segments:8},scene);
+      star.position.set(-4.45+(i%6)*1.78,-3.9+Math.floor(i/6)*3.9,.78);
+      star.material=goldMat;stars.push({mesh:star,phase:i*.7,baseY:star.position.y});
+    }
+    scene.onBeforeRenderObservable.add(()=>{
+      const t=performance.now()*.001;
+      ornaments.forEach(o=>{o.mesh.rotation.y=t*o.speed+o.phase;o.mesh.rotation.z=Math.sin(t*.8+o.phase)*.16;o.mesh.position.y=o.baseY+Math.sin(t*1.15+o.phase)*.10;});
+      stars.forEach((o,i)=>{o.mesh.position.y=o.baseY+Math.sin(t*1.4+o.phase)*.16;o.mesh.visibility=.45+.55*(.5+.5*Math.sin(t*2+o.phase));});
+    });
+  }
   function init(){
     unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem("cmr-unlocked")||1)));
     engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
@@ -158,6 +189,7 @@
     const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
     const keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
     const rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
+    createKingdomAmbience();
     makeInitialBoard();drawBoard();canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointerup",pointerUp);canvas.addEventListener("pointercancel",()=>pointerStart=null);
     engine.runRenderLoop(()=>scene.render());window.addEventListener("resize",()=>engine.resize());
     $("storyText").textContent=levelData().story;updateHud();buildMap();setTimeout(()=>loading.classList.add("hidden"),350);
