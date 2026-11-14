@@ -82,3 +82,17 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .map-level.locked strong{border-color:#a58bb9;background:#46325d;color:#c9b8da}
 @media(max-width:380px){.hero{min-height:128px;padding:16px 9px}.hero-copy{max-width:68%}.hero .subtitle{font-size:11px}.royal-characters{min-width:105px}.character-art{width:57px;height:69px}.dragon-art{width:62px;height:64px}}
 @media(prefers-reduced-motion:reduce){.hero:after{opacity:.35}}
+
+
+/* Character reactions tied to actual gameplay events */
+@keyframes queenReact{0%,100%{transform:translateY(0) rotate(0) scale(1)}22%{transform:translateY(-13px) rotate(-9deg) scale(1.08)}48%{transform:translateY(1px) rotate(7deg) scale(.98)}72%{transform:translateY(-5px) rotate(-3deg) scale(1.03)}}
+@keyframes dragonReact{0%,100%{transform:translateY(0) rotate(0) scale(1)}18%{transform:translateY(-16px) rotate(10deg) scale(1.1)}42%{transform:translateY(0) rotate(-9deg) scale(.96)}68%{transform:translateY(-8px) rotate(5deg) scale(1.05)}}
+@keyframes royalSuper{0%,100%{transform:translateY(0) scale(1) rotate(0)}15%{transform:translateY(-20px) scale(1.16) rotate(-10deg)}35%{transform:translateY(2px) scale(.94) rotate(9deg)}58%{transform:translateY(-13px) scale(1.1) rotate(-6deg)}80%{transform:translateY(0) scale(1) rotate(3deg)}}
+@keyframes royalCelebrate{0%,100%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(-22px) rotate(-12deg) scale(1.18)}45%{transform:translateY(0) rotate(10deg) scale(.96)}70%{transform:translateY(-14px) rotate(-7deg) scale(1.12)}}
+.queen-art.royal-react,.win-card .map-characters img:first-of-type.royal-react{animation:queenReact .72s cubic-bezier(.2,.8,.2,1)}
+.dragon-art.royal-react,.win-card .map-characters img:last-of-type.royal-react{animation:dragonReact .78s cubic-bezier(.2,.8,.2,1)}
+.queen-art.royal-super,.win-card .map-characters img:first-of-type.royal-super{animation:royalSuper 1s ease-in-out}
+.dragon-art.royal-super,.win-card .map-characters img:last-of-type.royal-super{animation:royalSuper 1.05s ease-in-out reverse}
+.queen-art.royal-celebrate,.win-card .map-characters img:first-of-type.royal-celebrate{animation:royalCelebrate 1.25s ease-in-out 2}
+.dragon-art.royal-celebrate,.win-card .map-characters img:last-of-type.royal-celebrate{animation:royalCelebrate 1.1s ease-in-out 2 reverse}
+@media(prefers-reduced-motion:reduce){.royal-react,.royal-super,.royal-celebrate{animation:none!important}}
