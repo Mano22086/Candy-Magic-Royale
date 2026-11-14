@@ -53,3 +53,32 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .map-characters img:last-of-type{animation:dragonIdle 1.9s ease-in-out infinite}
 .win-card .map-characters img{animation-duration:2.4s,3.2s}
 @media(prefers-reduced-motion:reduce){.queen-art,.dragon-art,.map-characters img,.map-characters img:first-of-type,.map-characters img:last-of-type{animation:none!important}}
+
+
+/* Visual direction: a storybook kingdom surrounding the playable board */
+.hero{position:relative;isolation:isolate;min-height:142px;padding:20px 12px 16px;margin:14px 0 10px;border:1px solid #f9d7ff35;border-radius:20px;overflow:hidden;background:linear-gradient(90deg,#241044ed 0%,#321653d9 54%,#32165377 100%),url("./assets/enchanted-kingdom.svg") center 42%/cover no-repeat;box-shadow:inset 0 1px #fff3,0 10px 26px #09031e66}
+.hero:after{content:"";position:absolute;z-index:-1;inset:auto 0 0;height:3px;background:linear-gradient(90deg,transparent,#ff9ee6,#ffe7a0,#a8eaff,transparent);opacity:.8}
+.hero-copy{max-width:66%;position:relative;z-index:2}
+.hero .subtitle{max-width:340px;text-shadow:0 2px 5px #16072d}
+.hero .eyebrow{font-size:9px}
+.royal-characters{position:relative;z-index:2;min-width:126px}
+.character-art{filter:drop-shadow(0 7px 9px #130625cc)}
+.hud-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#6b3e98d9,#2b174fef);border-color:#f5d8ff38}
+.hud-card:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,#fff2,transparent 42%)}
+.board-wrap{background:linear-gradient(145deg,#70499a66,#21113fdd 72%);border-color:#f4d7ff55;box-shadow:0 16px 38px #07021788,inset 0 1px #fff4}
+.canvas-frame{background:radial-gradient(ellipse at 50% 0%,#b56be5 0,#6a36a1 48%,#32145f 100%);border:2px solid #d89cff55;box-shadow:inset 0 0 0 7px #2b1254,inset 0 0 34px #ffb8f233,0 9px 22px #0a031d88}
+.board-heading{font-size:12px}
+.special-legend{color:#ffe8b0}
+.modal-card{background:linear-gradient(155deg,#70439d,#35185f 55%,#1e103e);border-color:#f7d9ff66}
+.castle-banner{max-height:220px;object-position:center 48%;box-shadow:0 8px 22px #12062588}
+.map-route-caption{margin:8px 0 12px;color:#ffdbf5;font-size:9px;font-weight:700;letter-spacing:2.2px}
+.map-levels{position:relative;grid-template-columns:1fr;gap:10px;padding:4px 10px 8px}
+.map-levels:before{content:"";position:absolute;top:12px;bottom:12px;left:31px;width:3px;border-radius:5px;background:linear-gradient(#ffe7a0,#ff91d9,#9ceaff);box-shadow:0 0 12px #ff9de8aa}
+.map-level{position:relative;z-index:1;min-height:56px;border-radius:17px;background:linear-gradient(100deg,#ffffff1b,#ffffff09);border-color:#ffffff36;box-shadow:0 5px 13px #14072b66}
+.map-level:nth-child(even){margin-left:24px}
+.map-level strong{width:39px;height:39px;border:2px solid #ffe4a5;background:linear-gradient(145deg,#9d68c8,#49236f);box-shadow:0 0 14px #ffb4e766;color:#fff4c4;font-size:13px}
+.map-level span{font-size:12px;font-weight:600}
+.map-level.unlocked{background:linear-gradient(100deg,#b45acb88,#54327aaa);border-color:#ffd9f2aa}
+.map-level.locked strong{border-color:#a58bb9;background:#46325d;color:#c9b8da}
+@media(max-width:380px){.hero{min-height:128px;padding:16px 9px}.hero-copy{max-width:68%}.hero .subtitle{font-size:11px}.royal-characters{min-width:105px}.character-art{width:57px;height:69px}.dragon-art{width:62px;height:64px}}
+@media(prefers-reduced-motion:reduce){.hero:after{opacity:.35}}
