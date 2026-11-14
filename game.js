@@ -230,7 +230,7 @@
     engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer:false, stencil:true, antialias:true, powerPreference:"high-performance" });
     scene = new BABYLON.Scene(engine);
     scene.clearColor = new BABYLON.Color4(0.12,0.055,0.22,1);
-    camera = new BABYLON.ArcRotateCamera("camera", -Math.PI/2, 0.12, 10.8, new BABYLON.Vector3(0,0,0), scene);
+    camera = new BABYLON.ArcRotateCamera("camera", -Math.PI/2, Math.PI/2 - 0.12, 10.8, new BABYLON.Vector3(0,0,0), scene);
     camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
     camera.attachControl(canvas, false);
     const resizeCamera=()=>{
