@@ -40,7 +40,7 @@
     // Six distinct candy silhouettes instead of six identical spheres.
     let body;
     if(type===1){
-      body=BABYLON.MeshBuilder.CreateCapsule("sweet",{height:.88,radius:.34,tessellation:24,subdivisions:8},scene);
+      body=BABYLON.MeshBuilder.CreateCapsule?BABYLON.MeshBuilder.CreateCapsule("sweet",{height:.88,radius:.34,tessellation:24,subdivisions:8},scene):BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:24},scene);
       body.rotation.z=Math.PI/2;
       body.scaling.set(1,.92,.82);
     }else if(type===2){
@@ -66,7 +66,7 @@
     const candyColor=BABYLON.Color3.FromHexString(COLORS[type]);
     const mat=new BABYLON.PBRMaterial("candyMat-"+r+"-"+c,scene);
     mat.albedoColor=candyColor;mat.metallic=.12;mat.roughness=.16;
-    mat.emissiveColor=candyColor.scale(.16);mat.clearCoat.isEnabled=true;mat.clearCoat.intensity=.8;mat.clearCoat.roughness=.12;
+    mat.emissiveColor=candyColor.scale(.2);if(mat.clearCoat){mat.clearCoat.isEnabled=true;mat.clearCoat.intensity=.9;mat.clearCoat.roughness=.1;}
     body.material=mat;
     // Sugar-glaze highlight and small decorative details.
     const shine=BABYLON.MeshBuilder.CreateSphere("candy-glint",{diameter:.17,segments:16},scene);
@@ -263,6 +263,8 @@
     goldMat.emissiveColor=new BABYLON.Color3(1,.65,.86);
     goldMat.diffuseColor=new BABYLON.Color3(1,.75,.9);
     const ornaments=[];
+    // Soft bloom makes candy glaze, crystals and magic particles read as luminous.
+    try{const glowLayer=new BABYLON.GlowLayer("royal-glow",scene,{blurKernelSize:32});glowLayer.intensity=.55;}catch(glowError){console.warn("Glow layer unavailable",glowError);}
     const crystalSpots=[[-4.25,3.55,.65],[-4.25,-3.55,.65],[4.25,3.55,.65],[4.25,-3.55,.65],[-4.28,0,.65],[4.28,0,.65]];
     crystalSpots.forEach((p,i)=>{
       const gem=BABYLON.MeshBuilder.CreatePolyhedron("kingdom-crystal-"+i,{type:1,size:.34},scene);
@@ -385,6 +387,7 @@
     });
   }
   function init(){
+    try{
     unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem("cmr-unlocked")||1)));
     engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
     scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,1);
@@ -397,6 +400,7 @@
     makeInitialBoard();drawBoard();canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointerup",pointerUp);canvas.addEventListener("pointercancel",()=>pointerStart=null);
     engine.runRenderLoop(()=>scene.render());window.addEventListener("resize",()=>engine.resize());
     $("storyText").textContent=levelData().story;updateHud();buildMap();setTimeout(()=>loading.classList.add("hidden"),350);
+    }catch(error){console.error("Candy Magic Royale startup failed:",error);loading.textContent="Magic is loading — "+(error&&error.message?error.message:"3D setup error");loading.classList.remove("hidden");}
   }
   $("restartButton").addEventListener("click",restart);$("shuffleButton").addEventListener("click",shuffle);
   $("mapButton").addEventListener("click",()=>{$("mapOverlay").classList.add("open");buildMap();});
