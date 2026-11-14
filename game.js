@@ -265,9 +265,17 @@
   }
   function pickCell(p){
     const ray=scene.createPickingRay(p.x,p.y,BABYLON.Matrix.Identity(),camera);
-    const hit=scene.pickWithRay(ray,m=>m&&m.name==="sweet");
-    if(!hit||!hit.hit||!hit.pickedMesh||!hit.pickedMesh.parent)return null;
-    const md=hit.pickedMesh.parent.metadata;return md?{r:md.r,c:md.c}:null;
+    // Candy pieces use different mesh names; imported models may be nested.
+    const hit=scene.pickWithRay(ray,m=>{
+      if(!m||!m.isEnabled()||!m.isVisible||m.visibility===0||!m.isPickable)return false;
+      let node=m;
+      while(node){if(node.metadata&&Number.isInteger(node.metadata.r)&&Number.isInteger(node.metadata.c))return true;node=node.parent;}
+      return false;
+    });
+    if(!hit||!hit.hit||!hit.pickedMesh)return null;
+    let node=hit.pickedMesh;
+    while(node&&!(node.metadata&&Number.isInteger(node.metadata.r)&&Number.isInteger(node.metadata.c)))node=node.parent;
+    return node?{r:node.metadata.r,c:node.metadata.c}:null;
   }
   function pointerDown(e){if(busy)return;const rect=canvas.getBoundingClientRect();pointerStart={x:e.clientX-rect.left,y:e.clientY-rect.top,cell:null};pointerStart.cell=pickCell(new BABYLON.Vector2(pointerStart.x/canvas.clientWidth*engine.getRenderWidth(),pointerStart.y/canvas.clientHeight*engine.getRenderHeight()));}
   function pointerUp(e){
