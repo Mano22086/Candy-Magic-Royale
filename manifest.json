@@ -1,0 +1,16 @@
+{
+  "name": "Candy Magic Royale",
+  "short_name": "CandyRoyale",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#2e1065",
+  "icons": [
+    {
+      "src": "./assets/watermarked_img_2374867353730756165.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
