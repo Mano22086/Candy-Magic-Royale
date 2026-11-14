@@ -95,6 +95,13 @@
     if(chosen){hit.delete(chosen.cell);specials.set(chosen.cell,chosen.type);return chosen;}
     return null;
   }
+  function reactCharacters(kind="match"){
+    document.querySelectorAll(".queen-art,.dragon-art,.win-card .map-characters img").forEach(el=>{
+      el.classList.remove("royal-react","royal-celebrate","royal-super");
+      void el.offsetWidth;
+      el.classList.add(kind==="win"?"royal-celebrate":kind==="big"?"royal-super":"royal-react");
+    });
+  }
   function candyBurst(position,type,big){
     const color=BABYLON.Color3.FromHexString(COLORS[type]||'#ffe28a');
     const count=big?9:5;
@@ -119,6 +126,7 @@
   function resolveMatches(anchor,forcedKeys){
     const runs=findRuns();const hit=matchSet(runs);(forcedKeys||[]).forEach(k=>hit.add(k));if(!hit.size){busy=false;return;}
     const created=(forcedKeys&&forcedKeys.length)?null:createSpecialFromRuns(runs,hit,anchor);
+    reactCharacters(hit.size>=6?"big":"match");
     expandSpecials(hit);
     const points=hit.size*60+(hit.size>6?150:0);score+=points;updateHud();
     if(created)toast(created.type==="color"?"Rainbow Candy created! 🌈":"Magic Stripe created! ✨");
@@ -184,7 +192,7 @@
   }
   function startLevel(n){level=Math.max(1,Math.min(LEVELS.length,n));applyKingdomTheme(level-1);score=0;moves=levelData().moves;busy=false;selected=null;makeInitialBoard();drawBoard();updateHud();$("storyText").textContent=levelData().story;$("mapOverlay").classList.remove("open");toast("Level "+level+" — "+levelData().place);}
   function winLevel(){
-    if(busy===false&&score>=goal()){busy=true;unlocked=Math.max(unlocked,Math.min(LEVELS.length,level+1));localStorage.setItem("cmr-unlocked",String(unlocked));$("winTitle").textContent="Level "+level+" restored!";$("winMessage").textContent="Queen Luma and the Dragon Prince thank you for bringing magic back to "+levelData().place+"."; $("winOverlay").classList.add("open");}
+    if(busy===false&&score>=goal()){reactCharacters("win");busy=true;unlocked=Math.max(unlocked,Math.min(LEVELS.length,level+1));localStorage.setItem("cmr-unlocked",String(unlocked));$("winTitle").textContent="Level "+level+" restored!";$("winMessage").textContent="Queen Luma and the Dragon Prince thank you for bringing magic back to "+levelData().place+"."; $("winOverlay").classList.add("open");}
   }
   function nextLevel(){if(level<LEVELS.length)startLevel(level+1);else{ $("winOverlay").classList.remove("open");$("mapOverlay").classList.add("open");buildMap();}}
   function buildMap(){
