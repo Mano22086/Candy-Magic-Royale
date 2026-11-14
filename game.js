@@ -37,23 +37,28 @@
   function createCandy(type,r,c,special){
     const root=new BABYLON.TransformNode("candy-"+r+"-"+c,scene);
     root.position.set(c-3.5,3.5-r,0);
+    // Soft contact shadow gives each sweet a visible lift above its tile.
+    const shadow=BABYLON.MeshBuilder.CreateSphere("candy-shadow",{diameter:.82,segments:16},scene);
+    shadow.parent=root;shadow.position.set(.055,-.075,.12);shadow.scaling.set(1,.82,.13);
+    const shadowMat=new BABYLON.StandardMaterial("candy-shadow-mat-"+r+"-"+c,scene);
+    shadowMat.diffuseColor=new BABYLON.Color3(.055,.018,.11);shadowMat.emissiveColor=new BABYLON.Color3(.025,.008,.045);shadowMat.alpha=.34;shadow.material=shadowMat;
     // Six distinct candy silhouettes instead of six identical spheres.
     let body;
     if(type===1){
       body=BABYLON.MeshBuilder.CreateCapsule?BABYLON.MeshBuilder.CreateCapsule("sweet",{height:.88,radius:.34,tessellation:24,subdivisions:8},scene):BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:24},scene);
       body.rotation.z=Math.PI/2;
-      body.scaling.set(1,.92,.82);
+      body.scaling.set(1,.92,.98);
     }else if(type===2){
       body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.62,diameterTop:.64,diameterBottom:.78,tessellation:16},scene);
       body.rotation.z=.12;
-      body.scaling.z=.82;
+      body.scaling.z=.96;
     }else if(type===3){
       body=BABYLON.MeshBuilder.CreatePolyhedron("sweet",{type:1,size:.48},scene);
-      body.scaling.set(1.02,1.02,.78);
+      body.scaling.set(1.02,1.02,.94);
       body.rotation.z=Math.PI/4;
     }else if(type===4){
       body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.76,segments:24},scene);
-      body.scaling.set(.82,1,.76);
+      body.scaling.set(.82,1,.92);
     }else if(type===5){
       body=BABYLON.MeshBuilder.CreateCylinder("sweet",{height:.68,diameterTop:.72,diameterBottom:.72,tessellation:12},scene);
       body.rotation.z=Math.PI/2;
@@ -99,7 +104,7 @@
   }
   function drawBoard(){
     if(boardRoot)boardRoot.dispose();candyMeshes.clear();boardRoot=new BABYLON.TransformNode("boardRoot",scene);
-    const back=BABYLON.MeshBuilder.CreateBox("board-back",{width:8.45,height:8.45,depth:.35},scene);back.parent=boardRoot;back.position.z=.22;
+    const back=BABYLON.MeshBuilder.CreateBox("board-back",{width:8.45,height:8.45,depth:.58},scene);back.parent=boardRoot;back.position.z=.22;
     const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.18,.08,.32);bm.emissiveColor=new BABYLON.Color3(.08,.025,.15);back.material=bm;
     // A luminous royal frame sits behind the playable grid, like a jeweled game board.
     const frameMat=new BABYLON.StandardMaterial("royal-frame-gold",scene);frameMat.diffuseColor=new BABYLON.Color3(1,.66,.88);frameMat.emissiveColor=new BABYLON.Color3(.38,.12,.3);frameMat.specularColor=new BABYLON.Color3(1,.9,1);
@@ -107,9 +112,9 @@
     const innerFrame=BABYLON.MeshBuilder.CreateTorus("royal-board-inner-frame",{diameter:8.58,thickness:.025,tessellation:96},scene);innerFrame.parent=boardRoot;innerFrame.position.z=.47;innerFrame.material=frameMat;
     for(const x of [-4.28,4.28])for(const y of [-4.28,4.28]){const jewel=BABYLON.MeshBuilder.CreatePolyhedron("frame-jewel",{type:1,size:.16},scene);jewel.parent=boardRoot;jewel.position.set(x,y,.45);jewel.material=frameMat;jewel.rotation.z=Math.PI/4;}
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-      const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.94,height:.94,depth:.16},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,0);
+      const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.92,height:.92,depth:.25},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,.045);
       const tm=new BABYLON.PBRMaterial("tileMat-"+r+"-"+c,scene);tm.albedoColor=new BABYLON.Color3(.31,.17,.49);tm.metallic=.22;tm.roughness=.3;tm.alpha=.78;tm.emissiveColor=new BABYLON.Color3(.055,.025,.10);tile.material=tm;
-      const rim=BABYLON.MeshBuilder.CreateBox("tile-rim",{width:.985,height:.985,depth:.055},scene);rim.parent=boardRoot;rim.position.set(c-3.5,3.5-r,.105);
+      const rim=BABYLON.MeshBuilder.CreateBox("tile-rim",{width:.99,height:.99,depth:.075},scene);rim.parent=boardRoot;rim.position.set(c-3.5,3.5-r,.19);
       const rimMat=new BABYLON.StandardMaterial("tile-rim-mat-"+r+"-"+c,scene);rimMat.diffuseColor=new BABYLON.Color3(.72,.48,.92);rimMat.emissiveColor=new BABYLON.Color3(.12,.055,.2);rimMat.alpha=.42;rim.material=rimMat;
     }
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)createCandy(board[r][c],r,c,specials.get(key(r,c))).parent=boardRoot;
@@ -400,7 +405,7 @@
     unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem("cmr-unlocked")||1)));
     engine=new BABYLON.Engine(canvas,true,{alpha:true,preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
     scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,0);
-    camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.12,10.8,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.inputs.clear();
+    camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.34,12.4,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.inputs.clear();
     const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),halfWidth=5.35;camera.orthoLeft=-halfWidth;camera.orthoRight=halfWidth;camera.orthoTop=halfWidth/Math.max(.45,aspect);camera.orthoBottom=-camera.orthoTop;};resize();scene.onBeforeRenderObservable.add(resize);
     const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
     keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
