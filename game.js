@@ -61,7 +61,7 @@
     root.position.set(c-3.5,3.5-r,0);
     if(royalCandyTemplates.length){
       const source=royalCandyTemplates[type%royalCandyTemplates.length];
-      const model=source.clone("royal-candy-"+r+"-"+c,null,true);
+      const model=source.clone("royal-candy-"+r+"-"+c,null,false);
       if(model){
         model.setEnabled(true);model.parent=root;
         const meshes=[model,...(model.getChildMeshes?model.getChildMeshes(false):[])].filter(m=>m.getBoundingInfo);
