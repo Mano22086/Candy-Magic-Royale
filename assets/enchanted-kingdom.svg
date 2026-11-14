@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+<title id="title">Enchanted Kingdom of Sweets</title><desc id="desc">A glowing purple fantasy candy kingdom with a royal castle, crystal waterfalls, candy trees, stars and a winding magical path.</desc>
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#21104d"/><stop offset=".58" stop-color="#64349a"/><stop offset="1" stop-color="#f08acb"/></linearGradient>
+ <linearGradient id="hill" x2="0" y2="1"><stop stop-color="#a45bce"/><stop offset="1" stop-color="#38206f"/></linearGradient>
+ <linearGradient id="tower" x2="0" y2="1"><stop stop-color="#f5c4ff"/><stop offset=".5" stop-color="#a66be4"/><stop offset="1" stop-color="#55328d"/></linearGradient>
+ <linearGradient id="path" x2="0" y2="1"><stop stop-color="#ffe9a1"/><stop offset="1" stop-color="#ff8bd4"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#fff7c9" stop-opacity=".9"/><stop offset="1" stop-color="#ffb8f2" stop-opacity="0"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+ <filter id="shadow"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>
+<rect width="1200" height="620" fill="url(#sky)"/>
+<circle cx="910" cy="125" r="150" fill="url(#glow)"/><circle cx="910" cy="125" r="54" fill="#ffe9c7" opacity=".9"/>
+<g fill="#fff3ff"><circle cx="95" cy="90" r="3"/><circle cx="190" cy="170" r="2"/><circle cx="330" cy="70" r="3"/><circle cx="470" cy="145" r="2"/><circle cx="610" cy="65" r="3"/><circle cx="750" cy="185" r="2"/><circle cx="1080" cy="235" r="3"/><circle cx="1140" cy="70" r="2"/></g>
+<g fill="#ffd9f7" opacity=".8"><path d="M145 205l8 20 20 8-20 8-8 20-8-20-20-8 20-8z"/><path d="M1040 285l6 15 15 6-15 6-6 15-6-15-15-6 15-6z"/><path d="M570 235l5 12 12 5-12 5-5 12-5-12-12-5 12-5z"/></g>
+<ellipse cx="600" cy="560" rx="620" ry="100" fill="#24134f" opacity=".5"/>
+<path d="M0 450Q170 345 335 440T670 420T1200 400V620H0Z" fill="#59328d" opacity=".75"/>
+<path d="M0 500Q180 400 360 485T720 455T1200 470V620H0Z" fill="url(#hill)"/>
+<!-- distant candy forest -->
+<g opacity=".9">
+ <g transform="translate(85 350)"><path d="M0 95V25" stroke="#6b3b8e" stroke-width="18"/><circle cy="5" r="55" fill="#ff9bd7"/><circle cx="-28" cy="-17" r="24" fill="#ffd1ef"/><circle cx="24" cy="-23" r="25" fill="#e77bc9"/></g>
+ <g transform="translate(1080 350)"><path d="M0 95V25" stroke="#6b3b8e" stroke-width="18"/><circle cy="5" r="58" fill="#7be4cb"/><circle cx="-28" cy="-17" r="25" fill="#b7ffe4"/><circle cx="26" cy="-23" r="26" fill="#48c9bd"/></g>
+ <g transform="translate(220 405)"><path d="M0 70V15" stroke="#8050a5" stroke-width="14"/><circle cy="0" r="38" fill="#ffcf70"/></g>
+ <g transform="translate(965 410)"><path d="M0 65V15" stroke="#8050a5" stroke-width="14"/><circle cy="0" r="40" fill="#b79bff"/></g>
+</g>
+<!-- castle glow -->
+<ellipse cx="605" cy="445" rx="285" ry="45" fill="#ffb4ef" opacity=".38" filter="url(#blur)"/>
+<g stroke="#f8d8ff" stroke-width="5" stroke-linejoin="round">
+ <path d="M420 450V270L500 220L580 270V450Z" fill="url(#tower)"/>
+ <path d="M520 450V205L600 135L680 205V450Z" fill="url(#tower)"/>
+ <path d="M620 450V270L700 220L780 270V450Z" fill="url(#tower)"/>
+ <path d="M390 285L500 210L500 285Z" fill="#ff91d2"/><path d="M490 218L600 115L710 218Z" fill="#ffb3df"/><path d="M680 285L700 220L810 285Z" fill="#ff91d2"/>
+ <path d="M560 450V350Q600 285 640 350V450Z" fill="#3b1d68"/>
+ <path d="M452 335V300Q475 270 498 300V335Z" fill="#f8d7ff"/><path d="M702 335V300Q725 270 748 300V335Z" fill="#f8d7ff"/>
+</g>
+<g fill="#ffe8a0"><circle cx="600" cy="178" r="12"/><circle cx="475" cy="255" r="9"/><circle cx="725" cy="255" r="9"/></g>
+<path d="M600 450C580 500 650 510 610 620" fill="none" stroke="#ffe9a1" stroke-width="24" opacity=".8" filter="url(#shadow)"/>
+<path d="M600 450C580 500 650 510 610 620" fill="none" stroke="url(#path)" stroke-width="11" stroke-linecap="round"/>
+<g fill="#fff2b8"><circle cx="585" cy="500" r="7"/><circle cx="632" cy="550" r="6"/><circle cx="613" cy="590" r="5"/></g>
+<!-- floating crystals -->
+<g stroke="#e8c8ff" stroke-width="3"><path d="M300 360l22-55 24 55-23 34z" fill="#8beaff" opacity=".85"/><path d="M850 370l19-48 22 48-21 29z" fill="#ffb0e8" opacity=".85"/></g>
+<g fill="#fff1bf"><path d="M355 250l9 22 22 9-22 9-9 22-9-22-22-9 22-9z"/><path d="M825 245l7 17 17 7-17 7-7 17-7-17-17-7 17-7z"/></g>
+</svg>
