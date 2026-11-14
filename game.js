@@ -1,268 +1,171 @@
 (function () {
   "use strict";
-  const canvas = document.getElementById("renderCanvas");
-  const loading = document.getElementById("loading");
-  const scoreEl = document.getElementById("score");
-  const movesEl = document.getElementById("moves");
-  const statusEl = document.getElementById("status");
-  const progressFill = document.getElementById("progressFill");
-  const progressText = document.getElementById("progressText");
-  const toastEl = document.getElementById("toast");
-  const SIZE = 8, TYPES = 6, GOAL = 1500, START_MOVES = 25;
-  const COLORS = ["#ff5fa9", "#54d9ff", "#ffd34f", "#9c75ff", "#70e58d", "#ff8b45"];
-  const EMOJIS = ["🍓", "💎", "🍋", "🫐", "🍏", "🍊"];
-  let engine, scene, camera, boardRoot, board = [], score = 0, moves = START_MOVES;
-  let busy = false, selected = null, pointerStart = null, soundOn = true, toastTimer;
-  const meshes = new Map();
-
-  function showToast(message) {
-    toastEl.textContent = message;
-    toastEl.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1700);
+  const $ = id => document.getElementById(id);
+  const canvas=$("renderCanvas"), loading=$("loading"), scoreEl=$("score"), movesEl=$("moves");
+  const statusEl=$("status"), progressFill=$("progressFill"), progressText=$("progressText"), toastEl=$("toast");
+  const SIZE=8,TYPES=6,START_MOVES=25;
+  const COLORS=["#ff5fa9","#54d9ff","#ffd34f","#9c75ff","#70e58d","#ff8b45"];
+  const LEVELS=[
+    {goal:1500,moves:25,place:"Enchanted Garden",story:"The Dragon Prince has lost the garden's magic. Help Queen Luma restore its colors!"},
+    {goal:2200,moves:24,place:"Crystal Falls",story:"Queen Luma found the first crystal. The dragon needs your matches to awaken the waterfall."},
+    {goal:3000,moves:23,place:"Royal Candy Castle",story:"The castle gates are sealed. Create powerful candy magic to open the royal hall."},
+    {goal:3800,moves:22,place:"Starlight Bridge",story:"Cross the bridge of stars and collect enough magic to guide the dragon home."},
+    {goal:4800,moves:22,place:"Dragon's Summit",story:"The final garden crystal is guarded at the summit. The kingdom is counting on you."}
+  ];
+  let engine,scene,camera,boardRoot,board=[],score=0,moves=START_MOVES,level=1;
+  let busy=false,selected=null,pointerStart=null,soundOn=true,toastTimer;
+  let specials=new Map(), candyMeshes=new Map(), unlocked=1;
+  const key=(r,c)=>r+","+c, parse=k=>k.split(",").map(Number);
+  const goal=()=>LEVELS[Math.min(level-1,LEVELS.length-1)].goal;
+  const levelData=()=>LEVELS[Math.min(level-1,LEVELS.length-1)];
+  function toast(s){toastEl.textContent=s;toastEl.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.remove("show"),1900);}
+  function updateHud(){
+    $("level").textContent=String(level).padStart(2,"0");$("goal").textContent=goal().toLocaleString();
+    scoreEl.textContent=score.toLocaleString();movesEl.textContent=moves;
+    const pct=Math.min(100,Math.round(score/goal()*100));progressFill.style.width=pct+"%";progressText.textContent=pct+"%";
+    statusEl.textContent=score>=goal()?"Garden restored! ✨":moves<=0?"Out of moves":"Make a match!";
+    $("placeName").textContent=levelData().place;
   }
-  function updateHud() {
-    scoreEl.textContent = score.toLocaleString();
-    movesEl.textContent = moves;
-    const pct = Math.min(100, Math.round(score / GOAL * 100));
-    progressFill.style.width = pct + "%";
-    progressText.textContent = pct + "%";
-    if (score >= GOAL) statusEl.textContent = "Garden restored! ✨";
-    else if (moves <= 0) statusEl.textContent = "Out of moves";
-    else statusEl.textContent = "Make a match!";
-  }
-  function randType() { return Math.floor(Math.random() * TYPES); }
-  function cellKey(r, c) { return r + "," + c; }
-  function makeInitialBoard() {
-    board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
-    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-      let t, tries = 0;
-      do {
-        t = randType(); tries++;
-      } while (tries < 30 && ((c >= 2 && board[r][c-1] === t && board[r][c-2] === t) ||
-        (r >= 2 && board[r-1][c] === t && board[r-2][c] === t)));
-      board[r][c] = t;
+  function randType(){return Math.floor(Math.random()*TYPES);}
+  function makeInitialBoard(){
+    board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));specials.clear();
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      let t,n=0;do{t=randType();n++;}while(n<40&&((c>1&&board[r][c-1]===t&&board[r][c-2]===t)||(r>1&&board[r-1][c]===t&&board[r-2][c]===t)));
+      board[r][c]=t;
     }
   }
-  function createCandy(type, r, c) {
-    const root = new BABYLON.TransformNode("candy-" + r + "-" + c, scene);
-    root.position.set(c - (SIZE - 1) / 2, (SIZE - 1) / 2 - r, 0);
-    const body = BABYLON.MeshBuilder.CreateSphere("sweet", { diameter: 0.78, segments: 24 }, scene);
-    body.parent = root;
-    body.scaling.set(1, 1, 0.76);
-    const mat = new BABYLON.PBRMaterial("candyMat-" + type, scene);
-    mat.albedoColor = BABYLON.Color3.FromHexString(COLORS[type]);
-    mat.metallic = 0.08; mat.roughness = 0.2;
-    mat.emissiveColor = BABYLON.Color3.FromHexString(COLORS[type]).scale(0.10);
-    body.material = mat;
-    const shine = BABYLON.MeshBuilder.CreateSphere("shine", { diameter: 0.16, segments: 12 }, scene);
-    shine.parent = root; shine.position.set(-0.18, 0.2, -0.28); shine.scaling.set(1.35, 0.7, 0.35);
-    const shineMat = new BABYLON.StandardMaterial("shineMat", scene);
-    shineMat.diffuseColor = BABYLON.Color3.White(); shineMat.emissiveColor = new BABYLON.Color3(0.35,0.35,0.35);
-    shineMat.alpha = 0.88; shine.material = shineMat;
-    root.metadata = { r, c, type, body };
-    meshes.set(root.uniqueId, root);
-    return root;
-  }
-  function drawBoard() {
-    if (boardRoot) boardRoot.dispose();
-    boardRoot = new BABYLON.TransformNode("boardRoot", scene);
-    const back = BABYLON.MeshBuilder.CreateBox("board-back", { width: 8.45, height: 8.45, depth: 0.35 }, scene);
-    back.parent = boardRoot; back.position.z = 0.22;
-    const backMat = new BABYLON.StandardMaterial("boardMat", scene);
-    backMat.diffuseColor = new BABYLON.Color3(0.18, 0.08, 0.32);
-    backMat.emissiveColor = new BABYLON.Color3(0.08, 0.025, 0.15);
-    backMat.specularColor = new BABYLON.Color3(0.45,0.3,0.6); back.material = backMat;
-    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-      const tile = BABYLON.MeshBuilder.CreateBox("tile", { width: 0.94, height: 0.94, depth: 0.12 }, scene);
-      tile.parent = boardRoot; tile.position.set(c-3.5, 3.5-r, 0);
-      const tm = new BABYLON.StandardMaterial("tileMat-" + r + "-" + c, scene);
-      tm.diffuseColor = new BABYLON.Color3(0.38,0.22,0.55); tm.alpha = 0.62;
-      tm.specularColor = new BABYLON.Color3(0.6,0.45,0.8); tile.material = tm;
+  function createCandy(type,r,c,special){
+    const root=new BABYLON.TransformNode("candy-"+r+"-"+c,scene);
+    root.position.set(c-3.5,3.5-r,0);
+    const body=BABYLON.MeshBuilder.CreateSphere("sweet",{diameter:.78,segments:24},scene);body.parent=root;body.scaling.set(1,1,.76);
+    const mat=new BABYLON.PBRMaterial("candyMat-"+r+"-"+c,scene);mat.albedoColor=BABYLON.Color3.FromHexString(COLORS[type]);mat.metallic=.08;mat.roughness=.2;mat.emissiveColor=BABYLON.Color3.FromHexString(COLORS[type]).scale(.12);body.material=mat;
+    const shine=BABYLON.MeshBuilder.CreateSphere("shine",{diameter:.16,segments:12},scene);shine.parent=root;shine.position.set(-.18,.2,-.28);shine.scaling.set(1.35,.7,.35);
+    const sm=new BABYLON.StandardMaterial("shineMat-"+r+"-"+c,scene);sm.diffuseColor=BABYLON.Color3.White();sm.emissiveColor=new BABYLON.Color3(.35,.35,.35);sm.alpha=.9;shine.material=sm;
+    if(special){
+      const ring=BABYLON.MeshBuilder.CreateTorus("magic-ring",{diameter:.83,thickness:.055,tessellation:24},scene);ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.z=-.04;
+      const rm=new BABYLON.StandardMaterial("ringMat-"+r+"-"+c,scene);rm.emissiveColor=new BABYLON.Color3(1,.86,.35);rm.diffuseColor=new BABYLON.Color3(1,.86,.35);ring.material=rm;
+      const mark=BABYLON.MeshBuilder.CreateSphere("magic-core",{diameter:.19,segments:12},scene);mark.parent=root;mark.position.z=-.43;mark.material=rm;
     }
-    boardRoot.addChild(back);
-    for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
-      const candy = createCandy(board[r][c], r, c);
-      candy.parent = boardRoot;
+    root.metadata={r,c,type};candyMeshes.set(key(r,c),root);return root;
+  }
+  function drawBoard(){
+    if(boardRoot)boardRoot.dispose();candyMeshes.clear();boardRoot=new BABYLON.TransformNode("boardRoot",scene);
+    const back=BABYLON.MeshBuilder.CreateBox("board-back",{width:8.45,height:8.45,depth:.35},scene);back.parent=boardRoot;back.position.z=.22;
+    const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.18,.08,.32);bm.emissiveColor=new BABYLON.Color3(.08,.025,.15);back.material=bm;
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.94,height:.94,depth:.12},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,0);
+      const tm=new BABYLON.StandardMaterial("tileMat-"+r+"-"+c,scene);tm.diffuseColor=new BABYLON.Color3(.38,.22,.55);tm.alpha=.62;tile.material=tm;
+    }
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)createCandy(board[r][c],r,c,specials.get(key(r,c))).parent=boardRoot;
+  }
+  function getCandy(r,c){return candyMeshes.get(key(r,c))||null;}
+  function findRuns(){
+    const runs=[];
+    for(let r=0;r<SIZE;r++){let c=0;while(c<SIZE){let e=c+1;while(e<SIZE&&board[r][e]===board[r][c])e++;if(board[r][c]!=null&&e-c>=3)runs.push({cells:Array.from({length:e-c},(_,i)=>key(r,c+i)),dir:"row",length:e-c});c=e;}}
+    for(let c=0;c<SIZE;c++){let r=0;while(r<SIZE){let e=r+1;while(e<SIZE&&board[e][c]===board[r][c])e++;if(board[r][c]!=null&&e-r>=3)runs.push({cells:Array.from({length:e-r},(_,i)=>key(r+i,c)),dir:"col",length:e-r});r=e;}}
+    return runs;
+  }
+  function matchSet(runs){const s=new Set();runs.forEach(run=>run.cells.forEach(k=>s.add(k)));return s;}
+  function animatePosition(mesh,target){
+    const a=new BABYLON.Animation("move","position",12,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+    a.setKeys([{frame:0,value:mesh.position.clone()},{frame:8,value:target.clone()}]);mesh.animations=[a];scene.beginAnimation(mesh,0,8,false,1);
+  }
+  function swapData(a,b){
+    const t=board[a.r][a.c];board[a.r][a.c]=board[b.r][b.c];board[b.r][b.c]=t;
+    const ka=key(a.r,a.c),kb=key(b.r,b.c),sa=specials.get(ka),sb=specials.get(kb);
+    specials.delete(ka);specials.delete(kb);if(sa)specials.set(kb,sa);if(sb)specials.set(ka,sb);
+    const ma=getCandy(a.r,a.c),mb=getCandy(b.r,b.c);
+    if(ma){candyMeshes.delete(ka);ma.metadata={r:b.r,c:b.c,type:board[b.r][b.c]};candyMeshes.set(kb,ma);animatePosition(ma,new BABYLON.Vector3(b.c-3.5,3.5-b.r,0));}
+    if(mb){candyMeshes.delete(kb);mb.metadata={r:a.r,c:a.c,type:board[a.r][a.c]};candyMeshes.set(ka,mb);animatePosition(mb,new BABYLON.Vector3(a.c-3.5,3.5-a.r,0));}
+  }
+  function neighbors(a,b){return Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1;}
+  function expandSpecials(hit){
+    const queue=[...hit],seen=new Set();
+    while(queue.length){const k=queue.pop();if(seen.has(k))continue;seen.add(k);const sp=specials.get(k);if(!sp)continue;const [r,c]=parse(k);
+      if(sp==="row"){for(let x=0;x<SIZE;x++)hit.add(key(r,x));}
+      else if(sp==="col"){for(let y=0;y<SIZE;y++)hit.add(key(y,c));}
+      else {const type=board[r][c];for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(board[y][x]===type)hit.add(key(y,x));}
+      for(const q of hit)if(!seen.has(q))queue.push(q);
     }
   }
-  function getCandy(r,c) {
-    for (const m of meshes.values()) if (!m.isDisposed() && m.parent === boardRoot && m.metadata.r === r && m.metadata.c === c) return m;
+  function createSpecialFromRuns(runs,hit,anchor){
+    let chosen=null;
+    for(const run of runs){if(run.length>=5){chosen={cell:anchor&&run.cells.includes(key(anchor.r,anchor.c))?key(anchor.r,anchor.c):run.cells[Math.floor(run.length/2)],type:"color"};break;}
+      if(run.length===4&&!chosen){const cell=anchor&&run.cells.includes(key(anchor.r,anchor.c))?key(anchor.r,anchor.c):run.cells[1];chosen={cell,type:run.dir};}}
+    if(chosen){hit.delete(chosen.cell);specials.set(chosen.cell,chosen.type);return chosen;}
     return null;
   }
-  function allMatches() {
-    const found = new Set();
-    for (let r = 0; r < SIZE; r++) {
-      let start = 0;
-      while (start < SIZE) {
-        let end = start + 1;
-        while (end < SIZE && board[r][end] === board[r][start]) end++;
-        if (board[r][start] != null && end - start >= 3) for (let c = start; c < end; c++) found.add(cellKey(r,c));
-        start = end;
-      }
-    }
-    for (let c = 0; c < SIZE; c++) {
-      let start = 0;
-      while (start < SIZE) {
-        let end = start + 1;
-        while (end < SIZE && board[end][c] === board[start][c]) end++;
-        if (board[start][c] != null && end - start >= 3) for (let r = start; r < end; r++) found.add(cellKey(r,c));
-        start = end;
-      }
-    }
-    return found;
+  function resolveMatches(anchor){
+    const runs=findRuns();if(!runs.length){busy=false;return;}
+    const hit=matchSet(runs);const created=createSpecialFromRuns(runs,hit,anchor);
+    expandSpecials(hit);
+    const points=hit.size*60+(hit.size>6?150:0);score+=points;updateHud();
+    if(created)toast(created.type==="color"?"Rainbow Candy created! 🌈":"Magic Stripe created! ✨");
+    else if(hit.size>=6)toast("Magic chain reaction! 💥");
+    for(const k of hit){const [r,c]=parse(k);const candy=getCandy(r,c);if(candy)candy.dispose();board[r][c]=null;specials.delete(k);}
+    setTimeout(dropAndRefill,150);
   }
-  function animatePosition(mesh, target, done) {
-    const anim = new BABYLON.Animation("move", "position", 12, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-    anim.setKeys([{frame:0,value:mesh.position.clone()},{frame:8,value:target.clone()}]);
-    mesh.animations = [anim];
-    scene.beginAnimation(mesh, 0, 8, false, 1, done);
-  }
-  function swapData(a,b) {
-    const temp = board[a.r][a.c]; board[a.r][a.c] = board[b.r][b.c]; board[b.r][b.c] = temp;
-    const ma = getCandy(a.r,a.c), mb = getCandy(b.r,b.c);
-    if (ma) ma.metadata = { ...ma.metadata, r:b.r, c:b.c };
-    if (mb) mb.metadata = { ...mb.metadata, r:a.r, c:a.c };
-    if (ma) animatePosition(ma, new BABYLON.Vector3(b.c-3.5,3.5-b.r,0), ()=>{});
-    if (mb) animatePosition(mb, new BABYLON.Vector3(a.c-3.5,3.5-a.r,0), ()=>{});
-  }
-  function areNeighbors(a,b) { return Math.abs(a.r-b.r) + Math.abs(a.c-b.c) === 1; }
-  function resolveMatches() {
-    const matches = allMatches();
-    if (!matches.size) { busy = false; return; }
-    score += matches.size * 60;
-    updateHud();
-    for (const key of matches) {
-      const [r,c] = key.split(",").map(Number);
-      const candy = getCandy(r,c);
-      if (candy) {
-        const scale = new BABYLON.Animation("pop","scaling",12,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-        scale.setKeys([{frame:0,value:candy.scaling.clone()},{frame:6,value:new BABYLON.Vector3(0.05,0.05,0.05)}]);
-        candy.animations=[scale]; scene.beginAnimation(candy,0,6,false,1,()=>{candy.dispose();});
-      }
-      board[r][c] = null;
+  function dropAndRefill(){
+    for(let c=0;c<SIZE;c++){
+      const keep=[];for(let r=SIZE-1;r>=0;r--)if(board[r][c]!==null)keep.push({type:board[r][c],sp:specials.get(key(r,c))});
+      for(let r=0;r<SIZE;r++)specials.delete(key(r,c));
+      let row=SIZE-1;for(const item of keep){board[row][c]=item.type;if(item.sp)specials.set(key(row,c),item.sp);row--;}
+      while(row>=0)board[row--][c]=randType();
     }
-    setTimeout(dropAndRefill, 170);
+    for(const m of candyMeshes.values())if(m&&!m.isDisposed())m.dispose();candyMeshes.clear();
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)createCandy(board[r][c],r,c,specials.get(key(r,c))).parent=boardRoot;
+    setTimeout(()=>{if(findRuns().length)resolveMatches(null);else{busy=false;updateHud();if(score>=goal())winLevel();else if(moves<=0)toast("No moves left — try again!");}},220);
   }
-  function dropAndRefill() {
-    for (let c = 0; c < SIZE; c++) {
-      const survivors = [];
-      for (let r = SIZE-1; r >= 0; r--) if (board[r][c] !== null) survivors.push(board[r][c]);
-      let write = SIZE-1;
-      for (const type of survivors) board[write--][c] = type;
-      while (write >= 0) board[write--][c] = randType();
-    }
-    for (const m of Array.from(meshes.values())) {
-      if (m.isDisposed() || m.parent !== boardRoot) continue;
-      const {r,c} = m.metadata;
-      if (board[r][c] !== m.metadata.type) {
-        // A matched candy has already been disposed; remaining candies are repositioned below.
-      }
-    }
-    // Rebuild only candy meshes after gravity; the board tiles stay in place.
-    for (const m of Array.from(meshes.values())) if (!m.isDisposed() && m.parent === boardRoot) m.dispose();
-    for (let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) createCandy(board[r][c],r,c).parent=boardRoot;
-    setTimeout(() => {
-      const before = allMatches();
-      if (before.size) resolveMatches();
-      else { busy = false; if (moves <= 0) showToast("No moves left — restart to play again"); }
-      updateHud();
-    }, 220);
-  }
-  function trySwap(a,b) {
-    if (busy || moves <= 0 || score >= GOAL || !areNeighbors(a,b)) return;
-    busy = true; selected = null;
+  function trySwap(a,b){
+    if(busy||moves<=0||score>=goal()||!neighbors(a,b))return;busy=true;selected=null;
     swapData(a,b);
-    setTimeout(() => {
-      if (allMatches().size) { moves--; updateHud(); resolveMatches(); }
-      else {
-        swapData(a,b);
-        setTimeout(()=>{busy=false;},180);
-      }
-    }, 190);
+    setTimeout(()=>{const runs=findRuns();const specialSwap=specials.has(key(b.r,b.c))||specials.has(key(a.r,a.c));
+      if(runs.length||specialSwap){moves--;updateHud();resolveMatches({r:b.r,c:b.c});}
+      else{swapData(a,b);setTimeout(()=>busy=false,180);}
+    },190);
   }
-  function pickCell(point) {
-    const ray = scene.createPickingRay(point.x, point.y, BABYLON.Matrix.Identity(), camera);
-    const hit = scene.pickWithRay(ray, mesh => mesh && mesh.name === "sweet");
-    if (!hit || !hit.hit || !hit.pickedMesh || !hit.pickedMesh.parent) return null;
-    const md = hit.pickedMesh.parent.metadata;
-    return md ? {r:md.r,c:md.c} : null;
+  function pickCell(p){
+    const ray=scene.createPickingRay(p.x,p.y,BABYLON.Matrix.Identity(),camera);
+    const hit=scene.pickWithRay(ray,m=>m&&m.name==="sweet");
+    if(!hit||!hit.hit||!hit.pickedMesh||!hit.pickedMesh.parent)return null;
+    const md=hit.pickedMesh.parent.metadata;return md?{r:md.r,c:md.c}:null;
   }
-  function onPointerDown(evt) {
-    if (busy) return;
-    const rect=canvas.getBoundingClientRect();
-    pointerStart={x:evt.clientX-rect.left,y:evt.clientY-rect.top,cell:null};
-    const p=new BABYLON.Vector2(pointerStart.x/canvas.clientWidth*engine.getRenderWidth(),pointerStart.y/canvas.clientHeight*engine.getRenderHeight());
-    pointerStart.cell=pickCell(p);
-  }
-  function onPointerUp(evt) {
-    if (!pointerStart || !pointerStart.cell || busy) {pointerStart=null;return;}
-    const rect=canvas.getBoundingClientRect(), dx=evt.clientX-(rect.left+pointerStart.x), dy=evt.clientY-(rect.top+pointerStart.y);
-    let target=null;
-    if (Math.abs(dx)+Math.abs(dy)>12) {
-      const start=pointerStart.cell;
-      if(Math.abs(dx)>Math.abs(dy)) target={r:start.r,c:start.c+(dx>0?1:-1)};
-      else target={r:start.r+(dy>0?1:-1),c:start.c};
-      if(target.r>=0&&target.r<SIZE&&target.c>=0&&target.c<SIZE) trySwap(start,target);
-    } else {
-      const p=new BABYLON.Vector2((evt.clientX-rect.left)/canvas.clientWidth*engine.getRenderWidth(),(evt.clientY-rect.top)/canvas.clientHeight*engine.getRenderHeight());
-      const cell=pickCell(p);
-      if(cell){
-        if(selected&&areNeighbors(selected,cell)) trySwap(selected,cell);
-        else selected=cell;
-      }
-    }
+  function pointerDown(e){if(busy)return;const rect=canvas.getBoundingClientRect();pointerStart={x:e.clientX-rect.left,y:e.clientY-rect.top,cell:null};pointerStart.cell=pickCell(new BABYLON.Vector2(pointerStart.x/canvas.clientWidth*engine.getRenderWidth(),pointerStart.y/canvas.clientHeight*engine.getRenderHeight()));}
+  function pointerUp(e){
+    if(!pointerStart||!pointerStart.cell||busy){pointerStart=null;return;}
+    const rect=canvas.getBoundingClientRect(),dx=e.clientX-(rect.left+pointerStart.x),dy=e.clientY-(rect.top+pointerStart.y),start=pointerStart.cell;
+    if(Math.abs(dx)+Math.abs(dy)>12){const b=Math.abs(dx)>Math.abs(dy)?{r:start.r,c:start.c+(dx>0?1:-1)}:{r:start.r+(dy>0?1:-1),c:start.c};if(b.r>=0&&b.r<SIZE&&b.c>=0&&b.c<SIZE)trySwap(start,b);}
+    else{const p=new BABYLON.Vector2((e.clientX-rect.left)/canvas.clientWidth*engine.getRenderWidth(),(e.clientY-rect.top)/canvas.clientHeight*engine.getRenderHeight()),cell=pickCell(p);if(cell){if(selected&&neighbors(selected,cell))trySwap(selected,cell);else selected=cell;}}
     pointerStart=null;
   }
-  function restart() {
-    if (boardRoot) boardRoot.dispose();
-    for (const m of meshes.values()) if (m && !m.isDisposed()) m.dispose();
-    meshes.clear(); score=0; moves=START_MOVES; busy=false; selected=null;
-    makeInitialBoard(); drawBoard(); updateHud(); showToast("A fresh spell begins!");
+  function startLevel(n){level=Math.max(1,Math.min(LEVELS.length,n));score=0;moves=levelData().moves;busy=false;selected=null;makeInitialBoard();drawBoard();updateHud();$("storyText").textContent=levelData().story;$("mapOverlay").classList.remove("open");toast("Level "+level+" — "+levelData().place);}
+  function winLevel(){
+    if(busy===false&&score>=goal()){busy=true;unlocked=Math.max(unlocked,Math.min(LEVELS.length,level+1));localStorage.setItem("cmr-unlocked",String(unlocked));$("winTitle").textContent="Level "+level+" restored!";$("winMessage").textContent="Queen Luma and the Dragon Prince thank you for bringing magic back to "+levelData().place+"."; $("winOverlay").classList.add("open");}
   }
-  function shuffle() {
-    if (busy || moves<=0) return;
-    makeInitialBoard();
-    for (const m of Array.from(meshes.values())) if(m&&!m.isDisposed())m.dispose();
-    meshes.clear(); drawBoard(); showToast("The candies have been shuffled!");
+  function nextLevel(){if(level<LEVELS.length)startLevel(level+1);else{ $("winOverlay").classList.remove("open");$("mapOverlay").classList.add("open");buildMap();}}
+  function buildMap(){
+    const wrap=$("mapLevels");wrap.innerHTML="";
+    LEVELS.forEach((item,i)=>{const n=i+1,btn=document.createElement("button");btn.className="map-level"+(n<=unlocked?" unlocked":" locked");btn.disabled=n>unlocked;btn.innerHTML="<strong>"+String(n).padStart(2,"0")+"</strong><span>"+item.place+"</span>"+(n<=unlocked?"<i>✦</i>":"<i>🔒</i>");btn.addEventListener("click",()=>startLevel(n));wrap.appendChild(btn);});
   }
-  function init() {
-    engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer:false, stencil:true, antialias:true, powerPreference:"high-performance" });
-    scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.12,0.055,0.22,1);
-    camera = new BABYLON.ArcRotateCamera("camera", -Math.PI/2, Math.PI/2 - 0.12, 10.8, new BABYLON.Vector3(0,0,0), scene);
-    camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-    camera.attachControl(canvas, false);
-    const resizeCamera=()=>{
-      const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight);
-      const half=4.55;
-      camera.orthoLeft=-half*aspect; camera.orthoRight=half*aspect;
-      camera.orthoTop=half; camera.orthoBottom=-half;
-    };
-    resizeCamera();
-    scene.onBeforeRenderObservable.add(resizeCamera);
-    const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,-1), scene);
-    hemi.intensity=0.95; hemi.groundColor=new BABYLON.Color3(0.32,0.2,0.48);
-    const key = new BABYLON.PointLight("key", new BABYLON.Vector3(-3,5,-5), scene);
-    key.intensity=0.8; key.diffuse=new BABYLON.Color3(1,0.78,0.95);
-    const rim = new BABYLON.PointLight("rim", new BABYLON.Vector3(4,-3,-2), scene);
-    rim.intensity=0.45; rim.diffuse=new BABYLON.Color3(0.35,0.55,1);
-    makeInitialBoard(); drawBoard();
-    canvas.addEventListener("pointerdown",onPointerDown);
-    canvas.addEventListener("pointerup",onPointerUp);
-    canvas.addEventListener("pointercancel",()=>pointerStart=null);
-    engine.runRenderLoop(()=>scene.render());
-    window.addEventListener("resize",()=>engine.resize());
-    updateHud();
-    setTimeout(()=>loading.classList.add("hidden"),350);
+  function restart(){startLevel(level);}
+  function shuffle(){if(busy||moves<=0)return;makeInitialBoard();for(const m of candyMeshes.values())if(m&&!m.isDisposed())m.dispose();drawBoard();toast("Candies shuffled!");}
+  function init(){
+    unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem("cmr-unlocked")||1)));
+    engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
+    scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,1);
+    camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.12,10.8,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.attachControl(canvas,false);
+    const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),half=4.55;camera.orthoLeft=-half*aspect;camera.orthoRight=half*aspect;camera.orthoTop=half;camera.orthoBottom=-half;};resize();scene.onBeforeRenderObservable.add(resize);
+    const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
+    const keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
+    const rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
+    makeInitialBoard();drawBoard();canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointerup",pointerUp);canvas.addEventListener("pointercancel",()=>pointerStart=null);
+    engine.runRenderLoop(()=>scene.render());window.addEventListener("resize",()=>engine.resize());
+    $("storyText").textContent=levelData().story;updateHud();buildMap();setTimeout(()=>loading.classList.add("hidden"),350);
   }
-  document.getElementById("restartButton").addEventListener("click",restart);
-  document.getElementById("shuffleButton").addEventListener("click",shuffle);
-  document.getElementById("soundButton").addEventListener("click",()=>{
-    soundOn=!soundOn;
-    document.getElementById("soundButton").textContent=soundOn?"♫":"♪";
-    showToast(soundOn?"Sound enabled":"Sound muted");
-  });
-  if (window.BABYLON) init();
-  else { loading.textContent="Could not load the 3D engine. Check your internet connection."; }
+  $("restartButton").addEventListener("click",restart);$("shuffleButton").addEventListener("click",shuffle);
+  $("mapButton").addEventListener("click",()=>{$("mapOverlay").classList.add("open");buildMap();});
+  $("closeMap").addEventListener("click",()=>$("mapOverlay").classList.remove("open"));
+  $("nextLevel").addEventListener("click",nextLevel);$("replayLevel").addEventListener("click",()=>{$("winOverlay").classList.remove("open");restart();});
+  $("soundButton").addEventListener("click",()=>{soundOn=!soundOn;$("soundButton").textContent=soundOn?"♫":"♪";toast(soundOn?"Sound enabled":"Sound muted");});
+  if(window.BABYLON)init();else loading.textContent="Could not load the 3D engine. Check your internet connection.";
 })();
