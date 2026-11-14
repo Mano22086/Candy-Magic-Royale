@@ -95,6 +95,27 @@
     if(chosen){hit.delete(chosen.cell);specials.set(chosen.cell,chosen.type);return chosen;}
     return null;
   }
+  function candyBurst(position,type,big){
+    const color=BABYLON.Color3.FromHexString(COLORS[type]||'#ffe28a');
+    const count=big?9:5;
+    for(let i=0;i<count;i++){
+      const p=BABYLON.MeshBuilder.CreateSphere('match-spark',{diameter:big ? .13 : .085,segments:8},scene);
+      const mat=new BABYLON.StandardMaterial('match-spark-mat',scene);mat.emissiveColor=color;mat.diffuseColor=color;mat.alpha=1;p.material=mat;p.position.copyFrom(position);
+      const angle=(Math.PI*2*i/count)+(Math.random()-.5)*.3;
+      const distance=(big?1.0:.62)+Math.random()*.28;
+      const target=position.add(new BABYLON.Vector3(Math.cos(angle)*distance,Math.sin(angle)*distance,-.12));
+      const move=new BABYLON.Animation('spark-flight','position',30,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);move.setKeys([{frame:0,value:position.clone()},{frame:16,value:target}]);
+      const fade=new BABYLON.Animation('spark-fade','visibility',30,BABYLON.Animation.ANIMATIONTYPE_FLOAT,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);fade.setKeys([{frame:0,value:1},{frame:16,value:0}]);
+      const shrink=new BABYLON.Animation('spark-shrink','scaling',30,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);shrink.setKeys([{frame:0,value:new BABYLON.Vector3(1,1,1)},{frame:16,value:new BABYLON.Vector3(.05,.05,.05)}]);
+      p.animations=[move,fade,shrink];scene.beginAnimation(p,0,16,false,1,()=>{p.dispose();mat.dispose();});
+    }
+    if(big){
+      const ring=BABYLON.MeshBuilder.CreateTorus('match-wave',{diameter:.35,thickness:.045,tessellation:32},scene);ring.position.copyFrom(position);ring.position.z-=.08;
+      const rm=new BABYLON.StandardMaterial('match-wave-mat',scene);rm.emissiveColor=color;rm.alpha=.9;ring.material=rm;
+      const grow=new BABYLON.Animation('wave-grow','scaling',30,BABYLON.Animation.ANIMATIONTYPE_VECTOR3,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);grow.setKeys([{frame:0,value:new BABYLON.Vector3(.3,.3,.3)},{frame:18,value:new BABYLON.Vector3(3.2,3.2,1)}]);
+      const fade=new BABYLON.Animation('wave-fade','visibility',30,BABYLON.Animation.ANIMATIONTYPE_FLOAT,BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);fade.setKeys([{frame:0,value:1},{frame:18,value:0}]);ring.animations=[grow,fade];scene.beginAnimation(ring,0,18,false,1,()=>{ring.dispose();rm.dispose();});
+    }
+  }
   function resolveMatches(anchor,forcedKeys){
     const runs=findRuns();const hit=matchSet(runs);(forcedKeys||[]).forEach(k=>hit.add(k));if(!hit.size){busy=false;return;}
     const created=(forcedKeys&&forcedKeys.length)?null:createSpecialFromRuns(runs,hit,anchor);
@@ -102,7 +123,7 @@
     const points=hit.size*60+(hit.size>6?150:0);score+=points;updateHud();
     if(created)toast(created.type==="color"?"Rainbow Candy created! 🌈":"Magic Stripe created! ✨");
     else if(hit.size>=6)toast("Magic chain reaction! 💥");
-    for(const k of hit){const [r,c]=parse(k);const candy=getCandy(r,c);if(candy)candy.dispose();board[r][c]=null;specials.delete(k);}
+    for(const k of hit){const [r,c]=parse(k);const candy=getCandy(r,c);if(candy){const world=candy.getAbsolutePosition().clone();candyBurst(world,board[r][c],hit.size>=6||!!specials.get(k));candy.dispose();}board[r][c]=null;specials.delete(k);}
     setTimeout(dropAndRefill,150);
   }
   function dropAndRefill(){
