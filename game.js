@@ -327,7 +327,7 @@
     });
     // Miniature 3D royal companions live in the upper corners of the playfield.
     const queenRoot=new BABYLON.TransformNode("queen-luma-3d",scene);
-    queenRoot.position.set(-4.72,4.55,-.48);
+    queenRoot.position.set(-4.72,4.2,-.48);
     const queenGold=new BABYLON.StandardMaterial("queen-gold",scene);queenGold.diffuseColor=new BABYLON.Color3(1,.72,.2);queenGold.emissiveColor=new BABYLON.Color3(.22,.11,.015);
     const queenDress=new BABYLON.StandardMaterial("queen-dress",scene);queenDress.diffuseColor=new BABYLON.Color3(.72,.22,.9);queenDress.emissiveColor=new BABYLON.Color3(.12,.025,.2);
     const queenSkin=new BABYLON.StandardMaterial("queen-skin",scene);queenSkin.diffuseColor=new BABYLON.Color3(1,.72,.58);
@@ -348,7 +348,7 @@
     const gemMat=new BABYLON.StandardMaterial("luma-gem",scene);gemMat.diffuseColor=new BABYLON.Color3(1,.25,.65);gemMat.emissiveColor=new BABYLON.Color3(.7,.08,.3);
     qPart("luma-crown-gem",BABYLON.MeshBuilder.CreateSphere,{diameter:.1,segments:10},gemMat,[0,.91,-.05]);
     const dragonRoot=new BABYLON.TransformNode("dragon-prince-3d",scene);
-    dragonRoot.position.set(4.72,4.55,-.48);
+    dragonRoot.position.set(4.72,4.2,-.48);
     const dragonBody=new BABYLON.StandardMaterial("dragon-body",scene);dragonBody.diffuseColor=new BABYLON.Color3(.22,.78,.55);dragonBody.emissiveColor=new BABYLON.Color3(.025,.12,.07);
     const dragonBelly=new BABYLON.StandardMaterial("dragon-belly",scene);dragonBelly.diffuseColor=new BABYLON.Color3(.9,.72,.36);
     const dragonWing=new BABYLON.StandardMaterial("dragon-wing",scene);dragonWing.diffuseColor=new BABYLON.Color3(.35,.22,.72);dragonWing.emissiveColor=new BABYLON.Color3(.08,.025,.18);dragonWing.backFaceCulling=false;
@@ -364,7 +364,7 @@
       const wing=dPart("dragon-wing",BABYLON.MeshBuilder.CreatePlane,{width:.56,height:.52,sideOrientation:BABYLON.Mesh.DOUBLESIDE},dragonWing,[side*.38,.15,.12],[1,1,1],[0,side*-.22,side*-.55]);
       wing.rotation.y=side*-.35;
     }
-    const companions=[{root:queenRoot,phase:0,speed:1.1,baseY:4.55},{root:dragonRoot,phase:1.7,speed:1.5,baseY:4.55}];
+    const companions=[{root:queenRoot,phase:0,speed:1.1,baseY:4.2},{root:dragonRoot,phase:1.7,speed:1.5,baseY:4.2}];
 
     applyKingdomTheme=(index)=>{const active=Math.max(0,Math.min(themes.length-1,index));const theme=themes[active];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],1);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);landmarkSets.forEach((set,i)=>set.setEnabled(i===active));};
     applyKingdomTheme(level-1);
