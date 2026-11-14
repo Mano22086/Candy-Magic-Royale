@@ -12,7 +12,7 @@
     {goal:3800,moves:22,place:"Starlight Bridge",story:"Cross the bridge of stars and collect enough magic to guide the dragon home."},
     {goal:4800,moves:22,place:"Dragon's Summit",story:"The final garden crystal is guarded at the summit. The kingdom is counting on you."}
   ];
-  let engine,scene,camera,boardRoot,board=[],score=0,moves=START_MOVES,level=1;
+  let engine,scene,camera,boardRoot,board=[],score=0,moves=START_MOVES,level=1,keyLight,rim;
   let busy=false,selected=null,pointerStart=null,soundOn=true,toastTimer;
   let specials=new Map(), candyMeshes=new Map(), unlocked=1, applyKingdomTheme=()=>{};
   const key=(r,c)=>r+","+c, parse=k=>k.split(",").map(Number);
@@ -391,8 +391,8 @@
     camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.12,10.8,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.inputs.clear();
     const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),halfWidth=5.35;camera.orthoLeft=-halfWidth;camera.orthoRight=halfWidth;camera.orthoTop=halfWidth/Math.max(.45,aspect);camera.orthoBottom=-camera.orthoTop;};resize();scene.onBeforeRenderObservable.add(resize);
     const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
-    const keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
-    const rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
+    keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
+    rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
     createKingdomAmbience();
     makeInitialBoard();drawBoard();canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointerup",pointerUp);canvas.addEventListener("pointercancel",()=>pointerStart=null);
     engine.runRenderLoop(()=>scene.render());window.addEventListener("resize",()=>engine.resize());
