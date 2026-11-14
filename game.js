@@ -278,7 +278,54 @@
       star.position.set(-4.45+(i%6)*1.78,-3.9+Math.floor(i/6)*3.9,.78);
       star.material=goldMat;stars.push({mesh:star,phase:i*.7,baseY:star.position.y});
     }
-    applyKingdomTheme=(index)=>{const theme=themes[Math.max(0,Math.min(themes.length-1,index))];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],1);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);};
+
+    // Five small 3D landmark sets frame the board and change with each kingdom.
+    const landmarkSets=themes.map((theme,themeIndex)=>{
+      const root=new BABYLON.TransformNode("world-landmarks-"+themeIndex,scene);
+      const accent=BABYLON.Color3.FromHexString(theme.crystal);
+      const glow=BABYLON.Color3.FromHexString(theme.glow);
+      const solid=new BABYLON.StandardMaterial("landmark-solid-"+themeIndex,scene);
+      solid.diffuseColor=accent;solid.emissiveColor=accent.scale(.28);solid.specularColor=new BABYLON.Color3(.9,.8,1);
+      const shine=new BABYLON.StandardMaterial("landmark-glow-"+themeIndex,scene);
+      shine.diffuseColor=glow;shine.emissiveColor=glow.scale(.8);
+      const corners=[[-4.08,4.08], [4.08,4.08], [-4.08,-4.08], [4.08,-4.08]];
+      corners.forEach(([x,y],i)=>{
+        const cluster=new BABYLON.TransformNode("landmark-cluster-"+themeIndex+"-"+i,scene);
+        cluster.parent=root;cluster.position.set(x,y,-.24);
+        const base=BABYLON.MeshBuilder.CreateCylinder("landmark-base",{height:.16,diameter:.58,tessellation:8},scene);
+        base.parent=cluster;base.position.y=-.04;base.material=solid;
+        if(themeIndex===0){
+          const stem=BABYLON.MeshBuilder.CreateCylinder("garden-stem",{height:.38,diameter:.13,tessellation:8},scene);
+          stem.parent=cluster;stem.position.y=.2;stem.material=shine;
+          const bloom=BABYLON.MeshBuilder.CreateSphere("garden-bloom",{diameter:.43,segments:12},scene);
+          bloom.parent=cluster;bloom.position.y=.43;bloom.scaling.y=.62;bloom.material=solid;
+          const bud=BABYLON.MeshBuilder.CreateSphere("garden-bud",{diameter:.15,segments:10},scene);
+          bud.parent=cluster;bud.position.set(.12,.48,-.13);bud.material=shine;
+        }else if(themeIndex===1||themeIndex===4){
+          for(let j=0;j<3;j++){
+            const crystal=BABYLON.MeshBuilder.CreatePolyhedron("landmark-shard",{type:1,size:.25+(j===1?.12:0)},scene);
+            crystal.parent=cluster;crystal.position.set((j-1)*.18,.22+(j%2)*.13,0);
+            crystal.rotation.z=(j-1)*.35;crystal.scaling.y=1.45;crystal.material=j===1?shine:solid;
+          }
+        }else if(themeIndex===2){
+          const tower=BABYLON.MeshBuilder.CreateCylinder("castle-tower",{height:.62,diameterTop:.19,diameterBottom:.34,tessellation:10},scene);
+          tower.parent=cluster;tower.position.y=.28;tower.material=solid;
+          const roof=BABYLON.MeshBuilder.CreateCylinder("castle-roof",{height:.28,diameterTop:0,diameterBottom:.28,tessellation:10},scene);
+          roof.parent=cluster;roof.position.y=.72;roof.material=shine;
+          const window=BABYLON.MeshBuilder.CreateSphere("castle-window",{diameter:.12,segments:10},scene);
+          window.parent=cluster;window.position.set(0,.31,-.17);window.material=shine;
+        }else{
+          const arch=BABYLON.MeshBuilder.CreateTorus("starlight-arch",{diameter:.58,thickness:.045,tessellation:24},scene);
+          arch.parent=cluster;arch.position.y=.28;arch.rotation.x=Math.PI/2;arch.material=shine;
+          const star=BABYLON.MeshBuilder.CreatePolyhedron("bridge-star",{type:1,size:.19},scene);
+          star.parent=cluster;star.position.y=.32;star.rotation.z=Math.PI/4;star.material=solid;
+        }
+        cluster.rotation.y=i*Math.PI/2;
+        ornaments.push({mesh:cluster,phase:i*.8,speed:i%2?.22:-.18,baseY:y});
+      });
+      return root;
+    });
+    applyKingdomTheme=(index)=>{const active=Math.max(0,Math.min(themes.length-1,index));const theme=themes[active];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],1);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);landmarkSets.forEach((set,i)=>set.setEnabled(i===active));};
     applyKingdomTheme(level-1);
     scene.onBeforeRenderObservable.add(()=>{
       const t=performance.now()*.001;
