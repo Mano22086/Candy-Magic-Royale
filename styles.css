@@ -41,3 +41,15 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .special-legend{align-items:center}
 .special-legend img{width:116px;height:38px;object-fit:contain}
 @media(max-width:380px){.character-art{width:60px;height:74px}.dragon-art{width:66px;height:66px;margin-left:-15px}.royal-characters{min-width:112px}.map-characters img{height:68px;width:60px}.castle-banner{max-height:145px}}
+
+
+/* Living character motion: gentle idle, breathing and magical aura */
+@keyframes queenIdle{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1.2deg)}}
+@keyframes dragonIdle{0%,100%{transform:translateY(0) rotate(2deg) scale(1)}45%{transform:translateY(-12px) rotate(-3deg) scale(1.025)}70%{transform:translateY(-5px) rotate(1deg) scale(1.01)}}
+@keyframes royalGlow{0%,100%{filter:drop-shadow(0 7px 8px #08001f88)}50%{filter:drop-shadow(0 0 13px #ff9de8cc) drop-shadow(0 7px 8px #08001f88)}}
+.queen-art{transform-origin:50% 90%;animation:queenIdle 3.6s ease-in-out infinite,royalGlow 4.5s ease-in-out infinite}
+.dragon-art{transform-origin:50% 90%;animation:dragonIdle 1.9s ease-in-out infinite}
+.map-characters img:first-of-type{animation:queenIdle 3.6s ease-in-out infinite,royalGlow 4.5s ease-in-out infinite}
+.map-characters img:last-of-type{animation:dragonIdle 1.9s ease-in-out infinite}
+.win-card .map-characters img{animation-duration:2.4s,3.2s}
+@media(prefers-reduced-motion:reduce){.queen-art,.dragon-art,.map-characters img,.map-characters img:first-of-type,.map-characters img:last-of-type{animation:none!important}}
