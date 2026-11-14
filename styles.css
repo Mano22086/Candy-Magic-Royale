@@ -66,7 +66,7 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .hud-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#6b3e98d9,#2b174fef);border-color:#f5d8ff38}
 .hud-card:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,#fff2,transparent 42%)}
 .board-wrap{background:linear-gradient(145deg,#70499a66,#21113fdd 72%);border-color:#f4d7ff55;box-shadow:0 16px 38px #07021788,inset 0 1px #fff4}
-.canvas-frame{background:radial-gradient(ellipse at 50% 0%,#b56be5 0,#6a36a1 48%,#32145f 100%);border:2px solid #d89cff55;box-shadow:inset 0 0 0 7px #2b1254,inset 0 0 34px #ffb8f233,0 9px 22px #0a031d88}
+.canvas-frame{position:relative;background:linear-gradient(180deg,#1c0a38aa,#1b0a32bb),url("./assets/enchanted-garden-backdrop.svg") center/cover no-repeat,#251044;border:2px solid #e8aaff88;box-shadow:inset 0 0 0 7px #2b1254aa,inset 0 0 44px #ffb8f255,0 9px 22px #0a031d88;isolation:isolate}.canvas-frame canvas{background:transparent!important}
 .board-heading{font-size:12px}
 .special-legend{color:#ffe8b0}
 .modal-card{background:linear-gradient(155deg,#70439d,#35185f 55%,#1e103e);border-color:#f7d9ff66}
