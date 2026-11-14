@@ -14,7 +14,7 @@
   ];
   let engine,scene,camera,boardRoot,board=[],score=0,moves=START_MOVES,level=1;
   let busy=false,selected=null,pointerStart=null,soundOn=true,toastTimer;
-  let specials=new Map(), candyMeshes=new Map(), unlocked=1;
+  let specials=new Map(), candyMeshes=new Map(), unlocked=1, applyKingdomTheme=()=>{};
   const key=(r,c)=>r+","+c, parse=k=>k.split(",").map(Number);
   const goal=()=>LEVELS[Math.min(level-1,LEVELS.length-1)].goal;
   const levelData=()=>LEVELS[Math.min(level-1,LEVELS.length-1)];
@@ -138,7 +138,7 @@
     else{const p=new BABYLON.Vector2((e.clientX-rect.left)/canvas.clientWidth*engine.getRenderWidth(),(e.clientY-rect.top)/canvas.clientHeight*engine.getRenderHeight()),cell=pickCell(p);if(cell){if(selected&&neighbors(selected,cell))trySwap(selected,cell);else selected=cell;}}
     pointerStart=null;
   }
-  function startLevel(n){level=Math.max(1,Math.min(LEVELS.length,n));score=0;moves=levelData().moves;busy=false;selected=null;makeInitialBoard();drawBoard();updateHud();$("storyText").textContent=levelData().story;$("mapOverlay").classList.remove("open");toast("Level "+level+" — "+levelData().place);}
+  function startLevel(n){level=Math.max(1,Math.min(LEVELS.length,n));applyKingdomTheme(level-1);score=0;moves=levelData().moves;busy=false;selected=null;makeInitialBoard();drawBoard();updateHud();$("storyText").textContent=levelData().story;$("mapOverlay").classList.remove("open");toast("Level "+level+" — "+levelData().place);}
   function winLevel(){
     if(busy===false&&score>=goal()){busy=true;unlocked=Math.max(unlocked,Math.min(LEVELS.length,level+1));localStorage.setItem("cmr-unlocked",String(unlocked));$("winTitle").textContent="Level "+level+" restored!";$("winMessage").textContent="Queen Luma and the Dragon Prince thank you for bringing magic back to "+levelData().place+"."; $("winOverlay").classList.add("open");}
   }
@@ -151,6 +151,7 @@
   function shuffle(){if(busy||moves<=0)return;makeInitialBoard();for(const m of candyMeshes.values())if(m&&!m.isDisposed())m.dispose();drawBoard();toast("Candies shuffled!");}
   function createKingdomAmbience(){
     // Small 3D set dressing around the board: floating crystals and drifting star motes.
+    const themes=[{sky:[.12,.055,.22],crystal:"#b879ff",glow:"#ff9bdc",light:"#f2b7ff",rim:"#8c9cff"},{sky:[.035,.12,.24],crystal:"#55dfff",glow:"#9af5ff",light:"#8deaff",rim:"#6c9dff"},{sky:[.20,.075,.17],crystal:"#ff9fce",glow:"#ffe08a",light:"#ffd0a6",rim:"#ff80bb"},{sky:[.055,.08,.24],crystal:"#8c9dff",glow:"#c9b4ff",light:"#a8c8ff",rim:"#d2a2ff"},{sky:[.18,.045,.12],crystal:"#ff785f",glow:"#ffd16b",light:"#ffb18c",rim:"#ff6d9d"}];
     const crystalMat=new BABYLON.StandardMaterial("kingdomCrystalMat",scene);
     crystalMat.diffuseColor=new BABYLON.Color3(.55,.28,.9);
     crystalMat.emissiveColor=new BABYLON.Color3(.32,.12,.62);
@@ -159,7 +160,7 @@
     goldMat.emissiveColor=new BABYLON.Color3(1,.65,.86);
     goldMat.diffuseColor=new BABYLON.Color3(1,.75,.9);
     const ornaments=[];
-    const crystalSpots=[[-4.65,3.5,.65],[-4.65,-3.5,.65],[4.65,3.5,.65],[4.65,-3.5,.65],[-4.55,0,.65],[4.55,0,.65]];
+    const crystalSpots=[[-4.25,3.55,.65],[-4.25,-3.55,.65],[4.25,3.55,.65],[4.25,-3.55,.65],[-4.28,0,.65],[4.28,0,.65]];
     crystalSpots.forEach((p,i)=>{
       const gem=BABYLON.MeshBuilder.CreatePolyhedron("kingdom-crystal-"+i,{type:1,size:.34},scene);
       gem.position.set(p[0],p[1],p[2]);gem.material=crystalMat;
@@ -174,6 +175,8 @@
       star.position.set(-4.45+(i%6)*1.78,-3.9+Math.floor(i/6)*3.9,.78);
       star.material=goldMat;stars.push({mesh:star,phase:i*.7,baseY:star.position.y});
     }
+    applyKingdomTheme=(index)=>{const theme=themes[Math.max(0,Math.min(themes.length-1,index))];scene.clearColor=new BABYLON.Color4(theme.sky[0],theme.sky[1],theme.sky[2],1);crystalMat.diffuseColor=BABYLON.Color3.FromHexString(theme.crystal);crystalMat.emissiveColor=BABYLON.Color3.FromHexString(theme.crystal).scale(.55);goldMat.diffuseColor=BABYLON.Color3.FromHexString(theme.glow);goldMat.emissiveColor=BABYLON.Color3.FromHexString(theme.glow);keyLight.diffuse=BABYLON.Color3.FromHexString(theme.light);rim.diffuse=BABYLON.Color3.FromHexString(theme.rim);};
+    applyKingdomTheme(level-1);
     scene.onBeforeRenderObservable.add(()=>{
       const t=performance.now()*.001;
       ornaments.forEach(o=>{o.mesh.rotation.y=t*o.speed+o.phase;o.mesh.rotation.z=Math.sin(t*.8+o.phase)*.16;o.mesh.position.y=o.baseY+Math.sin(t*1.15+o.phase)*.10;});
@@ -185,7 +188,7 @@
     engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
     scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,1);
     camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.12,10.8,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.inputs.clear();
-    const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),half=4.55;camera.orthoLeft=-half*aspect;camera.orthoRight=half*aspect;camera.orthoTop=half;camera.orthoBottom=-half;};resize();scene.onBeforeRenderObservable.add(resize);
+    const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),halfWidth=4.65;camera.orthoLeft=-halfWidth;camera.orthoRight=halfWidth;camera.orthoTop=halfWidth/Math.max(.45,aspect);camera.orthoBottom=-camera.orthoTop;};resize();scene.onBeforeRenderObservable.add(resize);
     const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
     const keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
     const rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
