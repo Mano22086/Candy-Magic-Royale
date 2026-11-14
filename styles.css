@@ -28,3 +28,16 @@ button{cursor:pointer;touch-action:manipulation}button:active{transform:translat
 .win-crown{font-size:54px}.primary-button,.secondary-button{display:block;width:100%;padding:13px;margin-top:10px;border-radius:14px;font:700 13px "Fredoka",sans-serif;letter-spacing:1px}.primary-button{border:0;color:#49205e;background:linear-gradient(90deg,#ff9bdc,#ffe28a)}.secondary-button{border:1px solid #ffffff40;color:white;background:#ffffff12}
 @media(min-width:650px){body{padding-top:25px}.hero{padding-top:28px}.canvas-frame{aspect-ratio:1.08/1}.board-wrap{padding:16px}.hud-card{padding:12px}.hud-card strong{font-size:23px}}
 @media(max-width:380px){body{padding-inline:9px}.brand strong{font-size:13px}.character{width:48px;height:48px;font-size:28px}.board-wrap{padding:8px}.hud{gap:6px}.hud-card{gap:5px}.hud-icon{font-size:20px}.hud-card strong{font-size:18px}.utility-button{padding:9px 7px;font-size:9px}.bottom-bar{gap:7px}.special-legend{font-size:9px}}
+
+
+/* Original illustrated kingdom assets */
+.character-art{width:76px;height:88px;object-fit:contain;filter:drop-shadow(0 8px 10px #08001f99);border:0;border-radius:0;background:none;box-shadow:none}
+.queen-art{z-index:2}.dragon-art{width:80px;height:78px;margin-left:-17px;align-self:flex-end}
+.royal-characters{min-width:135px;justify-content:flex-end;align-self:stretch;align-items:center}
+.castle-banner{display:block;width:100%;height:auto;max-height:190px;object-fit:cover;border-radius:16px;border:1px solid #ffffff38;margin:12px 0}
+.map-characters{display:flex;align-items:center;justify-content:center;gap:8px;height:82px;margin:5px 0 14px}
+.map-characters img{height:82px;width:72px;object-fit:contain;filter:drop-shadow(0 5px 7px #10051f99)}
+.map-characters span{font-size:25px;color:#ffe28a;text-shadow:0 0 15px #ff9ce8}
+.special-legend{align-items:center}
+.special-legend img{width:116px;height:38px;object-fit:contain}
+@media(max-width:380px){.character-art{width:60px;height:74px}.dragon-art{width:66px;height:66px;margin-left:-15px}.royal-characters{min-width:112px}.map-characters img{height:68px;width:60px}.castle-banner{max-height:145px}}
