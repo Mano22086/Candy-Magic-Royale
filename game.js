@@ -398,8 +398,8 @@
   function init(){
     try{
     unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem("cmr-unlocked")||1)));
-    engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
-    scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,1);
+    engine=new BABYLON.Engine(canvas,true,{alpha:true,preserveDrawingBuffer:false,stencil:true,antialias:true,powerPreference:"high-performance"});
+    scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.055,.22,0);
     camera=new BABYLON.ArcRotateCamera("camera",-Math.PI/2,Math.PI/2-.12,10.8,new BABYLON.Vector3(0,0,0),scene);camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;camera.inputs.clear();
     const resize=()=>{const aspect=canvas.clientWidth/Math.max(1,canvas.clientHeight),halfWidth=5.35;camera.orthoLeft=-halfWidth;camera.orthoRight=halfWidth;camera.orthoTop=halfWidth/Math.max(.45,aspect);camera.orthoBottom=-camera.orthoTop;};resize();scene.onBeforeRenderObservable.add(resize);
     const hemi=new BABYLON.HemisphericLight("hemi",new BABYLON.Vector3(0,1,-1),scene);hemi.intensity=.95;hemi.groundColor=new BABYLON.Color3(.32,.2,.48);
