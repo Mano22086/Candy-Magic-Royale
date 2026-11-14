@@ -15,6 +15,7 @@
   let engine,scene,camera,boardRoot,board=[],score=0,moves=START_MOVES,level=1,keyLight,rim;
   let busy=false,selected=null,pointerStart=null,soundOn=true,toastTimer;
   let specials=new Map(), candyMeshes=new Map(), unlocked=1, applyKingdomTheme=()=>{};
+  let royalCandyTemplates=[], royalCandyLoadAttempted=false;
   const key=(r,c)=>r+","+c, parse=k=>k.split(",").map(Number);
   const goal=()=>LEVELS[Math.min(level-1,LEVELS.length-1)].goal;
   const levelData=()=>LEVELS[Math.min(level-1,LEVELS.length-1)];
@@ -34,9 +35,46 @@
       board[r][c]=t;
     }
   }
+  function loadRoyalCandyModels(){
+    if(royalCandyLoadAttempted||!BABYLON.SceneLoader)return;
+    royalCandyLoadAttempted=true;
+    BABYLON.SceneLoader.LoadAssetContainerAsync("https://grab3d.com/dl/candy-set/","candy-set.glb",scene).then(container=>{
+      const roots=container.rootNodes||[];
+      let candidates=[];
+      for(const node of roots){
+        const direct=node.getChildren?node.getChildren(undefined,false):[];
+        candidates.push(...direct.filter(child=>child.getChildMeshes&&child.getChildMeshes(false).length>0));
+      }
+      if(candidates.length<6)candidates=container.meshes.filter(mesh=>mesh.getTotalVertices&&mesh.getTotalVertices()>0&&!mesh.parent);
+      candidates=candidates.filter((node,index,array)=>array.indexOf(node)===index).slice(0,10);
+      if(candidates.length<6){console.warn("Candy GLB loaded but did not expose six independent candy models",candidates.length);container.dispose();return;}
+      royalCandyTemplates=candidates;
+      // Keep source meshes hidden; every board candy receives its own cloned model.
+      for(const node of candidates)node.setEnabled(false);
+      drawBoard();
+      loading.classList.add("hidden");
+      toast("Real candy models loaded ✨");
+    }).catch(error=>console.warn("External candy model pack unavailable; keeping built-in candy models.",error));
+  }
   function createCandy(type,r,c,special){
     const root=new BABYLON.TransformNode("candy-"+r+"-"+c,scene);
     root.position.set(c-3.5,3.5-r,0);
+    if(royalCandyTemplates.length){
+      const source=royalCandyTemplates[type%royalCandyTemplates.length];
+      const model=source.clone("royal-candy-"+r+"-"+c,null,true);
+      if(model){
+        model.setEnabled(true);model.parent=root;
+        const meshes=[model,...(model.getChildMeshes?model.getChildMeshes(false):[])].filter(m=>m.getBoundingInfo);
+        let maxDim=0;
+        for(const mesh of meshes){mesh.computeWorldMatrix(true);const box=mesh.getBoundingInfo().boundingBox;maxDim=Math.max(maxDim,box.extendSizeWorld.x*2,box.extendSizeWorld.y*2,box.extendSizeWorld.z*2);}
+        const fit=maxDim>0?.76/maxDim:1;
+        model.scaling.scaleInPlace(fit);
+        const bounds=meshes.reduce((acc,m)=>{m.computeWorldMatrix(true);const b=m.getBoundingInfo().boundingBox;acc.minX=Math.min(acc.minX,b.minimumWorld.x);acc.maxX=Math.max(acc.maxX,b.maximumWorld.x);acc.minY=Math.min(acc.minY,b.minimumWorld.y);acc.maxY=Math.max(acc.maxY,b.maximumWorld.y);acc.minZ=Math.min(acc.minZ,b.minimumWorld.z);acc.maxZ=Math.max(acc.maxZ,b.maximumWorld.z);return acc;},{minX:Infinity,maxX:-Infinity,minY:Infinity,maxY:-Infinity,minZ:Infinity,maxZ:-Infinity});
+        if(Number.isFinite(bounds.minX))model.position.set(-(bounds.minX+bounds.maxX)/2,-(bounds.minY+bounds.maxY)/2,-(bounds.minZ+bounds.maxZ)/2);
+        if(special){const ring=BABYLON.MeshBuilder.CreateTorus("royal-special-ring",{diameter:.94,thickness:.055,tessellation:36},scene);ring.parent=root;ring.position.z=-.08;const gold=new BABYLON.StandardMaterial("royal-special-gold",scene);gold.diffuseColor=new BABYLON.Color3(1,.72,.22);gold.emissiveColor=new BABYLON.Color3(.22,.1,.015);ring.material=gold;}
+        root.metadata={r,c,type};candyMeshes.set(key(r,c),root);return root;
+      }
+    }
     const color=BABYLON.Color3.FromHexString(COLORS[type]);
     const mat=new BABYLON.StandardMaterial("sweet-glaze-"+r+"-"+c,scene);
     mat.diffuseColor=color;mat.specularColor=new BABYLON.Color3(.95,.9,1);mat.specularPower=96;mat.emissiveColor=color.scale(.12);
@@ -446,6 +484,7 @@
     keyLight=new BABYLON.PointLight("key",new BABYLON.Vector3(-3,5,-5),scene);keyLight.intensity=.8;keyLight.diffuse=new BABYLON.Color3(1,.78,.95);
     rim=new BABYLON.PointLight("rim",new BABYLON.Vector3(4,-3,-2),scene);rim.intensity=.45;rim.diffuse=new BABYLON.Color3(.35,.55,1);
     createKingdomAmbience();
+    loadRoyalCandyModels();
     makeInitialBoard();drawBoard();canvas.addEventListener("pointerdown",pointerDown);canvas.addEventListener("pointerup",pointerUp);canvas.addEventListener("pointercancel",()=>pointerStart=null);
     engine.runRenderLoop(()=>scene.render());window.addEventListener("resize",()=>engine.resize());
     $("storyText").textContent=levelData().story;updateHud();buildMap();setTimeout(()=>loading.classList.add("hidden"),350);
