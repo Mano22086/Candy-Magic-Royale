@@ -341,6 +341,7 @@
     const queenHair=new BABYLON.StandardMaterial("queen-hair",scene);queenHair.diffuseColor=new BABYLON.Color3(.34,.12,.48);
     const queenEye=new BABYLON.StandardMaterial("queen-eye",scene);queenEye.diffuseColor=new BABYLON.Color3(.12,.055,.2);queenEye.emissiveColor=new BABYLON.Color3(.08,.025,.1);
     const qPart=(name,shape,opts,mat,pos,scale,rot)=>{const m=shape(name,opts,scene);m.parent=queenRoot;m.material=mat;if(pos)m.position.set(pos[0],pos[1],pos[2]);if(scale)m.scaling.set(scale[0],scale[1],scale[2]);if(rot)m.rotation.set(rot[0],rot[1],rot[2]);return m;};
+    const queenArms=[];
     qPart("luma-royal-gown",BABYLON.MeshBuilder.CreateCylinder,{height:.72,diameterTop:.18,diameterBottom:.72,tessellation:12},queenDress,[0,-.18,0],[1,1,.72]);
     qPart("luma-neck",BABYLON.MeshBuilder.CreateCylinder,{height:.13,diameter:.13,tessellation:10},queenSkin,[0,.22,0]);
     qPart("luma-face",BABYLON.MeshBuilder.CreateSphere,{diameter:.43,segments:16},queenSkin,[0,.48,0],[.88,1,.78]);
@@ -348,7 +349,7 @@
     qPart("luma-fringe",BABYLON.MeshBuilder.CreateSphere,{diameter:.27,segments:12},queenHair,[0,.68,-.12],[1.1,.52,.5]);
     for(const side of [-1,1]){
       qPart("luma-eye",BABYLON.MeshBuilder.CreateSphere,{diameter:.045,segments:8},queenEye,[side*.105,.49,-.185]);
-      qPart("luma-sleeve",BABYLON.MeshBuilder.CreateSphere,{diameter:.22,segments:12},queenDress,[side*.29,.04,0],[.72,.8,.72],[0,0,side*.45]);
+      const arm=qPart("luma-sleeve",BABYLON.MeshBuilder.CreateSphere,{diameter:.22,segments:12},queenDress,[side*.29,.04,0],[.72,.8,.72],[0,0,side*.45]);queenArms.push({mesh:arm,side});
       qPart("luma-crown-point",BABYLON.MeshBuilder.CreateCylinder,{height:.23,diameterTop:0,diameterBottom:.13,tessellation:6},queenGold,[side*.13,.91,0],[1,1,1],[0,0,side*-.18]);
     }
     qPart("luma-crown-band",BABYLON.MeshBuilder.CreateTorus,{diameter:.34,thickness:.045,tessellation:18},queenGold,[0,.82,0],[1,1,.8],[Math.PI/2,0,0]);
@@ -361,6 +362,7 @@
     const dragonWing=new BABYLON.StandardMaterial("dragon-wing",scene);dragonWing.diffuseColor=new BABYLON.Color3(.35,.22,.72);dragonWing.emissiveColor=new BABYLON.Color3(.08,.025,.18);dragonWing.backFaceCulling=false;
     const dragonEye=new BABYLON.StandardMaterial("dragon-eye",scene);dragonEye.diffuseColor=new BABYLON.Color3(1,.82,.2);dragonEye.emissiveColor=new BABYLON.Color3(.4,.22,.015);
     const dPart=(name,shape,opts,mat,pos,scale,rot)=>{const m=shape(name,opts,scene);m.parent=dragonRoot;m.material=mat;if(pos)m.position.set(pos[0],pos[1],pos[2]);if(scale)m.scaling.set(scale[0],scale[1],scale[2]);if(rot)m.rotation.set(rot[0],rot[1],rot[2]);return m;};
+    const dragonWings=[];
     dPart("dragon-tummy",BABYLON.MeshBuilder.CreateSphere,{diameter:.64,segments:16},dragonBody,[0,-.12,0],[1.05,.82,.78]);
     dPart("dragon-belly",BABYLON.MeshBuilder.CreateSphere,{diameter:.46,segments:14},dragonBelly,[0,-.18,-.25],[.78,.78,.35]);
     dPart("dragon-head",BABYLON.MeshBuilder.CreateSphere,{diameter:.48,segments:16},dragonBody,[.03,.38,-.03],[1.05,.88,.82]);
@@ -369,7 +371,7 @@
       dPart("dragon-eye",BABYLON.MeshBuilder.CreateSphere,{diameter:.07,segments:10},dragonEye,[side*.14,.43,-.34]);
       dPart("dragon-horn",BABYLON.MeshBuilder.CreateCylinder,{height:.28,diameterTop:0,diameterBottom:.13,tessellation:7},dragonBelly,[side*.17,.7,0],[1,1,1],[0,0,side*-.35]);
       const wing=dPart("dragon-wing",BABYLON.MeshBuilder.CreatePlane,{width:.56,height:.52,sideOrientation:BABYLON.Mesh.DOUBLESIDE},dragonWing,[side*.38,.15,.12],[1,1,1],[0,side*-.22,side*-.55]);
-      wing.rotation.y=side*-.35;
+      wing.rotation.y=side*-.35;dragonWings.push({mesh:wing,side});
     }
     const companions=[{root:queenRoot,phase:0,speed:1.1,baseY:4.2},{root:dragonRoot,phase:1.7,speed:1.5,baseY:4.2}];
 
@@ -381,6 +383,8 @@
       stars.forEach((o,i)=>{o.mesh.position.y=o.baseY+Math.sin(t*1.4+o.phase)*.16;o.mesh.visibility=.45+.55*(.5+.5*Math.sin(t*2+o.phase));});
       companions.forEach(o=>{o.root.position.y=o.baseY+Math.sin(t*o.speed+o.phase)*.09;o.root.rotation.z=Math.sin(t*.9+o.phase)*.055;});
       queenRoot.rotation.y=Math.sin(t*.65)*.12;
+      queenArms.forEach(a=>{a.mesh.rotation.z=a.side*.45+Math.sin(t*1.7+a.side)*.14;});
+      dragonWings.forEach(w=>{w.mesh.rotation.z=w.side*-.55+Math.sin(t*7+w.side)*.3;});
       dragonRoot.rotation.y=Math.PI+Math.sin(t*.8+1.4)*.13;
       // Gentle living motion keeps every candy visibly glossy and alive.
       for(const candy of candyMeshes.values()){
