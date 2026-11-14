@@ -16,44 +16,33 @@
   <div class="sky-glow"></div>
   <main class="game-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Candy Magic Royale home">
-        <span class="brand-mark">✦</span>
-        <span><strong>CANDY MAGIC</strong><small>ROYALe</small></span>
-      </a>
-      <div class="level-pill"><span>LEVEL</span><strong id="level">01</strong></div>
+      <a class="brand" href="./" aria-label="Candy Magic Royale home"><span class="brand-mark">✦</span><span><strong>CANDY MAGIC</strong><small>ROYALE</small></span></a>
+      <button class="level-pill map-button" id="mapButton"><span>LEVEL</span><strong id="level">01</strong><small>MAP</small></button>
       <button class="sound-button" id="soundButton" aria-label="Toggle sound">♫</button>
     </header>
-
     <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">✧ THE KINGDOM OF SWEETS ✧</p>
-        <h1>Match the magic.</h1>
-        <p class="subtitle">Swap sparkling candies, create magic and reach your goal!</p>
-      </div>
-      <div class="dragon-bubble" aria-hidden="true"><span>🐉</span><i>✦</i></div>
+      <div class="hero-copy"><p class="eyebrow">✧ THE KINGDOM OF SWEETS ✧</p><h1>Match the magic.</h1><p class="subtitle" id="storyText">Help Queen Luma and the Dragon Prince restore the kingdom!</p></div>
+      <div class="royal-characters"><div class="character queen" title="Queen Luma">👸</div><div class="character dragon" title="Dragon Prince">🐉</div></div>
     </section>
-
     <section class="hud" aria-label="Game status">
       <div class="hud-card"><span class="hud-icon">⭐</span><div><small>SCORE</small><strong id="score">0</strong></div></div>
       <div class="hud-card goal-card"><span class="hud-icon">🍬</span><div><small>GOAL</small><strong id="goal">1500</strong></div></div>
       <div class="hud-card"><span class="hud-icon">⏳</span><div><small>MOVES</small><strong id="moves">25</strong></div></div>
     </section>
-
     <section class="board-wrap">
-      <div class="board-heading"><span>✧ ENCHANTED GARDEN ✧</span><span id="status">Make a match!</span></div>
-      <div class="canvas-frame">
-        <canvas id="renderCanvas" touch-action="none" aria-label="Interactive 3D candy match game"></canvas>
-        <div class="loading" id="loading">Sprinkling magic…</div>
-      </div>
+      <div class="board-heading"><span>✧ <b id="placeName">ENCHANTED GARDEN</b> ✧</span><span id="status">Make a match!</span></div>
+      <div class="canvas-frame"><canvas id="renderCanvas" touch-action="none" aria-label="Interactive 3D candy match game"></canvas><div class="loading" id="loading">Sprinkling magic…</div></div>
       <div class="board-footer"><span>↔</span> Swipe or drag two neighboring candies to swap them</div>
+      <div class="special-legend"><span>✨ 4-match = striped blast</span><span>🌈 5-match = rainbow candy</span></div>
     </section>
-
     <footer class="bottom-bar">
       <button class="utility-button" id="shuffleButton"><span>🔀</span> SHUFFLE</button>
       <div class="progress-area"><div class="progress-label"><span>MAGIC METER</span><strong id="progressText">0%</strong></div><div class="progress-track"><div id="progressFill"></div></div></div>
       <button class="utility-button" id="restartButton"><span>↻</span> RESTART</button>
     </footer>
   </main>
+  <section class="overlay" id="mapOverlay" aria-label="Level map"><div class="modal-card"><button class="modal-close" id="closeMap">×</button><p class="eyebrow">✧ ROYAL ADVENTURE ✧</p><h2>Kingdom Map</h2><p class="modal-copy">Travel with Queen Luma and the Dragon Prince. New lands unlock as you win.</p><div class="map-characters">👸 <span>✨</span> 🐉</div><div class="map-levels" id="mapLevels"></div></div></section>
+  <section class="overlay" id="winOverlay" aria-label="Level completed"><div class="modal-card win-card"><div class="win-crown">👑</div><p class="eyebrow">✧ KINGDOM RESTORED ✧</p><h2 id="winTitle">Level completed!</h2><p class="modal-copy" id="winMessage">The kingdom shines again!</p><div class="map-characters">👸 <span>💖</span> 🐉</div><button class="primary-button" id="nextLevel">NEXT LEVEL ✦</button><button class="secondary-button" id="replayLevel">Replay level</button></div></section>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="./game.js"></script>
 </body>
