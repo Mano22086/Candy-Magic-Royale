@@ -95,9 +95,9 @@
     if(chosen){hit.delete(chosen.cell);specials.set(chosen.cell,chosen.type);return chosen;}
     return null;
   }
-  function resolveMatches(anchor){
-    const runs=findRuns();if(!runs.length){busy=false;return;}
-    const hit=matchSet(runs);const created=createSpecialFromRuns(runs,hit,anchor);
+  function resolveMatches(anchor,forcedKeys){
+    const runs=findRuns();const hit=matchSet(runs);(forcedKeys||[]).forEach(k=>hit.add(k));if(!hit.size){busy=false;return;}
+    const created=(forcedKeys&&forcedKeys.length)?null:createSpecialFromRuns(runs,hit,anchor);
     expandSpecials(hit);
     const points=hit.size*60+(hit.size>6?150:0);score+=points;updateHud();
     if(created)toast(created.type==="color"?"Rainbow Candy created! 🌈":"Magic Stripe created! ✨");
@@ -120,7 +120,7 @@
     if(busy||moves<=0||score>=goal()||!neighbors(a,b))return;busy=true;selected=null;
     swapData(a,b);
     setTimeout(()=>{const runs=findRuns();const specialSwap=specials.has(key(b.r,b.c))||specials.has(key(a.r,a.c));
-      if(runs.length||specialSwap){moves--;updateHud();resolveMatches({r:b.r,c:b.c});}
+      if(runs.length||specialSwap){const forced=[key(a.r,a.c),key(b.r,b.c)].filter(k=>specials.has(k));moves--;updateHud();resolveMatches({r:b.r,c:b.c},forced);}
       else{swapData(a,b);setTimeout(()=>busy=false,180);}
     },190);
   }
