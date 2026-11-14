@@ -101,6 +101,11 @@
     if(boardRoot)boardRoot.dispose();candyMeshes.clear();boardRoot=new BABYLON.TransformNode("boardRoot",scene);
     const back=BABYLON.MeshBuilder.CreateBox("board-back",{width:8.45,height:8.45,depth:.35},scene);back.parent=boardRoot;back.position.z=.22;
     const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.18,.08,.32);bm.emissiveColor=new BABYLON.Color3(.08,.025,.15);back.material=bm;
+    // A luminous royal frame sits behind the playable grid, like a jeweled game board.
+    const frameMat=new BABYLON.StandardMaterial("royal-frame-gold",scene);frameMat.diffuseColor=new BABYLON.Color3(1,.66,.88);frameMat.emissiveColor=new BABYLON.Color3(.38,.12,.3);frameMat.specularColor=new BABYLON.Color3(1,.9,1);
+    const outerFrame=BABYLON.MeshBuilder.CreateTorus("royal-board-frame",{diameter:8.82,thickness:.085,tessellation:96},scene);outerFrame.parent=boardRoot;outerFrame.position.z=.48;outerFrame.material=frameMat;
+    const innerFrame=BABYLON.MeshBuilder.CreateTorus("royal-board-inner-frame",{diameter:8.58,thickness:.025,tessellation:96},scene);innerFrame.parent=boardRoot;innerFrame.position.z=.47;innerFrame.material=frameMat;
+    for(const x of [-4.28,4.28])for(const y of [-4.28,4.28]){const jewel=BABYLON.MeshBuilder.CreatePolyhedron("frame-jewel",{type:1,size:.16},scene);jewel.parent=boardRoot;jewel.position.set(x,y,.45);jewel.material=frameMat;jewel.rotation.z=Math.PI/4;}
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
       const tile=BABYLON.MeshBuilder.CreateBox("tile",{width:.94,height:.94,depth:.16},scene);tile.parent=boardRoot;tile.position.set(c-3.5,3.5-r,0);
       const tm=new BABYLON.PBRMaterial("tileMat-"+r+"-"+c,scene);tm.albedoColor=new BABYLON.Color3(.31,.17,.49);tm.metallic=.22;tm.roughness=.3;tm.alpha=.78;tm.emissiveColor=new BABYLON.Color3(.055,.025,.10);tile.material=tm;
