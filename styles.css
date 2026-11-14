@@ -1,0 +1,41 @@
+:root{color-scheme:dark;--ink:#fff8ff;--muted:#c9b9e8;--pink:#ff70c7;--gold:#ffe28a;--panel:rgba(37,20,78,.76)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Fredoka",system-ui,sans-serif;color:var(--ink);background:#100a29}
+body{min-height:100svh;overflow-x:hidden;background:radial-gradient(ellipse at 50% 25%,#482477 0,#211044 43%,#100a29 78%);padding:18px 14px 28px}
+.sky-glow{position:fixed;inset:0;pointer-events:none;opacity:.35;background-image:radial-gradient(2px 2px at 12% 17%,#fff 98%,transparent),radial-gradient(2px 2px at 82% 13%,#ffd6fa 98%,transparent),radial-gradient(1.5px 1.5px at 70% 48%,#fff 98%,transparent),radial-gradient(2px 2px at 24% 76%,#ffe7a3 98%,transparent),radial-gradient(1px 1px at 90% 83%,#fff 98%,transparent)}
+.game-shell{width:min(100%,760px);margin:auto;position:relative;z-index:1}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:9px;color:white;text-decoration:none;letter-spacing:1px}
+.brand-mark{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;color:#5b2c87;background:linear-gradient(145deg,#fff3a8,#ff91d7);font-size:25px;box-shadow:0 4px 18px #ff83d966}
+.brand strong,.brand small{display:block;line-height:1}
+.brand strong{font-size:15px;font-weight:700}.brand small{font-size:11px;letter-spacing:4px;color:#ffb9e6;margin-top:4px}
+.level-pill{display:flex;align-items:center;gap:9px;padding:7px 14px;border:1px solid #ffffff2a;border-radius:30px;background:#ffffff12}
+.level-pill span,.hud-card small{font-size:10px;letter-spacing:1.3px;color:var(--muted);font-weight:600}
+.level-pill strong{font-size:19px;color:var(--gold)}
+.sound-button{border:1px solid #ffffff30;background:#ffffff12;color:white;width:39px;height:39px;border-radius:50%;font-size:20px}
+.hero{display:flex;align-items:center;justify-content:space-between;padding:22px 4px 12px;gap:10px}
+.eyebrow{margin:0 0 5px;color:#ffb4e6;font-size:10px;letter-spacing:2px;font-weight:600}
+h1{font-size:clamp(27px,6vw,42px);line-height:1;margin:0;text-shadow:0 3px 0 #562d81,0 6px 22px #ff7edb55}
+.subtitle{margin:8px 0 0;color:#d7c9ee;font-size:13px;max-width:430px}
+.dragon-bubble{width:76px;height:76px;flex:0 0 76px;border-radius:50%;display:grid;place-items:center;position:relative;background:linear-gradient(145deg,#ffc8ef,#a56cf1 70%);box-shadow:inset 0 4px 10px #fff8,0 7px 24px #05001477;border:2px solid #ffffff80}
+.dragon-bubble span{font-size:43px;filter:drop-shadow(0 4px 3px #54216b66)}.dragon-bubble i{position:absolute;right:0;top:0;color:#fff2a1;font-style:normal;font-size:19px}
+.hud{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}
+.hud-card{display:flex;align-items:center;justify-content:center;gap:9px;padding:9px 7px;border-radius:15px;background:linear-gradient(145deg,#55327fbb,#29184fdd);border:1px solid #ffffff25;box-shadow:0 5px 15px #08031c55}
+.hud-icon{font-size:24px;filter:drop-shadow(0 2px 4px #0005)}.hud-card small,.hud-card strong{display:block}.hud-card strong{font-size:20px;line-height:1.1;color:#fff}
+.board-wrap{padding:12px;border-radius:23px;background:linear-gradient(145deg,#ffffff20,#ffffff08);border:1px solid #ffffff38;box-shadow:0 14px 35px #07021777,inset 0 1px #ffffff30}
+.board-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 4px 10px;font-size:11px;letter-spacing:1.4px;color:#ffe1fb;font-weight:600}
+#status{letter-spacing:0;font-size:11px;color:#cdb9f4;text-align:right}
+.canvas-frame{position:relative;width:100%;aspect-ratio:1/1;max-height:620px;border-radius:16px;overflow:hidden;background:radial-gradient(circle at 50% 35%,#8050b9,#42206f 64%,#28114c);border:1px solid #ffffff35}
+#renderCanvas{width:100%;height:100%;display:block;outline:none;touch-action:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:#27104de8;color:#ffe0fa;font-size:16px;letter-spacing:1px;transition:opacity .3s}
+.loading.hidden{opacity:0;pointer-events:none}
+.board-footer{text-align:center;color:#cbb9e9;font-size:11px;padding:11px 4px 0}.board-footer span{color:#ffe39b;font-size:17px;vertical-align:middle;margin-right:5px}
+.bottom-bar{display:flex;align-items:center;gap:12px;margin-top:14px}
+.utility-button{border:1px solid #ffffff30;background:linear-gradient(145deg,#674294,#39205f);color:white;border-radius:13px;padding:10px 11px;font:600 10px "Fredoka",sans-serif;letter-spacing:.7px;white-space:nowrap;box-shadow:0 4px 12px #09031c66}
+.utility-button span{font-size:15px;vertical-align:middle;margin-right:3px}
+.progress-area{flex:1;min-width:60px}.progress-label{display:flex;justify-content:space-between;color:#d9c8f1;font-size:9px;letter-spacing:1px;margin-bottom:6px}.progress-label strong{color:var(--gold)}
+.progress-track{height:9px;border-radius:20px;background:#160b31;border:1px solid #ffffff2c;overflow:hidden}.progress-track div{height:100%;width:0;background:linear-gradient(90deg,#ff78c9,#ffdc8b);border-radius:20px;transition:width .3s;box-shadow:0 0 12px #ff8ad8}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;pointer-events:none;padding:10px 18px;border-radius:30px;background:#fff0bd;color:#47215f;font-weight:700;font-size:13px;box-shadow:0 8px 30px #0008;transition:.25s;z-index:5;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+button{cursor:pointer;touch-action:manipulation}button:active{transform:translateY(1px)}
+@media(min-width:650px){body{padding-top:25px}.hero{padding-top:28px}.canvas-frame{aspect-ratio:1.08/1}.board-wrap{padding:16px}.hud-card{padding:12px}.hud-card strong{font-size:23px}}
+@media(max-width:380px){body{padding-inline:9px}.brand strong{font-size:13px}.dragon-bubble{width:62px;height:62px;flex-basis:62px}.dragon-bubble span{font-size:36px}.board-wrap{padding:8px}.hud{gap:6px}.hud-card{gap:5px}.hud-icon{font-size:20px}.hud-card strong{font-size:18px}.utility-button{padding:9px 7px;font-size:9px}.bottom-bar{gap:7px}}
