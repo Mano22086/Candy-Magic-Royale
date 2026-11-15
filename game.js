@@ -16,7 +16,7 @@ const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
 const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
 const VIDEO_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
-const VIDEO_FILES={background:"VID_%D9%A2%D9%A0%D9%A2%D9%A6%D9%A1%D9%A1%D9%A5%D9%A2%D9%A1%D9%A1%D9%A8%D9%A4%D9%A3.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
+const VIDEO_FILES={background:"VID_٢٠٢٦١١٥٢١١٨٤٣.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
@@ -159,7 +159,7 @@ function startVideoTexture(key,file){
   const video=document.createElement("video");
   video.muted=true;video.loop=true;video.autoplay=true;video.playsInline=true;video.preload="auto";
   video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.crossOrigin="anonymous";
-  video.src=VIDEO_BASE+file;
+  video.src=VIDEO_BASE+encodeURIComponent(file);
   const texture=new BABYLON.VideoTexture("royalVideo_"+key,video,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
   const play=()=>video.play().catch(error=>console.warn("Video autoplay blocked:",key,error));
   video.addEventListener("canplay",play,{once:true});
@@ -169,8 +169,8 @@ function startVideoTexture(key,file){
 function installGameVideos(){
   try{
     const background=startVideoTexture("background",VIDEO_FILES.background);
-    backgroundVideoLayer=new BABYLON.Layer("royalMovingBackdrop",background.texture,scene,true);
-    backgroundVideoLayer.isBackground=true;
+    backgroundVideoLayer=new BABYLON.Layer("royalMovingBackdrop",null,scene,true);
+    backgroundVideoLayer.texture=background.texture;
   }catch(error){console.warn("Animated background unavailable; gradient fallback active.",error);}
   try{
     const board=startVideoTexture("board",VIDEO_FILES.board);
