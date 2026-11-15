@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const SIZE=8, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1";
+const SIZE=8, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
@@ -429,7 +429,18 @@ function checkEnd(){
     $("characterMessage").textContent="متستسلمش، جرب تاني!";
   }
 }
-function saveProgress(completed=false){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars,completed}));}catch(e){}}
+function ensureGuestIdentity(){
+  try{
+    let identity=JSON.parse(localStorage.getItem(PLAYER_KEY)||"null");
+    if(!identity||!identity.id){
+      const id=window.crypto&&crypto.randomUUID?crypto.randomUUID():"guest-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+      identity={id,provider:"guest",createdAt:new Date().toISOString()};
+      localStorage.setItem(PLAYER_KEY,JSON.stringify(identity));
+    }
+    return identity;
+  }catch(e){return {id:"guest-session",provider:"guest"};}
+}
+function saveProgress(completed=false){try{const identity=ensureGuestIdentity();localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars,completed}));}catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
   const savedLevel=Math.max(1,Number(x.level)||1);
@@ -512,17 +523,30 @@ async function start(){
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
 }
 window.addEventListener("DOMContentLoaded",()=>{
-  const launch=$("startGameBtn"),screen=$("startScreen");
-  launch.addEventListener("click",()=>{
-    if(launch.disabled)return;
+  const launch=$("startGameBtn"),screen=$("startScreen"),facebookModal=$("facebookModal");
+  let launching=false;
+  const launchAsGuest=()=>{
+    if(launching)return;
+    launching=true;
+    ensureGuestIdentity();
     launch.disabled=true;launch.textContent="جاري فتح المملكة...";
     start().then(()=>{
       screen.classList.add("start-screen-leaving");
       document.body.classList.add("game-started");
       setTimeout(()=>screen.remove(),520);
     }).catch(error=>{
-      console.error(error);launch.disabled=false;launch.textContent="حاول مرة أخرى";
+      console.error(error);launching=false;launch.disabled=false;launch.textContent="العب كضيف";
+      say("حصلت مشكلة أثناء فتح اللعبة، حاول تاني.");
     });
+  };
+  launch.addEventListener("click",launchAsGuest);
+  $("facebookLoginBtn").addEventListener("click",()=>{
+    facebookModal.classList.remove("hidden");
+  });
+  $("facebookCloseBtn").addEventListener("click",()=>facebookModal.classList.add("hidden"));
+  $("facebookGuestBtn").addEventListener("click",()=>{
+    facebookModal.classList.add("hidden");
+    launchAsGuest();
   });
 });
 })();
