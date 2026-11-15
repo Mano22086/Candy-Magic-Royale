@@ -185,7 +185,9 @@ function buildGrid(){
 function pickCell(){
   const pick=scene.pick(scene.pointerX,scene.pointerY,m=>m&&m.metadata&&m.metadata.candy);
   if(!pick||!pick.hit||!pick.pickedMesh)return null;
-  const m=pick.pickedMesh;return {r:m.metadata.r,c:m.metadata.c};
+  let m=pick.pickedMesh;
+  while(m.parent&&m.parent.metadata&&m.parent.metadata.candy)m=m.parent;
+  return {r:m.metadata.r,c:m.metadata.c};
 }
 function bindInput(){
   let down=null,downPoint=null;
