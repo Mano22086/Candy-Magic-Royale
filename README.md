@@ -6,7 +6,7 @@ A mobile-first Babylon.js 3D match-three game.
 Open the GitHub Pages site or serve this repository through a static web server. Babylon.js is loaded from its CDN, so the game needs an internet connection.
 
 ## Current rebuild
-- Mobile-first royal kingdom interface.
+- Mobile-first royal kingdom interface with an animated full-screen title/intro screen before gameplay.
 - Babylon.js 3D board with 3D candy cores, glossy candy artwork sprites, lighting and glow.
 - Six candy artwork textures are loaded from the collected asset pack; their flat background is keyed to transparency at runtime.
 - Tap or swipe neighboring candies to swap them.
