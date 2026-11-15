@@ -160,8 +160,10 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
   scene.imageProcessingConfiguration.exposure=1.08;
   scene.imageProcessingConfiguration.contrast=1.12;
-  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.08,14.6,new BABYLON.Vector3(0,0,0),scene);
-  camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.fov=.78;camera.minZ=.1;camera.maxZ=100;
+  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
+  camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+  camera.orthoLeft=-5;camera.orthoRight=5;camera.orthoTop=5;camera.orthoBottom=-5;
+  camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
@@ -183,46 +185,43 @@ function buildGrid(){
     const type=randomType(r,c);state.grid[r][c]={type:type,special:null,mesh:candyMesh(r,c,type,null)};
   }
 }
-function pickCell(x=scene.pointerX,y=scene.pointerY){
-  const pick=scene.pick(x,y,m=>m&&m.metadata&&m.metadata.candy);
-  if(!pick||!pick.hit||!pick.pickedMesh)return null;
-  let m=pick.pickedMesh;
-  while(m.parent&&m.parent.metadata&&m.parent.metadata.candy)m=m.parent;
-  return {r:m.metadata.r,c:m.metadata.c};
+function gridPointAtClient(clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  const x=(clientX-rect.left)*(engine.getRenderWidth()/rect.width);
+  const y=(clientY-rect.top)*(engine.getRenderHeight()/rect.height);
+  const ray=scene.createPickingRay(x,y,BABYLON.Matrix.Identity(),camera,false);
+  const distance=ray.intersectsPlane(new BABYLON.Plane(0,1,0,-.55));
+  if(distance===null||distance<0)return null;
+  const point=ray.origin.add(ray.direction.scale(distance));
+  return {r:Math.floor((point.z+SIZE*SPACING/2)/SPACING),c:Math.floor((point.x+SIZE*SPACING/2)/SPACING)};
+}
+function pickCellAtClient(clientX,clientY){
+  const cell=gridPointAtClient(clientX,clientY);
+  return cell&&inBounds(cell.r,cell.c)?cell:null;
 }
 function bindInput(){
   let down=null,downPoint=null,pointerId=null;
   const reset=()=>{down=null;downPoint=null;pointerId=null;};
-  // Babylon already converts browser pointer coordinates into render-space
-  // coordinates (including device-pixel scaling). Reuse its pointer position
-  // instead of scaling clientX/clientY a second time.
-  const pickAt=()=>pickCell(scene.pointerX,scene.pointerY);
   canvas.addEventListener("pointerdown",event=>{
     if(state.busy||state.won)return;
     event.preventDefault();
-    try{canvas.setPointerCapture(event.pointerId);}catch(_){}
     pointerId=event.pointerId;
-    down=pickAt();
+    down=pickCellAtClient(event.clientX,event.clientY);
     downPoint={x:event.clientX,y:event.clientY};
+    try{canvas.setPointerCapture(event.pointerId);}catch(_){}
   },{passive:false});
   canvas.addEventListener("pointerup",event=>{
-    if(!down||event.pointerId!==pointerId)return;
+    if(event.pointerId!==pointerId)return;
     event.preventDefault();
+    if(!down){reset();return;}
     if(state.busy||state.won){reset();return;}
     const dx=event.clientX-downPoint.x,dy=event.clientY-downPoint.y;
-    if(Math.hypot(dx,dy)>10){
-      const up=pickAt();
-      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
-        swap(down,up);
-      }else{
-        const dr=Math.abs(dy)>Math.abs(dx)?(dy>0?1:-1):0;
-        const dc=dr===0?(dx>0?1:-1):0;
-        const target={r:down.r+dr,c:down.c+dc};
-        if(inBounds(target.r,target.c))swap(down,target);
-      }
-    }else{
-      tapCell(down);
-    }
+    if(Math.hypot(dx,dy)>8){
+      const up=pickCellAtClient(event.clientX,event.clientY);
+      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1)swap(down,up);
+      else if(up){tapCell(up);}
+    }else tapCell(down);
     reset();
   },{passive:false});
   canvas.addEventListener("pointercancel",reset,{passive:true});
