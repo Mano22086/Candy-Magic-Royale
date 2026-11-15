@@ -1,878 +1,294 @@
-/**
- * Candy Magic Royale — Babylon.js 3D Match-3 Engine (Upgraded)
- * Integrates:
- *  1. Procedural 100,000-level generator (levels_engine.js -> generateInfiniteLevel)
- *  2. Special Candies (Striped H/V, Wrapped 3x3, Rainbow Color Bomb) + Chain Combos
- *  3. Four Power-Up Boosters (Sugar Mallet, Magic Wand, Rainbow Rocket, +5 Moves)
- *  4. Touch Swipe & Tap-to-Swap picking + Particle Bursts + LocalStorage Progress
- */
-
 (() => {
-  "use strict";
-
-  const GRID_SIZE = 8;
-  const CELL_SPACING = 1.18;
-  const BOARD_OFFSET = -((GRID_SIZE - 1) * CELL_SPACING) / 2;
-
-  const CANDY_PALETTE = [
-    { id: 1, name: "heart", color: new BABYLON.Color3(0.95, 0.16, 0.32), emissive: new BABYLON.Color3(0.35, 0.03, 0.08) },
-    { id: 2, name: "orange", color: new BABYLON.Color3(1.0, 0.52, 0.08), emissive: new BABYLON.Color3(0.35, 0.14, 0.02) },
-    { id: 3, name: "star", color: new BABYLON.Color3(1.0, 0.84, 0.12), emissive: new BABYLON.Color3(0.32, 0.25, 0.02) },
-    { id: 4, name: "leaf", color: new BABYLON.Color3(0.18, 0.82, 0.36), emissive: new BABYLON.Color3(0.04, 0.28, 0.08) },
-    { id: 5, name: "diamond", color: new BABYLON.Color3(0.14, 0.68, 1.0), emissive: new BABYLON.Color3(0.03, 0.22, 0.38) },
-    { id: 6, name: "jelly", color: new BABYLON.Color3(0.68, 0.24, 0.96), emissive: new BABYLON.Color3(0.24, 0.05, 0.35) },
-  ];
-
-  const SPECIAL = {
-    NONE: "none",
-    STRIPED_H: "striped_h",
-    STRIPED_V: "striped_v",
-    WRAPPED: "wrapped",
-    COLOR_BOMB: "color_bomb",
-  };
-
-  const STORAGE_KEY = "candy_magic_royale_save_v2";
-
-  const state = {
-    levelNumber: 1,
-    score: 0,
-    targetScore: 1500,
-    movesLeft: 25,
-    colorsCount: 5,
-    stars: 0,
-    coins: 500,
-    boosters: {
-      mallet: 3,
-      wand: 3,
-      rocket: 2,
-      moves5: 2,
-    },
-    activeBooster: null,
-    grid: [], // 8x8 of { typeId, special, isObstacle, mesh, badgeMesh }
-    isBusy: false,
-    selectedCell: null,
-    pointerDownCell: null,
-    pointerDownPos: null,
-    gameOver: false,
-  };
-
-  let canvas, engine, scene, camera, glowLayer;
-
-  // --- Persistence ---
-  function loadProgress() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (typeof saved.levelNumber === "number") state.levelNumber = Math.max(1, saved.levelNumber);
-      if (typeof saved.stars === "number") state.stars = saved.stars;
-      if (typeof saved.coins === "number") state.coins = saved.coins;
-      if (saved.boosters) Object.assign(state.boosters, saved.boosters);
-    } catch (_) {
-      // Ignore storage errors on restricted mobile webviews
-    }
+"use strict";
+const SIZE=8, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1";
+const palette=[
+  {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
+  {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
+  {name:"Star Sugar",color:new BABYLON.Color3(1,.79,.12)},
+  {name:"Emerald Leaf",color:new BABYLON.Color3(.12,.78,.38)},
+  {name:"Sky Diamond",color:new BABYLON.Color3(.12,.61,1)},
+  {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)}
+];
+const state={grid:[],score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
+let engine,scene,camera,canvas,materials=[],toastTimer;
+const $=id=>document.getElementById(id);
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const rand=()=>Math.floor(Math.random()*TYPES)+1;
+function say(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1800);}
+function pos(r,c){return new BABYLON.Vector3((c-3.5)*SPACING,.55,(r-3.5)*SPACING);}
+function makeMaterial(type){
+  if(materials[type])return materials[type];
+  const mat=new BABYLON.StandardMaterial("sugarMat"+type,scene);
+  mat.diffuseColor=palette[type-1].color;
+  mat.specularColor=new BABYLON.Color3(1,.96,1);
+  mat.specularPower=110;
+  mat.emissiveColor=palette[type-1].color.scale(.10);
+  mat.ambientColor=palette[type-1].color.scale(.22);
+  mat.useSpecularOverAlpha=true;
+  mat.emissiveFresnelParameters=new BABYLON.FresnelParameters();
+  mat.emissiveFresnelParameters.bias=.04;
+  mat.emissiveFresnelParameters.power=2.2;
+  mat.emissiveFresnelParameters.leftColor=palette[type-1].color.scale(.12);
+  mat.emissiveFresnelParameters.rightColor=new BABYLON.Color3(.62,.42,.85);
+  materials[type]=mat;return mat;
+}
+function candyMesh(r,c,type,special){
+  let mesh;
+  if(special==="color"){
+    mesh=BABYLON.MeshBuilder.CreateSphere("rainbowCandy",{diameter:.78,segments:24},scene);
+    const mat=new BABYLON.StandardMaterial("rainbowMat"+r+c,scene);
+    mat.diffuseColor=new BABYLON.Color3(.25,.12,.42);mat.emissiveColor=new BABYLON.Color3(.7,.25,.95);
+    mat.specularColor=new BABYLON.Color3(1,1,1);mat.specularPower=128;mesh.material=mat;
+  }else{
+    if(type===1)mesh=BABYLON.MeshBuilder.CreatePolyhedron("ruby"+r+c,{type:1,size:.43},scene);
+    else if(type===2)mesh=BABYLON.MeshBuilder.CreateSphere("sun"+r+c,{diameter:.79,segments:24},scene);
+    else if(type===3)mesh=BABYLON.MeshBuilder.CreatePolyhedron("star"+r+c,{type:2,size:.44},scene);
+    else if(type===4)mesh=BABYLON.MeshBuilder.CreateCapsule("leaf"+r+c,{radius:.29,height:.78,tessellation:20},scene);
+    else if(type===5)mesh=BABYLON.MeshBuilder.CreatePolyhedron("diamond"+r+c,{type:0,size:.44},scene);
+    else mesh=BABYLON.MeshBuilder.CreateSphere("jelly"+r+c,{diameter:.78,segments:20},scene);
+    mesh.material=makeMaterial(type);
+    if(type===2)mesh.scaling=new BABYLON.Vector3(1,.88,1);
+    if(type===4)mesh.rotation.y=.35;
+    if(type===6)mesh.scaling=new BABYLON.Vector3(.92,.78,.92);
   }
-
-  function saveProgress() {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          levelNumber: state.levelNumber,
-          stars: state.stars,
-          coins: state.coins,
-          boosters: state.boosters,
-        })
-      );
-    } catch (_) {}
+  mesh.position=pos(r,c);mesh.metadata={r:r,c:c,candy:true};mesh.isPickable=true;
+  const shine=BABYLON.MeshBuilder.CreateSphere("shine"+r+c,{diameter:.2,segments:12},scene);
+  shine.parent=mesh;shine.position=new BABYLON.Vector3(-.2,.19,-.25);shine.scaling=new BABYLON.Vector3(.55,.7,.35);
+  const sm=new BABYLON.StandardMaterial("shineMat"+r+c,scene);sm.diffuseColor=new BABYLON.Color3(1,1,1);sm.emissiveColor=new BABYLON.Color3(.65,.65,.8);sm.alpha=.72;sm.disableLighting=true;shine.material=sm;shine.isPickable=false;
+  if(special==="striped"){
+    const ring=BABYLON.MeshBuilder.CreateTorus("stripe"+r+c,{diameter:.87,thickness:.075,tessellation:32},scene);
+    ring.parent=mesh;ring.rotation.x=Math.PI/2;ring.material=makeMaterial(type);ring.isPickable=false;
   }
-
-  // --- Fallback Procedural Level Generator (used if levels_engine.js isn't loaded) ---
-  function getLevelConfig(levelNumber) {
-    if (typeof window.generateInfiniteLevel === "function") {
-      return window.generateInfiniteLevel(levelNumber);
-    }
-    const seed = levelNumber * 1234.567;
-    const seededRandom = (s) => {
-      const x = Math.sin(s) * 10000;
-      return x - Math.floor(x);
-    };
-    const targetScore = Math.floor(1200 + levelNumber * 350);
-    const movesLimit = Math.max(12, Math.floor(32 - Math.log10(Math.max(1, levelNumber)) * 4));
-    const colorsCount = Math.min(6, 4 + Math.floor(levelNumber / 15));
-    const obstaclesRatio = Math.min(0.22, 0.04 + Math.sqrt(levelNumber) * 0.001);
-
-    const grid = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-      const row = [];
-      for (let c = 0; c < GRID_SIZE; c++) {
-        const tileSeed = seed + (r * GRID_SIZE + c);
-        const isObstacle = levelNumber >= 3 && seededRandom(tileSeed) < obstaclesRatio;
-        row.push({
-          r,
-          c,
-          typeId: isObstacle ? -1 : Math.floor(seededRandom(tileSeed + 99) * colorsCount) + 1,
-          isObstacle,
-        });
-      }
-      grid.push(row);
-    }
-    return { levelNumber, targetScore, movesLimit, colorsCount, grid };
-  }
-
-  // --- Coordinate Helpers ---
-  function gridToWorld(r, c) {
-    return new BABYLON.Vector3(
-      BOARD_OFFSET + c * CELL_SPACING,
-      -(BOARD_OFFSET + r * CELL_SPACING),
-      0
-    );
-  }
-
-  // --- Babylon.js Scene Setup ---
-  function initScene() {
-    canvas = document.getElementById("renderCanvas") || document.querySelector("canvas");
-    if (!canvas) {
-      canvas = document.createElement("canvas");
-      canvas.id = "renderCanvas";
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      document.body.appendChild(canvas);
-    }
-
-    engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
-    scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0); // Transparent to show enchanted kingdom backdrop
-
-    camera = new BABYLON.ArcRotateCamera(
-      "mainCam",
-      -Math.PI / 2,
-      Math.PI / 2,
-      13.5,
-      BABYLON.Vector3.Zero(),
-      scene
-    );
-    camera.lowerRadiusLimit = 11;
-    camera.upperRadiusLimit = 16;
-    camera.inputs.clear(); // Lock camera for crisp mobile touch picking
-
-    const hemi = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0, 1, -1), scene);
-    hemi.intensity = 1.05;
-
-    const dir = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(0.4, -0.8, 0.9), scene);
-    dir.position = new BABYLON.Vector3(-4, 8, -8);
-    dir.intensity = 0.85;
-
-    glowLayer = new BABYLON.GlowLayer("glow", scene);
-    glowLayer.intensity = 0.45;
-
-    createBoardFrame();
-    bindPointerEvents();
-    ensureBoosterBarUI();
-
-    engine.runRenderLoop(() => {
-      scene.render();
-    });
-    window.addEventListener("resize", () => engine.resize());
-  }
-
-  function createBoardFrame() {
-    const boardBg = BABYLON.MeshBuilder.CreateBox(
-      "boardFrame",
-      { width: GRID_SIZE * CELL_SPACING + 0.5, height: GRID_SIZE * CELL_SPACING + 0.5, depth: 0.35 },
-      scene
-    );
-    boardBg.position.z = 0.55;
-    const frameMat = new BABYLON.StandardMaterial("frameMat", scene);
-    frameMat.diffuseColor = new BABYLON.Color3(0.18, 0.08, 0.34);
-    frameMat.specularColor = new BABYLON.Color3(0.5, 0.35, 0.7);
-    frameMat.alpha = 0.72;
-    boardBg.material = frameMat;
-
-    // Tile backing cells
-    const cellMat = new BABYLON.StandardMaterial("cellMat", scene);
-    cellMat.diffuseColor = new BABYLON.Color3(0.28, 0.14, 0.5);
-    cellMat.alpha = 0.55;
-
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        const tile = BABYLON.MeshBuilder.CreateBox(
-          `tile_${r}_${c}`,
-          { width: CELL_SPACING * 0.92, height: CELL_SPACING * 0.92, depth: 0.12 },
-          scene
-        );
-        const pos = gridToWorld(r, c);
-        tile.position = new BABYLON.Vector3(pos.x, pos.y, 0.32);
-        tile.material = cellMat;
-        tile.metadata = { r, c, isTile: true };
-      }
-    }
-  }
-
-  // --- 3D Candy & Obstacle Mesh Builders ---
-  function createCandyMesh(r, c, typeId, special = SPECIAL.NONE, isObstacle = false) {
-    const pos = gridToWorld(r, c);
-    let mesh;
-
-    if (isObstacle) {
-      mesh = BABYLON.MeshBuilder.CreateBox(`obs_${r}_${c}_${Date.now()}`, { size: 0.84 }, scene);
-      const mat = new BABYLON.StandardMaterial("obsMat", scene);
-      mat.diffuseColor = new BABYLON.Color3(0.32, 0.18, 0.12); // Chocolate block
-      mat.specularColor = new BABYLON.Color3(0.45, 0.28, 0.2);
-      mesh.material = mat;
-      mesh.position = pos.clone();
-      mesh.metadata = { r, c };
-      return { mesh, badgeMesh: null };
-    }
-
-    if (special === SPECIAL.COLOR_BOMB) {
-      mesh = BABYLON.MeshBuilder.CreateSphere(`bomb_${r}_${c}_${Date.now()}`, { diameter: 0.9, segments: 20 }, scene);
-      const mat = new BABYLON.StandardMaterial("bombMat", scene);
-      mat.diffuseColor = new BABYLON.Color3(0.15, 0.1, 0.2);
-      mat.emissiveColor = new BABYLON.Color3(0.85, 0.35, 0.95);
-      mat.specularPower = 64;
-      mesh.material = mat;
-    } else {
-      const palette = CANDY_PALETTE[(typeId - 1) % CANDY_PALETTE.length];
-      switch (typeId) {
-        case 1: // Heart / Ruby Gem
-          mesh = BABYLON.MeshBuilder.CreatePolyhedron(`candy_${r}_${c}`, { type: 1, size: 0.44 }, scene);
-          break;
-        case 2: // Orange Sphere
-          mesh = BABYLON.MeshBuilder.CreateSphere(`candy_${r}_${c}`, { diameter: 0.86, segments: 18 }, scene);
-          break;
-        case 3: // Star Octahedron
-          mesh = BABYLON.MeshBuilder.CreatePolyhedron(`candy_${r}_${c}`, { type: 2, size: 0.45 }, scene);
-          break;
-        case 4: // Leaf Capsule
-          mesh = BABYLON.MeshBuilder.CreateCapsule(`candy_${r}_${c}`, { radius: 0.32, height: 0.82 }, scene);
-          break;
-        case 5: // Diamond
-          mesh = BABYLON.MeshBuilder.CreatePolyhedron(`candy_${r}_${c}`, { type: 0, size: 0.44 }, scene);
-          break;
-        default: // Purple Jelly Cube
-          mesh = BABYLON.MeshBuilder.CreateBox(`candy_${r}_${c}`, { size: 0.78 }, scene);
-          break;
-      }
-
-      const mat = new BABYLON.StandardMaterial(`candyMat_${typeId}_${Date.now()}`, scene);
-      mat.diffuseColor = palette.color;
-      mat.emissiveColor = palette.emissive;
-      mat.specularColor = new BABYLON.Color3(1, 1, 1);
-      mat.specularPower = 48;
-      mesh.material = mat;
-    }
-
-    mesh.position = pos.clone();
-    mesh.metadata = { r, c };
-
-    let badgeMesh = null;
-    if (special === SPECIAL.STRIPED_H || special === SPECIAL.STRIPED_V) {
-      badgeMesh = BABYLON.MeshBuilder.CreateTorus(
-        `stripe_${r}_${c}`,
-        { diameter: 0.94, thickness: 0.1, tessellation: 24 },
-        scene
-      );
-      badgeMesh.parent = mesh;
-      if (special === SPECIAL.STRIPED_V) badgeMesh.rotation.y = Math.PI / 2;
-      const bMat = new BABYLON.StandardMaterial("stripeMat", scene);
-      bMat.emissiveColor = new BABYLON.Color3(1, 1, 1);
-      badgeMesh.material = bMat;
-    } else if (special === SPECIAL.WRAPPED) {
-      badgeMesh = BABYLON.MeshBuilder.CreateBox(`wrap_${r}_${c}`, { size: 0.94 }, scene);
-      badgeMesh.parent = mesh;
-      const wMat = new BABYLON.StandardMaterial("wrapMat", scene);
-      wMat.diffuseColor = new BABYLON.Color3(1, 0.9, 0.4);
-      wMat.alpha = 0.35;
-      wMat.emissiveColor = new BABYLON.Color3(0.6, 0.45, 0.1);
-      badgeMesh.material = wMat;
-    }
-
-    return { mesh, badgeMesh };
-  }
-
-  // --- Level Lifecycle ---
-  function startLevel(levelNum) {
-    clearBoardMeshes();
-    const config = getLevelConfig(levelNum);
-    state.levelNumber = config.levelNumber;
-    state.targetScore = config.targetScore;
-    state.movesLeft = config.movesLimit;
-    state.colorsCount = config.colorsCount;
-    state.score = 0;
-    state.gameOver = false;
-    state.isBusy = false;
-    state.activeBooster = null;
-    state.selectedCell = null;
-
-    state.grid = Array.from({ length: GRID_SIZE }, (_, r) =>
-      Array.from({ length: GRID_SIZE }, (_, c) => {
-        const src = config.grid[r][c];
-        return {
-          typeId: src.typeId,
-          special: SPECIAL.NONE,
-          isObstacle: src.isObstacle,
-          mesh: null,
-          badgeMesh: null,
-        };
-      })
-    );
-
-    // Prevent pre-existing 3-in-a-row on initial spawn
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        if (state.grid[r][c].isObstacle) continue;
-        while (
-          (c >= 2 &&
-            state.grid[r][c].typeId === state.grid[r][c - 1].typeId &&
-            state.grid[r][c].typeId === state.grid[r][c - 2].typeId) ||
-          (r >= 2 &&
-            state.grid[r][c].typeId === state.grid[r - 1][c].typeId &&
-            state.grid[r][c].typeId === state.grid[r - 2][c].typeId)
-        ) {
-          state.grid[r][c].typeId = Math.floor(Math.random() * state.colorsCount) + 1;
-        }
-      }
-    }
-
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        const cell = state.grid[r][c];
-        const built = createCandyMesh(r, c, cell.typeId, cell.special, cell.isObstacle);
-        cell.mesh = built.mesh;
-        cell.badgeMesh = built.badgeMesh;
-      }
-    }
-
-    updateHUD();
-  }
-
-  function clearBoardMeshes() {
-    for (let r = 0; r < state.grid.length; r++) {
-      for (let c = 0; c < state.grid[r].length; c++) {
-        const cell = state.grid[r][c];
-        if (cell?.mesh) cell.mesh.dispose();
-      }
-    }
-  }
-
-  // --- Pointer / Touch Picking & Swapping ---
-  function bindPointerEvents() {
-    scene.onPointerObservable.add((pointerInfo) => {
-      if (state.isBusy || state.gameOver) return;
-
-      if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-        const pick = scene.pick(scene.pointerX, scene.pointerY);
-        const cellPos = extractCellFromPick(pick);
-        if (!cellPos) return;
-
-        // If a booster is armed, execute it on the tapped cell
-        if (state.activeBooster) {
-          applyActiveBooster(cellPos.r, cellPos.c);
-          return;
-        }
-
-        state.pointerDownCell = cellPos;
-        state.pointerDownPos = { x: scene.pointerX, y: scene.pointerY };
-      } else if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP) {
-        if (!state.pointerDownCell || !state.pointerDownPos) return;
-        const dx = scene.pointerX - state.pointerDownPos.x;
-        const dy = scene.pointerY - state.pointerDownPos.y;
-        const start = state.pointerDownCell;
-        state.pointerDownCell = null;
-        state.pointerDownPos = null;
-
-        if (Math.hypot(dx, dy) > 22) {
-          // Touch swipe detected
-          let dr = 0, dc = 0;
-          if (Math.abs(dx) > Math.abs(dy)) dc = dx > 0 ? 1 : -1;
-          else dr = dy > 0 ? 1 : -1;
-          const nr = start.r + dr;
-          const nc = start.c + dc;
-          if (inBounds(nr, nc)) {
-            attemptSwap(start.r, start.c, nr, nc);
-          }
-        } else {
-          // Tap-to-select fallback
-          handleTapSelection(start.r, start.c);
-        }
-      }
-    });
-  }
-
-  function extractCellFromPick(pick) {
-    if (!pick || !pick.hit || !pick.pickedMesh || !pick.pickedMesh.metadata) return null;
-    const { r, c } = pick.pickedMesh.metadata;
-    if (typeof r !== "number" || typeof c !== "number") return null;
-    return { r, c };
-  }
-
-  function handleTapSelection(r, c) {
-    if (state.grid[r][c].isObstacle) return;
-    if (!state.selectedCell) {
-      state.selectedCell = { r, c };
-      if (state.grid[r][c].mesh) state.grid[r][c].mesh.scaling.setAll(1.16);
-      return;
-    }
-
-    const prev = state.selectedCell;
-    if (state.grid[prev.r][prev.c].mesh) state.grid[prev.r][prev.c].mesh.scaling.setAll(1);
-    state.selectedCell = null;
-
-    if (Math.abs(prev.r - r) + Math.abs(prev.c - c) === 1) {
-      attemptSwap(prev.r, prev.c, r, c);
-    } else if (prev.r !== r || prev.c !== c) {
-      state.selectedCell = { r, c };
-      if (state.grid[r][c].mesh) state.grid[r][c].mesh.scaling.setAll(1.16);
-    }
-  }
-
-  function inBounds(r, c) {
-    return r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
-  }
-
-  // --- Swap, Match Detection & Special Candy Creation ---
-  async function attemptSwap(r1, c1, r2, c2) {
-    const a = state.grid[r1][c1];
-    const b = state.grid[r2][c2];
-    if (a.isObstacle || b.isObstacle) return;
-
-    state.isBusy = true;
-    await animateSwap(r1, c1, r2, c2);
-
-    // Color bomb swapped with any candy clears all of that color
-    if (a.special === SPECIAL.COLOR_BOMB || b.special === SPECIAL.COLOR_BOMB) {
-      state.movesLeft--;
-      const targetType = a.special === SPECIAL.COLOR_BOMB ? b.typeId : a.typeId;
-      const clearSet = new Set([`${r1},${c1}`, `${r2},${c2}`]);
-      for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-          if (state.grid[r][c].typeId === targetType) clearSet.add(`${r},${c}`);
-        }
-      }
-      await resolveClearSet(clearSet, []);
-      await cascadeAndRefill();
-      checkEndState();
-      state.isBusy = false;
-      return;
-    }
-
-    const matches = findMatches();
-    if (matches.groups.length === 0) {
-      await animateSwap(r1, c1, r2, c2); // Revert invalid swap
-      state.isBusy = false;
-      return;
-    }
-
-    state.movesLeft--;
-    await processMatches(matches, { r: r2, c: c2 });
-    await cascadeAndRefill();
-    checkEndState();
-    state.isBusy = false;
-  }
-
-  function animateSwap(r1, c1, r2, c2) {
-    return new Promise((resolve) => {
-      const a = state.grid[r1][c1];
-      const b = state.grid[r2][c2];
-      state.grid[r1][c1] = b;
-      state.grid[r2][c2] = a;
-
-      if (a.mesh) a.mesh.metadata = { r: r2, c: c2 };
-      if (b.mesh) b.mesh.metadata = { r: r1, c: c1 };
-
-      const posA = gridToWorld(r2, c2);
-      const posB = gridToWorld(r1, c1);
-      if (a.mesh) a.mesh.position.copyFrom(posA);
-      if (b.mesh) b.mesh.position.copyFrom(posB);
-
-      setTimeout(resolve, 160);
-    });
-  }
-
-  function findMatches() {
-    const horiz = [];
-    const vert = [];
-
-    for (let r = 0; r < GRID_SIZE; r++) {
-      let run = [{ r, c: 0 }];
-      for (let c = 1; c < GRID_SIZE; c++) {
-        const cur = state.grid[r][c];
-        const prev = state.grid[r][c - 1];
-        if (!cur.isObstacle && !prev.isObstacle && cur.typeId > 0 && cur.typeId === prev.typeId) {
-          run.push({ r, c });
-        } else {
-          if (run.length >= 3) horiz.push(run);
-          run = [{ r, c }];
-        }
-      }
-      if (run.length >= 3) horiz.push(run);
-    }
-
-    for (let c = 0; c < GRID_SIZE; c++) {
-      let run = [{ r: 0, c }];
-      for (let r = 1; r < GRID_SIZE; r++) {
-        const cur = state.grid[r][c];
-        const prev = state.grid[r - 1][c];
-        if (!cur.isObstacle && !prev.isObstacle && cur.typeId > 0 && cur.typeId === prev.typeId) {
-          run.push({ r, c });
-        } else {
-          if (run.length >= 3) vert.push(run);
-          run = [{ r, c }];
-        }
-      }
-      if (run.length >= 3) vert.push(run);
-    }
-
-    return { horiz, vert, groups: [...horiz, ...vert] };
-  }
-
-  async function processMatches(matches, pivotCell) {
-    const clearSet = new Set();
-    const spawns = [];
-
-    // Detect L/T intersections for Wrapped Candy
-    const horizKeys = new Set();
-    matches.horiz.forEach((g) => g.forEach((p) => horizKeys.add(`${p.r},${p.c}`)));
-    const intersections = new Set();
-    matches.vert.forEach((g) =>
-      g.forEach((p) => {
-        const k = `${p.r},${p.c}`;
-        if (horizKeys.has(k)) intersections.add(k);
-      })
-    );
-
-    intersections.forEach((key) => {
-      const [r, c] = key.split(",").map(Number);
-      spawns.push({ r, c, typeId: state.grid[r][c].typeId, special: SPECIAL.WRAPPED });
-    });
-
-    for (const group of matches.groups) {
-      group.forEach((p) => clearSet.add(`${p.r},${p.c}`));
-      if (group.length >= 5) {
-        const spot = pickSpawnSpot(group, pivotCell);
-        spawns.push({ r: spot.r, c: spot.c, typeId: 0, special: SPECIAL.COLOR_BOMB });
-      } else if (group.length === 4) {
-        const spot = pickSpawnSpot(group, pivotCell);
-        const isHoriz = group[0].r === group[1].r;
-        spawns.push({
-          r: spot.r,
-          c: spot.c,
-          typeId: state.grid[spot.r][spot.c].typeId,
-          special: isHoriz ? SPECIAL.STRIPED_V : SPECIAL.STRIPED_H,
-        });
-      }
-    }
-
-    await resolveClearSet(clearSet, spawns);
-  }
-
-  function pickSpawnSpot(group, pivot) {
-    if (pivot) {
-      const hit = group.find((p) => p.r === pivot.r && p.c === pivot.c);
-      if (hit) return hit;
-    }
-    return group[Math.floor(group.length / 2)];
-  }
-
-  async function resolveClearSet(clearSet, spawns) {
-    // Expand special candy chain reactions
-    const queue = Array.from(clearSet);
-    const processedSpecials = new Set();
-
-    while (queue.length > 0) {
-      const key = queue.shift();
-      if (processedSpecials.has(key)) continue;
-      const [r, c] = key.split(",").map(Number);
-      const cell = state.grid[r]?.[c];
-      if (!cell || cell.special === SPECIAL.NONE) continue;
-
-      processedSpecials.add(key);
-      if (cell.special === SPECIAL.STRIPED_H) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          const nk = `${r},${col}`;
-          if (!clearSet.has(nk)) {
-            clearSet.add(nk);
-            queue.push(nk);
-          }
-        }
-      } else if (cell.special === SPECIAL.STRIPED_V) {
-        for (let row = 0; row < GRID_SIZE; row++) {
-          const nk = `${row},${c}`;
-          if (!clearSet.has(nk)) {
-            clearSet.add(nk);
-            queue.push(nk);
-          }
-        }
-      } else if (cell.special === SPECIAL.WRAPPED) {
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            const nr = r + dr, nc = c + dc;
-            if (inBounds(nr, nc)) {
-              const nk = `${nr},${nc}`;
-              if (!clearSet.has(nk)) {
-                clearSet.add(nk);
-                queue.push(nk);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Clear adjacent chocolate obstacles
-    const extraObstacles = [];
-    clearSet.forEach((key) => {
-      const [r, c] = key.split(",").map(Number);
-      [
-        [r - 1, c],
-        [r + 1, c],
-        [r, c - 1],
-        [r, c + 1],
-      ].forEach(([nr, nc]) => {
-        if (inBounds(nr, nc) && state.grid[nr][nc].isObstacle) {
-          extraObstacles.push(`${nr},${nc}`);
-        }
-      });
-    });
-    extraObstacles.forEach((k) => clearSet.add(k));
-
-    // Dispose cleared meshes & award score
-    clearSet.forEach((key) => {
-      const [r, c] = key.split(",").map(Number);
-      const cell = state.grid[r][c];
-      if (cell.mesh) {
-        spawnPopParticles(cell.mesh.position);
-        cell.mesh.dispose();
-      }
-      state.grid[r][c] = {
-        typeId: 0,
-        special: SPECIAL.NONE,
-        isObstacle: false,
-        mesh: null,
-        badgeMesh: null,
-      };
-      state.score += 60;
-    });
-
-    // Spawn newly formed special candies
-    spawns.forEach((sp) => {
-      const built = createCandyMesh(sp.r, sp.c, sp.typeId, sp.special, false);
-      state.grid[sp.r][sp.c] = {
-        typeId: sp.typeId,
-        special: sp.special,
-        isObstacle: false,
-        mesh: built.mesh,
-        badgeMesh: built.badgeMesh,
-      };
-    });
-
-    updateHUD();
-    await new Promise((res) => setTimeout(res, 150));
-  }
-
-  async function cascadeAndRefill() {
-    let moved = true;
-    while (moved) {
-      moved = false;
-      for (let c = 0; c < GRID_SIZE; c++) {
-        for (let r = GRID_SIZE - 1; r >= 0; r--) {
-          if (state.grid[r][c].typeId === 0 && !state.grid[r][c].isObstacle && state.grid[r][c].special !== SPECIAL.COLOR_BOMB) {
-            for (let above = r - 1; above >= 0; above--) {
-              if (state.grid[above][c].isObstacle) break;
-              if (state.grid[above][c].typeId > 0 || state.grid[above][c].special === SPECIAL.COLOR_BOMB) {
-                state.grid[r][c] = state.grid[above][c];
-                state.grid[above][c] = { typeId: 0, special: SPECIAL.NONE, isObstacle: false, mesh: null, badgeMesh: null };
-                if (state.grid[r][c].mesh) {
-                  state.grid[r][c].mesh.metadata = { r, c };
-                  state.grid[r][c].mesh.position.copyFrom(gridToWorld(r, c));
-                }
-                moved = true;
-                break;
-              }
-            }
-          }
-        }
-
-        // Fill empty top slots
-        for (let r = 0; r < GRID_SIZE; r++) {
-          if (state.grid[r][c].isObstacle) break;
-          if (state.grid[r][c].typeId === 0 && state.grid[r][c].special !== SPECIAL.COLOR_BOMB) {
-            const typeId = Math.floor(Math.random() * state.colorsCount) + 1;
-            const built = createCandyMesh(r, c, typeId, SPECIAL.NONE, false);
-            state.grid[r][c] = {
-              typeId,
-              special: SPECIAL.NONE,
-              isObstacle: false,
-              mesh: built.mesh,
-              badgeMesh: built.badgeMesh,
-            };
-            moved = true;
-          }
-        }
-      }
-
-      await new Promise((res) => setTimeout(res, 140));
-      const cascadeMatches = findMatches();
-      if (cascadeMatches.groups.length > 0) {
-        await processMatches(cascadeMatches, null);
-        moved = true;
-      } else {
-        break;
-      }
-    }
-  }
-
-  // --- Four Power-Up Boosters ---
-  function armBooster(type) {
-    if (state.isBusy || state.gameOver) return;
-    if (state.boosters[type] <= 0) return;
-
-    if (type === "moves5") {
-      state.boosters.moves5--;
-      state.movesLeft += 5;
-      saveProgress();
-      updateHUD();
-      return;
-    }
-
-    state.activeBooster = state.activeBooster === type ? null : type;
-    updateHUD();
-  }
-
-  async function applyActiveBooster(r, c) {
-    const type = state.activeBooster;
-    state.activeBooster = null;
-    if (!type || state.boosters[type] <= 0) return;
-
-    state.isBusy = true;
-    state.boosters[type]--;
-    const clearSet = new Set();
-
-    if (type === "mallet") {
-      // Sugar Mallet: smashes single cell (including obstacles)
-      clearSet.add(`${r},${c}`);
-    } else if (type === "wand") {
-      // Magic Wand: clears all candies of the tapped color
-      const targetType = state.grid[r][c].typeId;
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          if (state.grid[row][col].typeId === targetType && !state.grid[row][col].isObstacle) {
-            clearSet.add(`${row},${col}`);
-          }
-        }
-      }
-    } else if (type === "rocket") {
-      // Rainbow Rocket: clears entire row + column cross
-      for (let i = 0; i < GRID_SIZE; i++) {
-        clearSet.add(`${r},${i}`);
-        clearSet.add(`${i},${c}`);
-      }
-    }
-
-    saveProgress();
-    await resolveClearSet(clearSet, []);
-    await cascadeAndRefill();
-    checkEndState();
-    state.isBusy = false;
-  }
-
-  function spawnPopParticles(position) {
-    const ps = new BABYLON.ParticleSystem("pop", 24, scene);
-    ps.emitter = position.clone();
-    ps.minSize = 0.08;
-    ps.maxSize = 0.22;
-    ps.minLifeTime = 0.2;
-    ps.maxLifeTime = 0.45;
-    ps.emitRate = 120;
-    ps.color1 = new BABYLON.Color4(1, 0.85, 0.2, 1);
-    ps.color2 = new BABYLON.Color4(0.9, 0.3, 1, 1);
-    ps.minEmitPower = 1.5;
-    ps.maxEmitPower = 3.5;
-    ps.targetStopDuration = 0.15;
-    ps.disposeOnStop = true;
-    ps.start();
-  }
-
-  // --- Win / Loss & HUD Sync ---
-  function checkEndState() {
-    if (state.score >= state.targetScore) {
-      state.gameOver = true;
-      state.stars += 3;
-      state.coins += 100;
-      state.levelNumber += 1;
-      saveProgress();
-      updateHUD();
-      setTimeout(() => {
-        if (confirm(`🎉 Level Cleared! Score: ${state.score}\nContinue to Level ${state.levelNumber}?`)) {
-          startLevel(state.levelNumber);
-        }
-      }, 300);
-    } else if (state.movesLeft <= 0) {
-      state.gameOver = true;
-      updateHUD();
-      setTimeout(() => {
-        if (typeof window.showRewardedAdForMoves === "function") {
-          window.showRewardedAdForMoves(() => {
-            state.movesLeft += 5;
-            state.gameOver = false;
-            updateHUD();
-          });
-        } else if (confirm("Out of moves! Retry this level?")) {
-          startLevel(state.levelNumber);
-        }
-      }, 300);
-    }
-  }
-
-  function ensureBoosterBarUI() {
-    if (document.getElementById("cmr-booster-bar")) return;
-    const bar = document.createElement("div");
-    bar.id = "cmr-booster-bar";
-    bar.style.cssText =
-      "position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:50;background:rgba(36,12,68,0.88);padding:8px 14px;border-radius:18px;border:2px solid #ffd166;font-family:sans-serif;";
-    const defs = [
-      { key: "mallet", label: "🔨 Mallet" },
-      { key: "wand", label: "🪄 Wand" },
-      { key: "rocket", label: "🚀 Rocket" },
-      { key: "moves5", label: "⏱️ +5" },
-    ];
-    defs.forEach((d) => {
-      const btn = document.createElement("button");
-      btn.id = `booster-${d.key}`;
-      btn.style.cssText =
-        "background:#5b21b6;color:#fff;border:1px solid #f59e0b;border-radius:12px;padding:8px 12px;font-weight:bold;cursor:pointer;font-size:13px;";
-      btn.onclick = () => armBooster(d.key);
-      bar.appendChild(btn);
-    });
-    document.body.appendChild(bar);
-  }
-
-  function updateHUD() {
-    const setTxt = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = val;
-    };
-    setTxt("score", state.score);
-    setTxt("moves", state.movesLeft);
-    setTxt("target", state.targetScore);
-    setTxt("level", state.levelNumber);
-
-    ["mallet", "wand", "rocket", "moves5"].forEach((k) => {
-      const btn = document.getElementById(`booster-${k}`);
-      if (!btn) return;
-      const labels = { mallet: "🔨", wand: "🪄", rocket: "🚀", moves5: "⏱️ +5" };
-      btn.textContent = `${labels[k]} (${state.boosters[k]})`;
-      btn.style.outline = state.activeBooster === k ? "3px solid #fde047" : "none";
-    });
-  }
-
-  // --- Boot ---
-  window.addEventListener("DOMContentLoaded", () => {
-    loadProgress();
-    initScene();
-    startLevel(state.levelNumber);
+  return mesh;
+}
+function animate(mesh,target,duration=170){
+  return new Promise(resolve=>{
+    const start=mesh.position.clone(),begin=performance.now();
+    const tick=()=>{
+      const t=Math.min(1,(performance.now()-begin)/duration),e=1-Math.pow(1-t,3);
+      mesh.position=BABYLON.Vector3.Lerp(start,target,e);
+      if(t<1)requestAnimationFrame(tick);else resolve();
+    };requestAnimationFrame(tick);
   });
-
-  window.CandyMagicGame = { startLevel, armBooster, state };
+}
+function makeBoard(){
+  const base=BABYLON.MeshBuilder.CreateBox("royalBoard",{width:8.45,height:.38,depth:8.45},scene);
+  base.position.y=-.17;
+  const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.19,.08,.34);bm.specularColor=new BABYLON.Color3(.7,.45,.9);bm.specularPower=80;base.material=bm;
+  const edge=BABYLON.MeshBuilder.CreateBox("goldEdge",{width:8.55,height:.13,depth:8.55},scene);edge.position.y=-.37;
+  const em=new BABYLON.StandardMaterial("goldEdgeMat",scene);em.diffuseColor=new BABYLON.Color3(.82,.48,.96);em.emissiveColor=new BABYLON.Color3(.12,.04,.2);edge.material=em;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const tile=BABYLON.MeshBuilder.CreateBox("tile"+r+"_"+c,{width:.96,height:.12,depth:.96},scene);
+    tile.position=new BABYLON.Vector3((c-3.5)*SPACING,.08,(r-3.5)*SPACING);
+    const tm=new BABYLON.StandardMaterial("tileMat"+r+c,scene);
+    tm.diffuseColor=((r+c)%2===0)?new BABYLON.Color3(.35,.19,.55):new BABYLON.Color3(.27,.13,.45);
+    tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;
+  }
+}
+function setupScene(){
+  canvas=$("renderCanvas");
+  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true});
+  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.045,.22,1);
+  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.88,13.2,new BABYLON.Vector3(0,0,0),scene);
+  camera.lowerRadiusLimit=13.2;camera.upperRadiusLimit=13.2;camera.inputs.clear();camera.fov=.72;
+  const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
+  const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
+  const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
+  const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.25;
+  makeBoard();bindInput();
+  engine.runRenderLoop(()=>scene.render());
+  window.addEventListener("resize",()=>engine.resize());
+  $("loading").style.display="none";
+}
+function randomType(r,c){
+  let t=rand(),tries=0;
+  while(tries<12&&((c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t))){t=rand();tries++;}
+  return t;
+}
+function buildGrid(){
+  state.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const type=randomType(r,c);state.grid[r][c]={type:type,special:null,mesh:candyMesh(r,c,type,null)};
+  }
+}
+function pickCell(){
+  const pick=scene.pick(scene.pointerX,scene.pointerY,m=>m&&m.metadata&&m.metadata.candy);
+  if(!pick||!pick.hit||!pick.pickedMesh)return null;
+  const m=pick.pickedMesh;return {r:m.metadata.r,c:m.metadata.c};
+}
+function bindInput(){
+  let down=null,downPoint=null;
+  scene.onPointerObservable.add(info=>{
+    if(state.busy||state.won)return;
+    if(info.type===BABYLON.PointerEventTypes.POINTERDOWN){
+      down=pickCell();downPoint={x:scene.pointerX,y:scene.pointerY};
+    }else if(info.type===BABYLON.PointerEventTypes.POINTERUP&&down){
+      const dx=scene.pointerX-downPoint.x,dy=scene.pointerY-downPoint.y;
+      if(Math.hypot(dx,dy)>18){
+        const dr=Math.abs(dy)>Math.abs(dx)?(dy>0?1:-1):0;
+        const dc=dr===0?(dx>0?1:-1):0;
+        const nr=down.r+dr,nc=down.c+dc;
+        if(inBounds(nr,nc))swap(down,{r:nr,c:nc});
+      }else{
+        const up=pickCell();if(up)tapCell(up);
+      }
+      down=null;downPoint=null;
+    }
+  });
+}
+function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
+function tapCell(cell){
+  if(state.booster==="hammer"){useHammer(cell);return;}
+  if(!state.selected){select(cell);return;}
+  const a=state.selected;clearSelection();
+  if(a.r===cell.r&&a.c===cell.c){select(cell);return;}
+  if(Math.abs(a.r-cell.r)+Math.abs(a.c-cell.c)===1)swap(a,cell);else select(cell);
+}
+function select(cell){
+  state.selected=cell;const item=state.grid[cell.r][cell.c];if(item&&item.mesh){item.mesh.scaling.scaleInPlace(1.12);}
+}
+function clearSelection(){
+  if(state.selected){const it=state.grid[state.selected.r][state.selected.c];if(it&&it.mesh)it.mesh.scaling.set(1,1,1);}
+  state.selected=null;
+}
+async function swap(a,b){
+  if(state.busy||!inBounds(b.r,b.c))return;
+  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B)return;
+  state.busy=true;
+  const ap=pos(b.r,b.c),bp=pos(a.r,a.c);
+  await Promise.all([animate(A.mesh,ap,150),animate(B.mesh,bp,150)]);
+  state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
+  A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
+  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;return;}
+  if(findMatches().size===0){
+    await Promise.all([animate(A.mesh,pos(a.r,a.c),140),animate(B.mesh,pos(b.r,b.c),140)]);
+    state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
+    A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
+  }else{
+    state.moves--;updateHud();await settle();
+  }
+  state.busy=false;checkEnd();
+}
+function findMatches(){
+  const found=new Set();
+  for(let r=0;r<SIZE;r++){
+    let c=0;while(c<SIZE){const item=state.grid[r][c];if(!item){c++;continue;}let end=c+1;while(end<SIZE&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
+      if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
+    }
+  }
+  for(let c=0;c<SIZE;c++){
+    let r=0;while(r<SIZE){const item=state.grid[r][c];if(!item){r++;continue;}let end=r+1;while(end<SIZE&&state.grid[end][c]&&state.grid[end][c].type===item.type)end++;
+      if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
+    }
+  }
+  return found;
+}
+async function activateSpecial(a,b){
+  const cells=new Set(),A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
+  [A,B].forEach((it,i)=>{
+    if(!it||!it.special)return;
+    const at=i===0?a:b;
+    if(it.special==="color"){const target=(i===0?B:A)?.type;for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(state.grid[r][c]&&state.grid[r][c].type===target)cells.add(r+","+c);}
+    else if(it.special==="striped"){for(let k=0;k<SIZE;k++){cells.add(at.r+","+k);cells.add(k+","+at.c);}}
+  });
+  for(const key of cells){const p=key.split(",").map(Number);const it=state.grid[p[0]][p[1]];if(it){it.mesh.dispose();state.grid[p[0]][p[1]]=null;state.score+=60;}}
+  updateHud();await wait(130);
+}
+async function settle(){
+  let chain=0;
+  while(true){
+    const matches=findMatches();if(matches.size===0)break;
+    chain++;
+    const remove=Array.from(matches).map(s=>s.split(",").map(Number));
+    const groupSpecial=matches.size>=5?"color":(matches.size>=4?"striped":null);
+    let keep=null;
+    if(groupSpecial&&chain===1){const mid=remove[Math.floor(remove.length/2)];keep={r:mid[0],c:mid[1]};}
+    for(const p of remove){
+      const r=p[0],c=p[1],it=state.grid[r][c];
+      if(keep&&r===keep.r&&c===keep.c)continue;
+      if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
+      state.grid[r][c]=null;state.score+=60;
+    }
+    if(keep){
+      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial);}
+    }
+    if(chain>1)state.score+=matches.size*10;
+    updateHud();await wait(100);
+    for(let c=0;c<SIZE;c++){
+      let write=SIZE-1;
+      for(let r=SIZE-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};await animate(it.mesh,pos(write,c),170);}write--;}}
+      for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};}
+      for(let r=write;r>=0;r--)await animate(state.grid[r][c].mesh,pos(r,c),230);
+    }
+    await wait(80);
+  }
+  if(chain>1)say("سلسلة سحرية ×"+chain+"!");
+  updateHud();
+}
+function burstAt(position,type){
+  const color=palette[type-1].color;
+  for(let i=0;i<7;i++){
+    const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.09,segments:6},scene);
+    p.position=position.clone();const m=new BABYLON.StandardMaterial("particleMat",scene);m.diffuseColor=color;m.emissiveColor=color;p.material=m;p.isPickable=false;
+    const angle=Math.PI*2*i/7,dist=.35+Math.random()*.25;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.25+Math.random()*.35,Math.sin(angle)*dist));
+    animate(p,target,250).then(()=>p.dispose());
+  }
+}
+function updateHud(){
+  $("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;
+  $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");
+  $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
+  $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
+}
+function checkEnd(){
+  if(state.score>=state.target&&!state.won){
+    state.won=true;state.stars=Math.min(3,Math.max(1,Math.floor(state.score/state.target*3)));state.coins+=80;
+    $("resultTitle").textContent="انتصار سحري!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة.";
+    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";
+    $("queen").classList.add("celebrate");saveProgress();
+  }else if(state.moves<=0&&!state.won){
+    $("resultTitle").textContent="حاول مرة أخرى";$("resultText").textContent="محتاج نقاط أكتر لإنقاذ الحديقة.";
+    $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
+  }
+}
+function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,coins:state.coins,stars:state.stars}));}catch(e){}}
+function loadProgress(){try{const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");state.level=Math.max(1,x.level||1);state.coins=x.coins||500;state.stars=x.stars||0;}catch(e){}}
+function restart(){state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+function useHammer(cell){
+  const it=state.grid[cell.r][cell.c];if(!it)return;
+  it.mesh.dispose();state.grid[cell.r][cell.c]=null;state.score+=100;state.hammer=Math.max(0,state.hammer-1);
+  $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
+  state.booster=null;$("hammerBtn").classList.remove("active");
+  state.busy=true;settle().then(()=>{state.busy=false;updateHud();checkEnd();});
+}
+function shuffle(){
+  if(state.busy)return;const values=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)values.push(state.grid[r][c].type);
+  for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){const it=state.grid[r][c];it.mesh.dispose();it.type=values[r*SIZE+c];it.special=null;it.mesh=candyMesh(r,c,it.type,null);}
+  state.selected=null;say("تم خلط الحلوى!");if(findMatches().size)settle();
+}
+function nextLevel(){
+  state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;
+  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress();$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
+}
+function bindUI(){
+  $("restartBtn").addEventListener("click",restart);
+  $("nextBtn").addEventListener("click",nextLevel);
+  $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
+  $("hammerBtn").addEventListener("click",()=>{if(state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
+  $("shuffleBtn").addEventListener("click",shuffle);
+  $("movesBtn").addEventListener("click",()=>{if(state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();say("+5 حركات إضافية!");});
+  $("plusCoins").addEventListener("click",()=>say("العملات والمكافآت هتتفتح مع نظام المتجر."));
+  $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
+}
+function start(){
+  loadProgress();setupScene();buildGrid();bindUI();updateHud();
+  $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
+  $("hammerBtn").disabled=false;$("movesBtn").disabled=false;
+  $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
+}
+window.addEventListener("DOMContentLoaded",()=>{
+  try{start();}catch(error){console.error(error);$("loading").textContent="حصل خطأ في تشغيل اللعبة. حدّث الصفحة."; }
+});
 })();
