@@ -304,19 +304,22 @@ function updateHud(){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.won=true;state.stars=Math.min(3,Math.max(1,Math.floor(state.score/state.target*3)));state.coins+=80;
+    state.won=true;state.stars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.coins+=80;
     $("resultTitle").textContent="انتصار سحري!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة.";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";
     $("queen").classList.add("celebrate");saveProgress();
   }else if(state.moves<=0&&!state.won){
+    state.won=true;
     $("resultTitle").textContent="حاول مرة أخرى";$("resultText").textContent="محتاج نقاط أكتر لإنقاذ الحديقة.";
     $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
+    $("characterMessage").textContent="متستسلمش، جرب تاني!";
   }
 }
 function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,coins:state.coins,stars:state.stars}));}catch(e){}}
 function loadProgress(){try{const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");state.level=Math.max(1,x.level||1);state.coins=x.coins||500;state.stars=x.stars||0;}catch(e){}}
-function restart(){state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+function restart(){if(state.busy)return;state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
+  if(state.won)return;
   const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
   state.busy=true;clearSelection();
   burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
@@ -345,7 +348,7 @@ function hasPossibleMove(){
   return false;
 }
 function shuffle(){
-  if(state.busy)return;
+  if(state.busy||state.won)return;
   clearSelection();
   const items=state.grid.flat(),original=items.map(it=>it.type);
   let values=original.slice(),playable=false;
@@ -369,9 +372,9 @@ function bindUI(){
   $("restartBtn").addEventListener("click",restart);
   $("nextBtn").addEventListener("click",nextLevel);
   $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
-  $("hammerBtn").addEventListener("click",()=>{if(state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
+  $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
   $("shuffleBtn").addEventListener("click",shuffle);
-  $("movesBtn").addEventListener("click",()=>{if(state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();say("+5 حركات إضافية!");});
+  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();say("+5 حركات إضافية!");});
   $("plusCoins").addEventListener("click",()=>say("العملات والمكافآت هتتفتح مع نظام المتجر."));
   $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
 }

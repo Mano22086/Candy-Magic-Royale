@@ -14,6 +14,7 @@ Open the GitHub Pages site or serve this repository through a static web server.
 - Four-match striped candy and five-match rainbow candy; special candies are now awarded only for a real contiguous run, not the combined size of separate matches.
 - Dead boards automatically reshuffle after a move, and shuffling keeps existing special candies.
 - Hammer clears now show a burst, refill the cell, and resolve any resulting cascades.
+- End-of-level scoring now awards one, two, or three stars using score thresholds; failed levels lock input until retry.
 - Hammer, shuffle and +5 moves boosters. Hammer now consumes a move; shuffle searches for a match-free board with at least one legal move.
 - Queen Luma and Dragon Prince currently use animated SVG artwork, not 3D character rigs.
 - Local progress for level, coins and stars.
