@@ -1,16 +1,20 @@
 (() => {
 "use strict";
-const SIZE=8, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1";
+const SIZE=8, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
   {name:"Star Sugar",color:new BABYLON.Color3(1,.79,.12)},
   {name:"Emerald Leaf",color:new BABYLON.Color3(.12,.78,.38)},
   {name:"Sky Diamond",color:new BABYLON.Color3(.12,.61,1)},
-  {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)}
+  {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
+  {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
 const state={grid:[],score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer;
+const modelContainers={};
+const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
+const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/1ffd72fe8adf1bb784dc33c4ae02aae53ad8ce87/";
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
@@ -71,29 +75,58 @@ function candySpriteMaterial(key,src){
   return mat;
 }
 function candyMesh(r,c,type,special){
+  const container=modelContainers[type];
+  if(container){
+    const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
+    const modelRoot=new BABYLON.TransformNode("candyModel_"+r+"_"+c,scene);
+    modelRoot.parent=root;
+    const entries=container.instantiateModelsToScene(name=>name+"_"+r+"_"+c,false);
+    entries.rootNodes.forEach(node=>{node.parent=modelRoot;});
+    const meshes=[];
+    const collect=node=>{
+      if(node.getClassName&&node.getClassName()==="Mesh")meshes.push(node);
+      (node.getChildren?node.getChildren():[]).forEach(collect);
+    };
+    entries.rootNodes.forEach(collect);
+    meshes.forEach(mesh=>{mesh.isPickable=true;mesh.metadata={r,c,candy:true};});
+    modelRoot.computeWorldMatrix(true);
+    if(meshes.length){
+      const bounds=modelRoot.getHierarchyBoundingVectors(true);
+      const center=bounds.min.add(bounds.max).scale(.5);
+      const extent=bounds.max.subtract(bounds.min);
+      const scale=.72/(Math.max(extent.x,extent.y,extent.z)||1);
+      modelRoot.position=center.scale(-1);
+      modelRoot.scaling.setAll(scale);
+    }
+    root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
+    root.scaling.setAll(special?.94:1);
+    root.metadata.animationGroups=entries.animationGroups||[];
+    return root;
+  }
   const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.72:.69,segments:24},scene);
   if(!coreMaterials[type]){
     const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
     core.diffuseColor=palette[type-1].color.scale(.72);
-    core.specularColor=new BABYLON.Color3(1,1,1);
-    core.specularPower=150;
-    core.emissiveColor=palette[type-1].color.scale(.12);
-    coreMaterials[type]=core;
+    core.specularColor=new BABYLON.Color3(1,1,1);core.specularPower=150;
+    core.emissiveColor=palette[type-1].color.scale(.12);coreMaterials[type]=core;
   }
-  root.material=coreMaterials[type];
-  root.scaling=new BABYLON.Vector3(1,.92,1);
-  const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+type;
-  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+type+".jpg";
+  root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
+  const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+Math.min(type,6);
+  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
   const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.88:.82},scene);
-  face.parent=root;
-  face.position.z=-.34;
-  face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  face.material=candySpriteMaterial(spriteKey,spriteSrc);
-  face.isPickable=false;
-  root.position=pos(r,c);
-  root.metadata={r:r,c:c,candy:true};
-  root.isPickable=true;
+  face.parent=root;face.position.z=-.34;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  face.material=candySpriteMaterial(spriteKey,spriteSrc);face.isPickable=false;
+  root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
   return root;
+}
+async function loadCandyModels(){
+  await Promise.all(Object.entries(modelFiles).map(async([type,file])=>{
+    try{
+      modelContainers[type]=await BABYLON.SceneLoader.LoadAssetContainerAsync(MODEL_BASE,file,scene,"",".glb");
+      console.info("Loaded 3D candy:",file);
+    }catch(error){console.warn("3D candy load failed; fallback active:",file,error);}
+  }));
+  say("تم تحميل "+Object.keys(modelContainers).length+" من 7 مجسمات 3D");
 }
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
@@ -410,8 +443,8 @@ function bindUI(){
   $("plusCoins").addEventListener("click",()=>say("العملات والمكافآت هتتفتح مع نظام المتجر."));
   $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
 }
-function start(){
-  loadProgress();setupScene();buildGrid();bindUI();updateHud();
+async function start(){
+  loadProgress();setupScene();await loadCandyModels();buildGrid();bindUI();updateHud();
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
   $("hammerBtn").disabled=false;$("movesBtn").disabled=false;
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
@@ -421,14 +454,13 @@ window.addEventListener("DOMContentLoaded",()=>{
   launch.addEventListener("click",()=>{
     if(launch.disabled)return;
     launch.disabled=true;launch.textContent="جاري فتح المملكة...";
-    try{
-      start();
+    start().then(()=>{
       screen.classList.add("start-screen-leaving");
       document.body.classList.add("game-started");
       setTimeout(()=>screen.remove(),520);
-    }catch(error){
+    }).catch(error=>{
       console.error(error);launch.disabled=false;launch.textContent="حاول مرة أخرى";
-    }
+    });
   });
 });
 })();
