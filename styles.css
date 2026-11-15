@@ -88,3 +88,29 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 .modal-card{box-shadow:0 18px 55px #000b,0 0 35px #c77cff33,inset 0 1px #fff4}
 @media(max-width:380px){.game-shell{padding-left:9px;padding-right:9px;gap:6px}.character-stage{height:clamp(92px,15vh,116px)}.board-wrap{min-height:245px}.mission-row{padding:5px 8px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Royal full-screen intro */
+.start-screen{position:fixed;inset:0;z-index:60;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(24px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 50% 38%,#8b54bd 0%,#4c247f 40%,#1a0b36 100%);isolation:isolate}
+.start-screen:before{content:"";position:absolute;inset:0;z-index:-1;background:url("./assets/enchanted-garden-backdrop.svg") center/cover;opacity:.35;filter:saturate(1.2)}
+.start-screen:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#1b0a37aa 0%,transparent 32%,#26104455 62%,#120821 100%)}
+.start-sky{position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 50% 45%,#f3c2ff33,transparent 36%);animation:skyPulse 5s ease-in-out infinite}
+.start-castle{position:absolute;z-index:-1;width:min(110vw,650px);height:68%;object-fit:contain;object-position:center bottom;bottom:13%;left:50%;transform:translateX(-50%);opacity:.72;filter:drop-shadow(0 0 28px #e6b5ff66)}
+.start-stars{position:absolute;inset:9% 0 auto;text-align:center;color:#ffe6a1;font-size:20px;letter-spacing:8px;text-shadow:0 0 15px #ffe8a8;animation:starFloat 4s ease-in-out infinite;pointer-events:none}
+.start-brand{display:flex;align-items:center;gap:10px;direction:ltr;text-align:left;color:#fff2c5;text-shadow:0 3px 12px #19052d}
+.start-brand>span{font-size:40px;color:#ffdc83}.start-brand strong{display:block;font-size:22px;letter-spacing:2px;font-weight:900}.start-brand small{display:block;text-align:center;font-size:9px;letter-spacing:5px;color:#e4c4ff}
+.start-heroes{position:relative;width:min(100%,560px);flex:1;min-height:250px;display:flex;align-items:center;justify-content:center;margin:8px 0}
+.start-heroes:before{content:"";position:absolute;width:65%;height:42%;bottom:8%;border-radius:50%;background:#f2baff44;filter:blur(35px)}
+.start-queen,.start-dragon{position:absolute;z-index:1;bottom:6%;height:min(62%,310px);width:29%;object-fit:contain;filter:drop-shadow(0 12px 12px #10051f99) drop-shadow(0 0 15px #eabaff44)}
+.start-queen{left:0;animation:introQueen 3.8s ease-in-out infinite}.start-dragon{right:0;animation:introDragon 3.3s ease-in-out infinite}
+.start-title{z-index:2;text-align:center;position:relative;padding:16px 5px;text-shadow:0 4px 12px #1a0735}
+.start-title>span{font-size:10px;font-weight:900;letter-spacing:5px;color:#f8d8ff}
+.start-title h1{margin:9px 0 4px;font-family:Georgia,serif;font-weight:900;font-size:clamp(30px,8vw,52px);line-height:.96;letter-spacing:1px;color:#fff3c8;text-shadow:0 3px 0 #a55ac5,0 7px 18px #1b073d}
+.start-title h1 em{font-style:normal;color:#ffd477}.start-title p{font-size:12px;font-weight:800;color:#f5dcff;margin-top:13px}
+.start-bottom{width:min(100%,360px);display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.start-promise{font-size:11px;color:#f5e1ff;font-weight:800;text-shadow:0 2px 5px #160528}
+.start-button{width:100%;height:58px;border-radius:19px;background:linear-gradient(180deg,#fff0a9,#ffd16c 52%,#ee9b48);color:#54265f;font-size:18px;font-weight:900;box-shadow:0 6px 0 #a75b45,0 12px 25px #09001888,inset 0 2px #fff;animation:buttonGlow 2s ease-in-out infinite}
+.start-button span{display:inline-block;margin-right:8px;font-size:20px}.start-button:active{transform:translateY(3px)}
+.start-bottom>small{font-size:10px;color:#d9c2f0}.start-screen-leaving{animation:introFade .5s ease forwards;pointer-events:none}
+@keyframes introFade{to{opacity:0;transform:scale(1.035);visibility:hidden}}@keyframes skyPulse{50%{opacity:.45;transform:scale(1.08)}}@keyframes starFloat{50%{transform:translateY(9px);opacity:.65}}@keyframes introQueen{50%{transform:translateY(-10px) rotate(2deg)}}@keyframes introDragon{50%{transform:translateY(-13px) rotate(-3deg)}}@keyframes buttonGlow{50%{filter:brightness(1.08);box-shadow:0 6px 0 #a75b45,0 12px 30px #ffdc7b44,inset 0 2px #fff}}
+@media(max-height:650px){.start-brand{transform:scale(.82)}.start-heroes{min-height:190px}.start-queen,.start-dragon{height:58%}.start-title h1{font-size:clamp(26px,7vw,40px)}.start-bottom{gap:7px}.start-button{height:49px}}
+@media(prefers-reduced-motion:reduce){.start-screen *{animation:none!important}}
