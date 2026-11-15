@@ -160,8 +160,8 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
   scene.imageProcessingConfiguration.exposure=1.08;
   scene.imageProcessingConfiguration.contrast=1.12;
-  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.08,13.2,new BABYLON.Vector3(0,0,0),scene);
-  camera.lowerRadiusLimit=13.2;camera.upperRadiusLimit=13.2;camera.inputs.clear();camera.fov=.72;
+  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.08,14.6,new BABYLON.Vector3(0,0,0),scene);
+  camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.fov=.78;camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
@@ -169,6 +169,7 @@ function setupScene(){
   makeBoard();bindInput();
   engine.runRenderLoop(()=>scene.render());
   window.addEventListener("resize",()=>engine.resize());
+  requestAnimationFrame(()=>engine.resize());
   $("loading").style.display="none";
 }
 function randomType(r,c){
@@ -182,32 +183,47 @@ function buildGrid(){
     const type=randomType(r,c);state.grid[r][c]={type:type,special:null,mesh:candyMesh(r,c,type,null)};
   }
 }
-function pickCell(){
-  const pick=scene.pick(scene.pointerX,scene.pointerY,m=>m&&m.metadata&&m.metadata.candy);
+function pickCell(x=scene.pointerX,y=scene.pointerY){
+  const pick=scene.pick(x,y,m=>m&&m.metadata&&m.metadata.candy);
   if(!pick||!pick.hit||!pick.pickedMesh)return null;
   let m=pick.pickedMesh;
   while(m.parent&&m.parent.metadata&&m.parent.metadata.candy)m=m.parent;
   return {r:m.metadata.r,c:m.metadata.c};
 }
 function bindInput(){
-  let down=null,downPoint=null;
+  let down=null,downPoint=null,pointerId=null;
+  const reset=()=>{down=null;downPoint=null;pointerId=null;};
   scene.onPointerObservable.add(info=>{
-    if(state.busy||state.won)return;
     if(info.type===BABYLON.PointerEventTypes.POINTERDOWN){
-      down=pickCell();downPoint={x:scene.pointerX,y:scene.pointerY};
-    }else if(info.type===BABYLON.PointerEventTypes.POINTERUP&&down){
-      const dx=scene.pointerX-downPoint.x,dy=scene.pointerY-downPoint.y;
-      if(Math.hypot(dx,dy)>18){
+      if(state.busy||state.won)return;
+      const event=info.event;
+      pointerId=event.pointerId;
+      down=pickCell();
+      downPoint={x:scene.pointerX,y:scene.pointerY};
+      return;
+    }
+    if(info.type!==BABYLON.PointerEventTypes.POINTERUP||!down)return;
+    if(state.busy||state.won){reset();return;}
+    const event=info.event;
+    if(pointerId!==null&&event.pointerId!==pointerId)return;
+    const dx=scene.pointerX-downPoint.x,dy=scene.pointerY-downPoint.y;
+    if(Math.hypot(dx,dy)>14){
+      // Prefer the actual cell under the finger when it is an adjacent cell.
+      const up=pickCell();
+      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
+        swap(down,up);
+      }else{
         const dr=Math.abs(dy)>Math.abs(dx)?(dy>0?1:-1):0;
         const dc=dr===0?(dx>0?1:-1):0;
-        const nr=down.r+dr,nc=down.c+dc;
-        if(inBounds(nr,nc))swap(down,{r:nr,c:nc});
-      }else{
-        const up=pickCell();if(up)tapCell(up);
+        const target={r:down.r+dr,c:down.c+dc};
+        if(inBounds(target.r,target.c))swap(down,target);
       }
-      down=null;downPoint=null;
+    }else{
+      tapCell(down);
     }
+    reset();
   });
+  canvas.addEventListener("pointercancel",reset,{passive:true});
 }
 function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
 function tapCell(cell){
