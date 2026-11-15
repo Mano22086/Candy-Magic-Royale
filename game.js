@@ -323,10 +323,10 @@ function updateHud(){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.won=true;state.stars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.coins+=80;
-    $("resultTitle").textContent="انتصار سحري!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة.";
-    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";
-    $("queen").classList.add("celebrate");saveProgress();
+    state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
+    $("resultTitle").textContent="انتصار سحري!";
+    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
+    $("queen").classList.add("celebrate");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
     $("resultTitle").textContent="حاول مرة أخرى";$("resultText").textContent="محتاج نقاط أكتر لإنقاذ الحديقة.";
@@ -334,12 +334,14 @@ function checkEnd(){
     $("characterMessage").textContent="متستسلمش، جرب تاني!";
   }
 }
-function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars}));}catch(e){}}
+function saveProgress(completed=false){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars,completed}));}catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
-  state.level=Math.max(1,Number(x.level)||1);
-  state.target=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,state.level-1)));
-  state.moves=Math.max(18,Number(x.moves)||Math.max(18,25-Math.floor(state.level/4)));
+  const savedLevel=Math.max(1,Number(x.level)||1);
+  state.level=savedLevel+(x.completed?1:0);
+  const savedTarget=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,savedLevel-1)));
+  state.target=x.completed?Math.round(savedTarget*1.22):savedTarget;
+  state.moves=x.completed?Math.max(18,25-Math.floor(state.level/4)):Math.max(18,Number(x.moves)||Math.max(18,25-Math.floor(state.level/4)));
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
   state.stars=Math.max(0,Number(x.stars)||0);
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.coins=500;state.stars=0;}}
@@ -396,7 +398,7 @@ function nextLevel(){
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
-  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress();$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
+  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
 }
 function bindUI(){
   $("restartBtn").addEventListener("click",restart);

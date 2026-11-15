@@ -17,7 +17,7 @@ Open the GitHub Pages site or serve this repository through a static web server.
 - End-of-level scoring now awards one, two, or three stars using score thresholds; failed levels lock input until retry.
 - Hammer, shuffle and +5 moves boosters. Hammer now consumes a move; shuffle searches for a match-free board with at least one legal move.
 - Queen Luma and Dragon Prince currently use animated SVG artwork, not 3D character rigs.
-- Local progress restores the current level target, move allowance, coins and stars after reload.
+- Local progress restores the next unlocked level after a win, and stars accumulate across completed levels.
 - Candy core materials are shared by type to reduce GPU material allocations; burst particle materials are disposed after animation.
 - Special-candy swaps support color+color, striped+striped, and color+striped combinations.
 
