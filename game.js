@@ -63,7 +63,6 @@ function candySpriteMaterial(key,src){
       const texture=new BABYLON.DynamicTexture("candySpriteTex_"+key,{width:canvas.width,height:canvas.height},scene,false);
       texture.hasAlpha=true;texture.getContext().drawImage(canvas,0,0);texture.update(true);
       mat.diffuseTexture=texture;
-      mat.opacityTexture=texture;
       mat.useAlphaFromDiffuseTexture=true;
     }catch(error){console.warn("Candy sprite texture failed:",key,error);}
   };
