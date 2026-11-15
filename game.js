@@ -324,7 +324,7 @@ function updateHud(){
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
     state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
-    $("resultTitle").textContent="انتصار سحري!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة.";
+    $("resultTitle").textContent="انتصار سحري!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
     $("queen").classList.add("celebrate");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
@@ -339,7 +339,7 @@ function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
   const savedLevel=Math.max(1,Number(x.level)||1);
   state.level=savedLevel+(x.completed?1:0);
-  const savedTarget=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(savedLevel-1,1)));
+  const savedTarget=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,savedLevel-1)));
   state.target=x.completed?Math.round(savedTarget*1.22):savedTarget;
   state.moves=x.completed?Math.max(18,25-Math.floor(state.level/4)):Math.max(18,Number(x.moves)||Math.max(18,25-Math.floor(state.level/4)));
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
