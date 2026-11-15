@@ -188,13 +188,18 @@ function buildGrid(){
 function gridPointAtClient(clientX,clientY){
   const rect=canvas.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
-  const x=(clientX-rect.left)*(engine.getRenderWidth()/rect.width);
-  const y=(clientY-rect.top)*(engine.getRenderHeight()/rect.height);
-  const ray=scene.createPickingRay(x,y,BABYLON.Matrix.Identity(),camera,false);
-  const distance=ray.intersectsPlane(new BABYLON.Plane(0,1,0,-.55));
-  if(distance===null||distance<0)return null;
-  const point=ray.origin.add(ray.direction.scale(distance));
-  return {r:Math.floor((point.z+SIZE*SPACING/2)/SPACING),c:Math.floor((point.x+SIZE*SPACING/2)/SPACING)};
+  // The board is an 8x8 grid in a fixed 10x10 orthographic camera view.
+  // Map the touch to board-world coordinates directly; this avoids device-pixel-ratio
+  // and Babylon picking-ray discrepancies on mobile browsers.
+  const nx=(clientX-rect.left)/rect.width;
+  const ny=(clientY-rect.top)/rect.height;
+  const worldX=(nx-.5)*10;
+  const worldZ=(.5-ny)*10;
+  const boardHalf=8.45/2;
+  if(Math.abs(worldX)>boardHalf||Math.abs(worldZ)>boardHalf)return null;
+  const c=Math.floor((worldX+SIZE*SPACING/2)/SPACING);
+  const r=Math.floor((worldZ+SIZE*SPACING/2)/SPACING);
+  return {r,c};
 }
 function pickCellAtClient(clientX,clientY){
   const cell=gridPointAtClient(clientX,clientY);
