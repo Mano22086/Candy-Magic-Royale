@@ -417,6 +417,18 @@ function start(){
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
 }
 window.addEventListener("DOMContentLoaded",()=>{
-  try{start();}catch(error){console.error(error);$("loading").textContent="حصل خطأ في تشغيل اللعبة. حدّث الصفحة."; }
+  const launch=$("startGameBtn"),screen=$("startScreen");
+  launch.addEventListener("click",()=>{
+    if(launch.disabled)return;
+    launch.disabled=true;launch.textContent="جاري فتح المملكة...";
+    try{
+      start();
+      screen.classList.add("start-screen-leaving");
+      document.body.classList.add("game-started");
+      setTimeout(()=>screen.remove(),520);
+    }catch(error){
+      console.error(error);launch.disabled=false;launch.textContent="حاول مرة أخرى";
+    }
+  });
 });
 })();
