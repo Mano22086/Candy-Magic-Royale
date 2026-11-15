@@ -11,10 +11,12 @@ const palette=[
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
 const state={grid:[],score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
-let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer;
+let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
-const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/1ffd72fe8adf1bb784dc33c4ae02aae53ad8ce87/";
+const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
+const VIDEO_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
+const VIDEO_FILES={background:"VID_%D9%A2%D9%A0%D9%A2%D9%A6%D9%A1%D9%A1%D9%A5%D9%A2%D9%A1%D9%A1%D9%A8%D9%A4%D9%A3.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
@@ -140,6 +142,7 @@ function animate(mesh,target,duration=170){
 }
 function makeBoard(){
   const base=BABYLON.MeshBuilder.CreateBox("royalBoard",{width:8.45,height:.38,depth:8.45},scene);
+  boardBaseMesh=base;
   base.position.y=-.17;
   const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.19,.08,.34);bm.specularColor=new BABYLON.Color3(.7,.45,.9);bm.specularPower=80;base.material=bm;
   const edge=BABYLON.MeshBuilder.CreateBox("goldEdge",{width:8.55,height:.13,depth:8.55},scene);edge.position.y=-.37;
@@ -151,6 +154,32 @@ function makeBoard(){
     tm.diffuseColor=((r+c)%2===0)?new BABYLON.Color3(.35,.19,.55):new BABYLON.Color3(.27,.13,.45);
     tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;
   }
+}
+function startVideoTexture(key,file){
+  const video=document.createElement("video");
+  video.muted=true;video.loop=true;video.autoplay=true;video.playsInline=true;video.preload="auto";
+  video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.crossOrigin="anonymous";
+  video.src=VIDEO_BASE+file;
+  const texture=new BABYLON.VideoTexture("royalVideo_"+key,video,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+  const play=()=>video.play().catch(error=>console.warn("Video autoplay blocked:",key,error));
+  video.addEventListener("canplay",play,{once:true});
+  play();
+  return {video,texture};
+}
+function installGameVideos(){
+  try{
+    const background=startVideoTexture("background",VIDEO_FILES.background);
+    backgroundVideoLayer=new BABYLON.Layer("royalMovingBackdrop",background.texture,scene,true);
+    backgroundVideoLayer.isBackground=true;
+  }catch(error){console.warn("Animated background unavailable; gradient fallback active.",error);}
+  try{
+    const board=startVideoTexture("board",VIDEO_FILES.board);
+    board.texture.uScale=1;board.texture.vScale=1;
+    boardBaseMesh.material.diffuseTexture=board.texture;
+    boardBaseMesh.material.diffuseColor=new BABYLON.Color3(1,1,1);
+    boardBaseMesh.material.emissiveColor=new BABYLON.Color3(.12,.08,.16);
+    boardBaseMesh.material.specularColor=new BABYLON.Color3(.75,.58,.9);
+  }catch(error){console.warn("Animated board surface unavailable; 3D board fallback active.",error);}
 }
 function setupScene(){
   canvas=$("renderCanvas");
@@ -168,7 +197,7 @@ function setupScene(){
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
   const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.34;
-  makeBoard();bindInput();
+  makeBoard();installGameVideos();bindInput();
   engine.runRenderLoop(()=>scene.render());
   window.addEventListener("resize",()=>engine.resize());
   requestAnimationFrame(()=>engine.resize());
