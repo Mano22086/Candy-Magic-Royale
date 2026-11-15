@@ -289,6 +289,8 @@
       let bossCharacterRoot = null;
       let bossBodyMesh = null;
       let bossHeadMesh = null;
+      let bossLeftArm = null;
+      let bossRightArm = null;
       let fountainWaterMesh = null;
       let fountainMat = null;
 
@@ -434,6 +436,47 @@
         bossHeadMesh.parent = bossCharacterRoot;
         bossHeadMesh.position.y = 0.85;
         bossHeadMesh.material = gummyMat;
+
+        // Friendly readable face, facing the board camera.
+        const eyeWhite = new BABYLON.StandardMaterial("bossEyeWhite", scene);
+        eyeWhite.diffuseColor = new BABYLON.Color3(1, 0.96, 0.9);
+        const pupilMat = new BABYLON.StandardMaterial("bossPupil", scene);
+        pupilMat.diffuseColor = new BABYLON.Color3(0.12, 0.04, 0.1);
+        const noseMat = new BABYLON.StandardMaterial("bossNose", scene);
+        noseMat.diffuseColor = new BABYLON.Color3(0.42, 0.04, 0.12);
+        [-0.23, 0.23].forEach((z, i) => {
+          const eye = BABYLON.MeshBuilder.CreateSphere("bossEye_" + i, { diameter: 0.2, segments: 16 }, scene);
+          eye.parent = bossCharacterRoot;
+          eye.position = new BABYLON.Vector3(-0.49, 0.98, z);
+          eye.material = eyeWhite;
+          const pupil = BABYLON.MeshBuilder.CreateSphere("bossPupil_" + i, { diameter: 0.105, segments: 12 }, scene);
+          pupil.parent = bossCharacterRoot;
+          pupil.position = new BABYLON.Vector3(-0.585, 0.98, z);
+          pupil.material = pupilMat;
+        });
+        const nose = BABYLON.MeshBuilder.CreateSphere("bossNose", { diameter: 0.17, segments: 16 }, scene);
+        nose.parent = bossCharacterRoot;
+        nose.position = new BABYLON.Vector3(-0.57, 0.72, 0);
+        nose.material = noseMat;
+
+        const armMat = gummyMat;
+        bossLeftArm = new BABYLON.TransformNode("bossLeftArm", scene);
+        bossLeftArm.parent = bossCharacterRoot;
+        bossLeftArm.position = new BABYLON.Vector3(0, 0.18, -0.68);
+        const leftArmMesh = BABYLON.MeshBuilder.CreateCapsule("bossLeftArmMesh", { radius: 0.22, height: 0.9, tessellation: 16 }, scene);
+        leftArmMesh.parent = bossLeftArm;
+        leftArmMesh.position.z = -0.18;
+        leftArmMesh.rotation.x = Math.PI / 2;
+        leftArmMesh.material = armMat;
+
+        bossRightArm = new BABYLON.TransformNode("bossRightArm", scene);
+        bossRightArm.parent = bossCharacterRoot;
+        bossRightArm.position = new BABYLON.Vector3(0, 0.18, 0.68);
+        const rightArmMesh = BABYLON.MeshBuilder.CreateCapsule("bossRightArmMesh", { radius: 0.22, height: 0.9, tessellation: 16 }, scene);
+        rightArmMesh.parent = bossRightArm;
+        rightArmMesh.position.z = 0.18;
+        rightArmMesh.rotation.x = Math.PI / 2;
+        rightArmMesh.material = armMat;
 
         [-0.45, 0.45].forEach((ex, i) => {
           const ear = BABYLON.MeshBuilder.CreateSphere(`bossEar_${i}`, { diameter: 0.42 }, scene);
@@ -966,6 +1009,8 @@
           bossCharacterRoot.rotation.y = Math.sin(t * 0.8) * 0.035;
           if (bossBodyMesh) bossBodyMesh.scaling.y = 1 + Math.sin(t * 2.1) * 0.025;
           if (bossHeadMesh) bossHeadMesh.rotation.z = Math.sin(t * 1.35) * 0.035;
+          if (bossLeftArm) bossLeftArm.rotation.x = Math.sin(t * 1.7) * 0.12;
+          if (bossRightArm) bossRightArm.rotation.x = -Math.sin(t * 1.7) * 0.12;
         }
         scene.render();
       });
