@@ -19,4 +19,4 @@ Open the GitHub Pages site or serve this repository through a static web server.
 ## Visual rebuild status
 The current milestone integrates the collected candy artwork into the 3D board and improves high-DPI rendering and tone mapping. The world illustrations, obstacle art, booster art, and character concepts are available in `assets/` but are not all integrated into gameplay yet.
 
-Automated JavaScript syntax and real-device visual testing are still pending. The next visual milestones are true 3D character models/animation, richer world scenes, obstacle and booster integration, and device performance testing. Sound and Android packaging are also still pending.
+JavaScript syntax validation has passed. Real-device visual testing in an Android browser is still pending. The next visual milestones are true 3D character models/animation, richer world scenes, obstacle and booster integration, and device performance testing. Sound and Android packaging are also still pending.
