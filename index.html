@@ -525,6 +525,20 @@
             box.material = wm;
           }
         }
+        // Fixed glossy highlight: adds a polished sugar-shell look without spinning the candy.
+        if (!isObstacle) {
+          const shine = BABYLON.MeshBuilder.CreateSphere(`candyShine_${r}_${c}`, { diameter: 0.24, segments: 12 }, scene);
+          shine.parent = mesh;
+          shine.position = new BABYLON.Vector3(-0.34, 0.2, -0.12);
+          shine.scaling = new BABYLON.Vector3(0.22, 0.58, 0.72);
+          const shineMat = new BABYLON.StandardMaterial(`candyShineMat_${r}_${c}`, scene);
+          shineMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+          shineMat.emissiveColor = new BABYLON.Color3(0.72, 0.78, 1);
+          shineMat.specularColor = new BABYLON.Color3(1, 1, 1);
+          shineMat.alpha = 0.78;
+          shine.material = shineMat;
+          shine.isPickable = false;
+        }
         mesh.parent = playGroup;
         mesh.position = gridPos(r, c);
         mesh.metadata = { r, c, isCandy: true };
