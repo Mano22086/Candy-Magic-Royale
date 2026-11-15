@@ -260,7 +260,11 @@ function useHammer(cell){
   it.mesh.dispose();state.grid[cell.r][cell.c]=null;state.score+=100;state.hammer=Math.max(0,state.hammer-1);
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
   state.booster=null;$("hammerBtn").classList.remove("active");
-  state.busy=true;settle().then(()=>{state.busy=false;updateHud();checkEnd();});
+  state.busy=true;
+  const replacement={type:rand(),special:null,mesh:null};
+  replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
+  replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
+  animate(replacement.mesh,pos(cell.r,cell.c),220).then(()=>{state.busy=false;updateHud();checkEnd();});
 }
 function shuffle(){
   if(state.busy)return;const values=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)values.push(state.grid[r][c].type);
