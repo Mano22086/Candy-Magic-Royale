@@ -32,34 +32,66 @@ function makeMaterial(type){
   mat.emissiveFresnelParameters.rightColor=new BABYLON.Color3(.62,.42,.85);
   materials[type]=mat;return mat;
 }
+const spriteMaterials={};
+function candySpriteMaterial(key,src){
+  if(spriteMaterials[key])return spriteMaterials[key];
+  const mat=new BABYLON.StandardMaterial("candySpriteMat_"+key,scene);
+  mat.diffuseColor=new BABYLON.Color3(1,1,1);
+  mat.emissiveColor=new BABYLON.Color3(.92,.92,1);
+  mat.disableLighting=true;
+  mat.backFaceCulling=false;
+  mat.useAlphaFromDiffuseTexture=true;
+  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
+  spriteMaterials[key]=mat;
+  const image=new Image();
+  image.onload=()=>{
+    try{
+      const canvas=document.createElement("canvas");
+      canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      ctx.drawImage(image,0,0);
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const data=pixels.data;
+      const bgR=data[0],bgG=data[1],bgB=data[2];
+      for(let i=0;i<data.length;i+=4){
+        const dr=data[i]-bgR,dg=data[i+1]-bgG,db=data[i+2]-bgB;
+        const distance=Math.sqrt(dr*dr+dg*dg+db*db);
+        if(distance<34)data[i+3]=0;
+        else if(distance<74)data[i+3]=Math.round(data[i+3]*(distance-34)/40);
+      }
+      ctx.putImageData(pixels,0,0);
+      const texture=new BABYLON.DynamicTexture("candySpriteTex_"+key,{width:canvas.width,height:canvas.height},scene,false);
+      texture.hasAlpha=true;texture.getContext().drawImage(canvas,0,0);texture.update(true);
+      mat.diffuseTexture=texture;
+      mat.opacityTexture=texture;
+      mat.useAlphaFromDiffuseTexture=true;
+    }catch(error){console.warn("Candy sprite texture failed:",key,error);}
+  };
+  image.onerror=()=>console.warn("Candy sprite unavailable:",src);
+  image.src=src;
+  return mat;
+}
 function candyMesh(r,c,type,special){
-  let mesh;
-  if(special==="color"){
-    mesh=BABYLON.MeshBuilder.CreateSphere("rainbowCandy",{diameter:.78,segments:24},scene);
-    const mat=new BABYLON.StandardMaterial("rainbowMat"+r+c,scene);
-    mat.diffuseColor=new BABYLON.Color3(.25,.12,.42);mat.emissiveColor=new BABYLON.Color3(.7,.25,.95);
-    mat.specularColor=new BABYLON.Color3(1,1,1);mat.specularPower=128;mesh.material=mat;
-  }else{
-    if(type===1)mesh=BABYLON.MeshBuilder.CreatePolyhedron("ruby"+r+c,{type:1,size:.43},scene);
-    else if(type===2)mesh=BABYLON.MeshBuilder.CreateSphere("sun"+r+c,{diameter:.79,segments:24},scene);
-    else if(type===3)mesh=BABYLON.MeshBuilder.CreatePolyhedron("star"+r+c,{type:2,size:.44},scene);
-    else if(type===4)mesh=BABYLON.MeshBuilder.CreateCapsule("leaf"+r+c,{radius:.29,height:.78,tessellation:20},scene);
-    else if(type===5)mesh=BABYLON.MeshBuilder.CreatePolyhedron("diamond"+r+c,{type:0,size:.44},scene);
-    else mesh=BABYLON.MeshBuilder.CreateSphere("jelly"+r+c,{diameter:.78,segments:20},scene);
-    mesh.material=makeMaterial(type);
-    if(type===2)mesh.scaling=new BABYLON.Vector3(1,.88,1);
-    if(type===4)mesh.rotation.y=.35;
-    if(type===6)mesh.scaling=new BABYLON.Vector3(.92,.78,.92);
-  }
-  mesh.position=pos(r,c);mesh.metadata={r:r,c:c,candy:true};mesh.isPickable=true;
-  const shine=BABYLON.MeshBuilder.CreateSphere("shine"+r+c,{diameter:.2,segments:12},scene);
-  shine.parent=mesh;shine.position=new BABYLON.Vector3(-.2,.19,-.25);shine.scaling=new BABYLON.Vector3(.55,.7,.35);
-  const sm=new BABYLON.StandardMaterial("shineMat"+r+c,scene);sm.diffuseColor=new BABYLON.Color3(1,1,1);sm.emissiveColor=new BABYLON.Color3(.65,.65,.8);sm.alpha=.72;sm.disableLighting=true;shine.material=sm;shine.isPickable=false;
-  if(special==="striped"){
-    const ring=BABYLON.MeshBuilder.CreateTorus("stripe"+r+c,{diameter:.87,thickness:.075,tessellation:32},scene);
-    ring.parent=mesh;ring.rotation.x=Math.PI/2;ring.material=makeMaterial(type);ring.isPickable=false;
-  }
-  return mesh;
+  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.72:.69,segments:24},scene);
+  const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
+  core.diffuseColor=palette[type-1].color.scale(.72);
+  core.specularColor=new BABYLON.Color3(1,1,1);
+  core.specularPower=150;
+  core.emissiveColor=palette[type-1].color.scale(.12);
+  root.material=core;
+  root.scaling=new BABYLON.Vector3(1,.92,1);
+  const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+type;
+  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+type+".jpg";
+  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.98:1.02},scene);
+  face.parent=root;
+  face.position.z=-.30;
+  face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  face.material=candySpriteMaterial(spriteKey,spriteSrc);
+  face.isPickable=false;
+  root.position=pos(r,c);
+  root.metadata={r:r,c:c,candy:true};
+  root.isPickable=true;
+  return root;
 }
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
