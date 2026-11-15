@@ -323,7 +323,7 @@ function updateHud(){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;
+    state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
     $("resultTitle").textContent="انتصار سحري!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة.";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
     $("queen").classList.add("celebrate");saveProgress(true);
