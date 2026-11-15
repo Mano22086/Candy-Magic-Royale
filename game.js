@@ -187,7 +187,7 @@ async function activateSpecial(a,b){
   const cells=new Set(),A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
   [A,B].forEach((it,i)=>{
     if(!it||!it.special)return;
-    const at=i===0?a:b;
+    const at=i===0?b:a;
     if(it.special==="color"){const target=(i===0?B:A)?.type;for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(state.grid[r][c]&&state.grid[r][c].type===target)cells.add(r+","+c);}
     else if(it.special==="striped"){for(let k=0;k<SIZE;k++){cells.add(at.r+","+k);cells.add(k+","+at.c);}}
   });
@@ -214,12 +214,13 @@ async function settle(){
     }
     if(chain>1)state.score+=matches.size*10;
     updateHud();await wait(100);
+    const falling=[];
     for(let c=0;c<SIZE;c++){
       let write=SIZE-1;
-      for(let r=SIZE-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};await animate(it.mesh,pos(write,c),170);}write--;}}
-      for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};}
-      for(let r=write;r>=0;r--)await animate(state.grid[r][c].mesh,pos(r,c),230);
+      for(let r=SIZE-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};falling.push(animate(it.mesh,pos(write,c),170));}write--;}}
+      for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};falling.push(animate(mesh,pos(r,c),230));}
     }
+    await Promise.all(falling);
     await wait(80);
   }
   if(chain>1)say("سلسلة سحرية ×"+chain+"!");
