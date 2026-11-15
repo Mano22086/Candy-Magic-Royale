@@ -114,3 +114,17 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 @keyframes introFade{to{opacity:0;transform:scale(1.035);visibility:hidden}}@keyframes skyPulse{50%{opacity:.45;transform:scale(1.08)}}@keyframes starFloat{50%{transform:translateY(9px);opacity:.65}}@keyframes introQueen{50%{transform:translateY(-10px) rotate(2deg)}}@keyframes introDragon{50%{transform:translateY(-13px) rotate(-3deg)}}@keyframes buttonGlow{50%{filter:brightness(1.08);box-shadow:0 6px 0 #a75b45,0 12px 30px #ffdc7b44,inset 0 2px #fff}}
 @media(max-height:650px){.start-brand{transform:scale(.82)}.start-heroes{min-height:190px}.start-queen,.start-dragon{height:58%}.start-title h1{font-size:clamp(26px,7vw,40px)}.start-bottom{gap:7px}.start-button{height:49px}}
 @media(prefers-reduced-motion:reduce){.start-screen *{animation:none!important}}
+
+
+/* Start screen account choices */
+.start-bottom{gap:10px}
+.start-button{animation:buttonGlow 2s ease-in-out infinite}
+.facebook-button{width:100%;height:54px;border-radius:17px;display:flex;align-items:center;justify-content:center;gap:11px;background:linear-gradient(180deg,#3987ed,#1762c5);border:1px solid #a9d0ff;color:#fff;font-size:16px;font-weight:900;box-shadow:0 5px 0 #10458c,0 10px 22px #08001888,inset 0 1px #ffffff66;transition:transform .15s,filter .15s}
+.facebook-button:active{transform:translateY(3px);filter:brightness(.95)}
+.facebook-mark{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#1877f2;font-family:Arial,sans-serif;font-size:23px;font-weight:900;line-height:1}
+.facebook-mark.large{width:52px;height:52px;font-size:43px;margin:0 auto 8px}
+.facebook-card{display:flex;flex-direction:column;align-items:center;gap:10px}
+.facebook-card p{line-height:1.9;margin:0 0 8px}
+.facebook-card .primary-button,.facebook-card .soft-button{width:100%;flex:none}
+.facebook-card .soft-button{height:40px}
+@media(max-height:650px){.facebook-button{height:46px}.start-bottom{gap:7px}}
