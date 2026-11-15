@@ -286,6 +286,9 @@
       const playGroup = new BABYLON.TransformNode("playGroup", scene);
 
       let bossRoot = null;
+      let bossCharacterRoot = null;
+      let bossBodyMesh = null;
+      let bossHeadMesh = null;
       let fountainWaterMesh = null;
       let fountainMat = null;
 
@@ -407,6 +410,8 @@
         bossRoot = new BABYLON.TransformNode("bossRoot", scene);
         bossRoot.parent = playGroup;
         bossRoot.position = new BABYLON.Vector3(0, 5.2, 0.4);
+        bossCharacterRoot = new BABYLON.TransformNode('bossCharacterRoot', scene);
+        bossCharacterRoot.parent = bossRoot;
 
         const chocoMat = new BABYLON.StandardMaterial("bossThroneMat", scene);
         chocoMat.diffuseColor = new BABYLON.Color3(0.35, 0.15, 0.07);
@@ -420,25 +425,25 @@
         gummyMat.emissiveColor = new BABYLON.Color3(0.35, 0.03, 0.08);
         gummyMat.alpha = 0.92;
 
-        const body = BABYLON.MeshBuilder.CreateSphere("bossBody", { diameter: 1.5, segments: 18 }, scene);
-        body.parent = bossRoot;
-        body.position.y = -0.2;
-        body.material = gummyMat;
+        bossBodyMesh = BABYLON.MeshBuilder.CreateSphere('bossBody', { diameter: 1.5, segments: 24 }, scene);
+        bossBodyMesh.parent = bossCharacterRoot;
+        bossBodyMesh.position.y = -0.2;
+        bossBodyMesh.material = gummyMat;
 
-        const head = BABYLON.MeshBuilder.CreateSphere("bossHead", { diameter: 1.15, segments: 18 }, scene);
-        head.parent = bossRoot;
-        head.position.y = 0.85;
-        head.material = gummyMat;
+        bossHeadMesh = BABYLON.MeshBuilder.CreateSphere('bossHead', { diameter: 1.15, segments: 24 }, scene);
+        bossHeadMesh.parent = bossCharacterRoot;
+        bossHeadMesh.position.y = 0.85;
+        bossHeadMesh.material = gummyMat;
 
         [-0.45, 0.45].forEach((ex, i) => {
           const ear = BABYLON.MeshBuilder.CreateSphere(`bossEar_${i}`, { diameter: 0.42 }, scene);
-          ear.parent = bossRoot;
+          ear.parent = bossCharacterRoot;
           ear.position = new BABYLON.Vector3(ex, 1.35, 0);
           ear.material = gummyMat;
         });
 
         const crown = BABYLON.MeshBuilder.CreateCylinder("bossCrown", { diameterTop: 0.85, diameterBottom: 0.55, height: 0.45, tessellation: 8 }, scene);
-        crown.parent = bossRoot;
+        crown.parent = bossCharacterRoot;
         crown.position.y = 1.55;
         const crownMat = new BABYLON.StandardMaterial("crownMat", scene);
         crownMat.diffuseColor = new BABYLON.Color3(1, 0.82, 0.15);
@@ -933,8 +938,13 @@
       let t = 0;
       engine.runRenderLoop(() => {
         t += 0.02;
-        if (bossRoot && bossRoot.isEnabled()) bossRoot.position.y = 5.2 + Math.sin(t * 2) * 0.12;
-        if (fountainWaterMesh && ballroomGroup.isEnabled()) fountainWaterMesh.rotation.y += 0.02;
+        // Only the character idles; throne, candies and scenery remain still.
+        if (bossCharacterRoot && bossRoot && bossRoot.isEnabled()) {
+          bossCharacterRoot.position.y = Math.sin(t * 2.1) * 0.045;
+          bossCharacterRoot.rotation.y = Math.sin(t * 0.8) * 0.035;
+          if (bossBodyMesh) bossBodyMesh.scaling.y = 1 + Math.sin(t * 2.1) * 0.025;
+          if (bossHeadMesh) bossHeadMesh.rotation.z = Math.sin(t * 1.35) * 0.035;
+        }
         scene.render();
       });
       window.addEventListener("resize", () => engine.resize());
