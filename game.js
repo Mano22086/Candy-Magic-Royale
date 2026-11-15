@@ -120,7 +120,11 @@ function makeBoard(){
 function setupScene(){
   canvas=$("renderCanvas");
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},true);
-  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.10,.025,.19,1);\n  scene.imageProcessingConfiguration.toneMappingEnabled=true;\n  scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;\n  scene.imageProcessingConfiguration.exposure=1.08;\n  scene.imageProcessingConfiguration.contrast=1.12;
+  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.10,.025,.19,1);
+  scene.imageProcessingConfiguration.toneMappingEnabled=true;
+  scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  scene.imageProcessingConfiguration.exposure=1.08;
+  scene.imageProcessingConfiguration.contrast=1.12;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.88,13.2,new BABYLON.Vector3(0,0,0),scene);
   camera.lowerRadiusLimit=13.2;camera.upperRadiusLimit=13.2;camera.inputs.clear();camera.fov=.72;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
