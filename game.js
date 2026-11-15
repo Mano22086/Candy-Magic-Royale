@@ -193,23 +193,29 @@ function pickCell(x=scene.pointerX,y=scene.pointerY){
 function bindInput(){
   let down=null,downPoint=null,pointerId=null;
   const reset=()=>{down=null;downPoint=null;pointerId=null;};
-  scene.onPointerObservable.add(info=>{
-    if(info.type===BABYLON.PointerEventTypes.POINTERDOWN){
-      if(state.busy||state.won)return;
-      const event=info.event;
-      pointerId=event.pointerId;
-      down=pickCell();
-      downPoint={x:scene.pointerX,y:scene.pointerY};
-      return;
-    }
-    if(info.type!==BABYLON.PointerEventTypes.POINTERUP||!down)return;
+  const pickAt=(event)=>{
+    const rect=canvas.getBoundingClientRect();
+    const sx=engine.getRenderWidth()/rect.width;
+    const sy=engine.getRenderHeight()/rect.height;
+    const x=(event.clientX-rect.left)*sx;
+    const y=(event.clientY-rect.top)*sy;
+    return pickCell(x,y);
+  };
+  canvas.addEventListener("pointerdown",event=>{
+    if(state.busy||state.won)return;
+    event.preventDefault();
+    try{canvas.setPointerCapture(event.pointerId);}catch(_){}
+    pointerId=event.pointerId;
+    down=pickAt(event);
+    downPoint={x:event.clientX,y:event.clientY};
+  },{passive:false});
+  canvas.addEventListener("pointerup",event=>{
+    if(!down||event.pointerId!==pointerId)return;
+    event.preventDefault();
     if(state.busy||state.won){reset();return;}
-    const event=info.event;
-    if(pointerId!==null&&event.pointerId!==pointerId)return;
-    const dx=scene.pointerX-downPoint.x,dy=scene.pointerY-downPoint.y;
-    if(Math.hypot(dx,dy)>14){
-      // Prefer the actual cell under the finger when it is an adjacent cell.
-      const up=pickCell();
+    const dx=event.clientX-downPoint.x,dy=event.clientY-downPoint.y;
+    if(Math.hypot(dx,dy)>10){
+      const up=pickAt(event);
       if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
         swap(down,up);
       }else{
@@ -222,8 +228,9 @@ function bindInput(){
       tapCell(down);
     }
     reset();
-  });
+  },{passive:false});
   canvas.addEventListener("pointercancel",reset,{passive:true});
+  canvas.addEventListener("lostpointercapture",reset,{passive:true});
 }
 function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
 function tapCell(cell){
