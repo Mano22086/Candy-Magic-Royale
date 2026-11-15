@@ -203,6 +203,7 @@ async function swap(a,b){
     state.moves--;updateHud();await settle();
   }
   state.busy=false;checkEnd();
+  if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
 }
 function findMatches(){
   const found=new Set();
@@ -217,6 +218,30 @@ function findMatches(){
     }
   }
   return found;
+}
+function findSpecialCandidate(matches){
+  let best=null;
+  const consider=(cells,type)=>{
+    if(cells.length<4)return;
+    if(!best||cells.length>best.length||(cells.length===best.length&&type==="color"&&best.type!=="color")){
+      best={length:cells.length,type,cell:cells[Math.floor(cells.length/2)]};
+    }
+  };
+  for(let r=0;r<SIZE;r++){
+    let run=[];
+    for(let c=0;c<=SIZE;c++){
+      if(c<SIZE&&matches.has(r+","+c)){run.push({r,c});}
+      else{consider(run,run.length>=5?"color":"striped");run=[];}
+    }
+  }
+  for(let c=0;c<SIZE;c++){
+    let run=[];
+    for(let r=0;r<=SIZE;r++){
+      if(r<SIZE&&matches.has(r+","+c)){run.push({r,c});}
+      else{consider(run,run.length>=5?"color":"striped");run=[];}
+    }
+  }
+  return best;
 }
 async function activateSpecial(a,b){
   const cells=new Set(),A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
@@ -235,9 +260,9 @@ async function settle(){
     const matches=findMatches();if(matches.size===0)break;
     chain++;
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
-    const groupSpecial=matches.size>=5?"color":(matches.size>=4?"striped":null);
-    let keep=null;
-    if(groupSpecial&&chain===1){const mid=remove[Math.floor(remove.length/2)];keep={r:mid[0],c:mid[1]};}
+    const specialCandidate=chain===1?findSpecialCandidate(matches):null;
+    const groupSpecial=specialCandidate?.type||null;
+    const keep=specialCandidate?.cell||null;
     for(const p of remove){
       const r=p[0],c=p[1],it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
@@ -291,17 +316,20 @@ function checkEnd(){
 function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,coins:state.coins,stars:state.stars}));}catch(e){}}
 function loadProgress(){try{const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");state.level=Math.max(1,x.level||1);state.coins=x.coins||500;state.stars=x.stars||0;}catch(e){}}
 function restart(){state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
-function useHammer(cell){
+async function useHammer(cell){
   const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
-  state.busy=true;
-  it.mesh.dispose();state.grid[cell.r][cell.c]=null;state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
+  state.busy=true;clearSelection();
+  burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
+  state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
   state.booster=null;$("hammerBtn").classList.remove("active");
-  state.busy=true;
   const replacement={type:rand(),special:null,mesh:null};
   replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
   replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
-  animate(replacement.mesh,pos(cell.r,cell.c),220).then(()=>{state.busy=false;updateHud();checkEnd();});
+  await animate(replacement.mesh,pos(cell.r,cell.c),220);
+  await settle();
+  state.busy=false;updateHud();checkEnd();
+  if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
 }
 function hasPossibleMove(){
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
