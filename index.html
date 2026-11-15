@@ -27,10 +27,20 @@
     </div>
     <div class="start-bottom">
       <div class="start-promise">✨ طابق الحلوى · أنقذ المملكة · اجمع النجوم ✨</div>
-      <button class="start-button" id="startGameBtn">ابدأ المغامرة <span>➜</span></button>
-      <small>اضغط للبدء في رحلتك السحرية</small>
+      <button class="start-button" id="startGameBtn">العب كضيف <span>➜</span></button>
+      <button class="facebook-button" id="facebookLoginBtn"><span class="facebook-mark">f</span> تسجيل الدخول بفيسبوك</button>
+      <small>ادخل كضيف فوراً أو اربط حسابك لاحقاً</small>
     </div>
   </section>
+  <div class="modal hidden" id="facebookModal" role="dialog" aria-modal="true" aria-labelledby="facebookModalTitle">
+    <div class="modal-card facebook-card">
+      <div class="facebook-mark large">f</div>
+      <h2 id="facebookModalTitle">تسجيل الدخول بفيسبوك</h2>
+      <p>ربط فيسبوك الحقيقي هيتفعل بعد إعداد تطبيق Meta. وقتها هنطلب إذن البريد الإلكتروني ونربط حسابك بتقدمك الحالي.</p>
+      <button id="facebookGuestBtn" class="primary-button">العب كضيف دلوقتي</button>
+      <button id="facebookCloseBtn" class="soft-button">رجوع</button>
+    </div>
+  </div>
   <main class="game-shell">
     <header class="topbar">
       <button class="icon-button" id="soundBtn" aria-label="الصوت">♫</button>
