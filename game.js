@@ -16,7 +16,7 @@ const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
 const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
 const VIDEO_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
-const VIDEO_FILES={background:"VID_٢٠٢٦١١٥٢١١٨٤٣.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
+const VIDEO_FILES={background:"VID_٢٠٢٦١١١٥٢١١٨٤٣.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
