@@ -1,24 +1,21 @@
 # Candy Magic Royale
 
-A mobile-first 3D match-three game prototype built with Babylon.js.
+A mobile-first Babylon.js 3D match-three game.
 
-## Run it
-Open `index.html` through a local static web server, or publish the repository with GitHub Pages. Babylon.js is loaded from its official CDN, so an internet connection is required.
+## Run
+Open the GitHub Pages site or serve this repository through a static web server. Babylon.js is loaded from its CDN, so the game needs an internet connection.
 
-## Current playable foundation
-- 8 × 8 candy board rendered in 3D
-- Six glossy procedural candy types
-- Drag/swipe or tap neighboring candies to swap
-- Horizontal and vertical matches of 3 or more
-- Gravity and board refill
-- Score, move counter, goal meter, restart and shuffle controls
-- Responsive interface for Android-sized screens
+## Current rebuild
+- Fresh mobile-first royal kingdom interface.
+- Babylon.js 3D candy board with six distinct glossy candy shapes.
+- Tap or swipe neighboring candies to swap them.
+- Match three or more, cascade gravity, refill and score.
+- Four-match striped candy and five-match rainbow candy.
+- Hammer, shuffle and +5 moves boosters.
+- Queen Luma and Dragon Prince artwork with idle animation.
+- Local progress for level, coins and stars.
 
-## Planned production milestones
-1. Integrate the approved Candy Magic Royale art assets and preserve the purple starry kingdom identity.
-2. Add special candies, combo chains, boosters and varied level objectives.
-3. Build the world map, level progression, dragon and queen characters, and saved progress.
-4. Add sound design, particles, polished animation and accessibility options.
-5. Optimize performance and package the game for Android.
+## Art assets
+The existing assets folder is retained and reused for the kingdom, character, and candy identity. The previous prototype UI and engine implementation have been replaced.
 
-This repository currently contains an early playable prototype, not a finished commercial release.
+This is an active rebuild and still needs device testing, sound, advanced level design, and Android packaging before release.
