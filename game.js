@@ -194,7 +194,7 @@ async function swap(a,b){
   await Promise.all([animate(A.mesh,ap,150),animate(B.mesh,bp,150)]);
   state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
   A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;return;}
+  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;checkEnd();return;}
   if(findMatches().size===0){
     await Promise.all([animate(A.mesh,pos(a.r,a.c),140),animate(B.mesh,pos(b.r,b.c),140)]);
     state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
@@ -292,8 +292,9 @@ function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:
 function loadProgress(){try{const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");state.level=Math.max(1,x.level||1);state.coins=x.coins||500;state.stars=x.stars||0;}catch(e){}}
 function restart(){state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 function useHammer(cell){
-  const it=state.grid[cell.r][cell.c];if(!it)return;
-  it.mesh.dispose();state.grid[cell.r][cell.c]=null;state.score+=100;state.hammer=Math.max(0,state.hammer-1);
+  const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
+  state.busy=true;
+  it.mesh.dispose();state.grid[cell.r][cell.c]=null;state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
   state.booster=null;$("hammerBtn").classList.remove("active");
   state.busy=true;
@@ -302,11 +303,35 @@ function useHammer(cell){
   replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
   animate(replacement.mesh,pos(cell.r,cell.c),220).then(()=>{state.busy=false;updateHud();checkEnd();});
 }
+function hasPossibleMove(){
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    for(const [dr,dc] of [[0,1],[1,0]]){
+      const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
+      const a=state.grid[r][c],b=state.grid[nr][nc];
+      state.grid[r][c]=b;state.grid[nr][nc]=a;
+      const valid=findMatches().size>0;
+      state.grid[r][c]=a;state.grid[nr][nc]=b;
+      if(valid)return true;
+    }
+  }
+  return false;
+}
 function shuffle(){
-  if(state.busy)return;const values=[];for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)values.push(state.grid[r][c].type);
-  for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){const it=state.grid[r][c];it.mesh.dispose();it.type=values[r*SIZE+c];it.special=null;it.mesh=candyMesh(r,c,it.type,null);}
-  state.selected=null;say("تم خلط الحلوى!");if(findMatches().size)settle();
+  if(state.busy)return;
+  clearSelection();
+  const items=state.grid.flat(),original=items.map(it=>it.type);
+  let values=original.slice(),playable=false;
+  for(let attempt=0;attempt<80;attempt++){
+    values=original.slice();
+    for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
+    for(let i=0;i<items.length;i++)items[i].type=values[i];
+    if(findMatches().size===0&&hasPossibleMove()){playable=true;break;}
+  }
+  if(!playable){for(let i=0;i<items.length;i++)items[i].type=original[i];say("اللوحة فيها حركات متاحة بالفعل.");return;}
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const it=state.grid[r][c];it.mesh.dispose();it.special=null;it.mesh=candyMesh(r,c,it.type,null);
+  }
+  say("اتخلطت الحلوى! تقدر تكمل اللعب.");
 }
 function nextLevel(){
   state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;

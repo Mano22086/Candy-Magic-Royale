@@ -62,3 +62,29 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 .modal-crown{font-size:42px;color:#ffdf7a}.modal-card h2{margin:3px 0;color:#ffe5a4}.modal-card p{font-size:13px;color:#ead8ff}.result-stars{font-size:23px;margin:12px}.modal-card .primary-button{width:100%;flex:none}
 @media(max-height:760px){.game-shell{gap:6px}.topbar{height:45px}.character-stage{height:100px}.board-wrap{max-height:41vh;min-height:240px}.bottom-panel{padding:6px 8px 8px}.booster{min-height:50px}}
 @media(min-width:520px){.game-shell{padding-top:14px}.board-wrap{max-height:440px}}
+
+
+/* Premium mobile polish */
+.game-shell{isolation:isolate}
+.game-shell:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:.42;background:radial-gradient(ellipse at 50% 48%,#a65bff18,transparent 54%),linear-gradient(115deg,transparent 0 47%,#fff06 48%,transparent 49% 100%);mix-blend-mode:screen}
+.topbar,.level-strip,.character-stage,.mission-row,.board-wrap,.bottom-panel{animation:royalEnter .65s cubic-bezier(.2,.8,.2,1) both}
+.level-strip{animation-delay:.05s}.character-stage{animation-delay:.1s}.mission-row{animation-delay:.15s}.board-wrap{animation-delay:.2s}.bottom-panel{animation-delay:.25s}
+@keyframes royalEnter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.character-stage{border:1px solid #e7c2ff35;box-shadow:inset 0 1px #fff2,0 8px 22px #08001435}
+.character-stage:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(110deg,transparent 18%,#fff2 48%,transparent 72%);background-size:220% 100%;animation:stageShimmer 8s ease-in-out infinite}
+@keyframes stageShimmer{0%,55%,100%{background-position:150% 0}75%{background-position:-50% 0}}
+.character{will-change:transform;filter:drop-shadow(0 7px 8px #16051f99) drop-shadow(0 0 9px #e7aaff33)}
+.character.celebrate{animation:queenCelebrate .55s ease-in-out 3}
+@keyframes queenCelebrate{0%,100%{transform:translateY(0) scale(1)}45%{transform:translateY(-13px) scale(1.08) rotate(-5deg)}}
+.speech-bubble{border:1px solid #e7bfff;box-shadow:0 3px 12px #16052377,0 0 12px #ffe7a944}
+.mission-row,.bottom-panel{box-shadow:0 8px 22px #08001455,inset 0 1px #fff2}
+.board-rim{box-shadow:0 12px 30px #080014bb,0 0 32px #c67cff55,inset 0 2px 4px #fff9}
+.booster{transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
+.booster:active,.soft-button:active,.primary-button:active,.icon-button:active{transform:translateY(2px) scale(.98)}
+.booster.active{filter:brightness(1.16);box-shadow:0 0 0 2px #ffe27c,0 0 20px #ffdc6c99,inset 0 1px #fff7}
+.primary-button{background:linear-gradient(180deg,#fff0a9 0%,#ffd16c 48%,#f3a34d 100%);text-shadow:0 1px #fff7}
+.coin-pill{box-shadow:inset 0 1px #fff5,0 3px 10px #10051f66}
+.toast{z-index:40;border:1px solid #fff0c7;box-shadow:0 8px 25px #0008,0 0 16px #ffd36a33}
+.modal-card{box-shadow:0 18px 55px #000b,0 0 35px #c77cff33,inset 0 1px #fff4}
+@media(max-width:380px){.game-shell{padding-left:9px;padding-right:9px;gap:6px}.character-stage{height:clamp(92px,15vh,116px)}.board-wrap{min-height:245px}.mission-row{padding:5px 8px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
