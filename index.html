@@ -501,8 +501,16 @@
 
           const m = new BABYLON.StandardMaterial(`cm_${typeId}_${Date.now()}`, scene);
           m.diffuseColor = col;
-          m.emissiveColor = col.scale(0.28);
-          m.specularPower = 64;
+          m.emissiveColor = col.scale(0.18);
+          m.ambientColor = col.scale(0.32);
+          m.specularColor = new BABYLON.Color3(1, 1, 1);
+          m.specularPower = 128;
+          m.useSpecularOverAlpha = true;
+          m.emissiveFresnelParameters = new BABYLON.FresnelParameters();
+          m.emissiveFresnelParameters.bias = 0.08;
+          m.emissiveFresnelParameters.power = 2.4;
+          m.emissiveFresnelParameters.leftColor = col.scale(0.12);
+          m.emissiveFresnelParameters.rightColor = new BABYLON.Color3(0.42, 0.3, 0.58);
           mesh.material = m;
 
           if (special === "striped_h" || special === "striped_v") {
@@ -729,8 +737,8 @@
 
         if (state.playMode === "boss") {
           state.bossHp = Math.max(0, state.bossHp - Math.max(4, Math.round(set.size * 2.2)));
-          if (bossRoot) bossRoot.scaling.setAll(1.12);
-          setTimeout(() => { if (bossRoot) bossRoot.scaling.setAll(1); }, 140);
+          if (bossCharacterRoot) bossCharacterRoot.scaling.setAll(1.12);
+          setTimeout(() => { if (bossCharacterRoot) bossCharacterRoot.scaling.setAll(1); }, 140);
         }
         sfx(set.size >= 5 ? 740 : 540, 0.14);
         syncHUD();
