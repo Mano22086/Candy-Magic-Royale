@@ -205,6 +205,7 @@ function bindInput(){
   const reset=()=>{down=null;downPoint=null;pointerId=null;};
   canvas.addEventListener("pointerdown",event=>{
     if(state.busy||state.won)return;
+    if(event.pointerType==="mouse"&&event.button!==0)return;
     event.preventDefault();
     pointerId=event.pointerId;
     down=pickCellAtClient(event.clientX,event.clientY);
@@ -217,23 +218,30 @@ function bindInput(){
     if(!down){reset();return;}
     if(state.busy||state.won){reset();return;}
     const dx=event.clientX-downPoint.x,dy=event.clientY-downPoint.y;
-    if(Math.hypot(dx,dy)>8){
-      const up=pickCellAtClient(event.clientX,event.clientY);
-      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1)swap(down,up);
-      else if(up){tapCell(up);}
-    }else tapCell(down);
+    const distance=Math.hypot(dx,dy);
+    const up=pickCellAtClient(event.clientX,event.clientY);
+    if(state.booster==="hammer"){
+      if(up)useHammer(up);
+      else say("المطرقة: اضغط على حلوى داخل اللوحة");
+    }else if(distance>10){
+      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
+        void swap(down,up);
+      }else{
+        say(up?"اسحب قطعة واحدة فقط إلى خانة مجاورة":"خلي السحب داخل لوحة الحلوى");
+      }
+    }else{
+      say("اسحب الحلوى لخانة مجاورة للتبديل");
+    }
     reset();
   },{passive:false});
   canvas.addEventListener("pointercancel",reset,{passive:true});
   canvas.addEventListener("lostpointercapture",reset,{passive:true});
+  window.addEventListener("blur",reset);
 }
 function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
 function tapCell(cell){
   if(state.booster==="hammer"){useHammer(cell);return;}
-  if(!state.selected){select(cell);return;}
-  const a=state.selected;clearSelection();
-  if(a.r===cell.r&&a.c===cell.c){select(cell);return;}
-  if(Math.abs(a.r-cell.r)+Math.abs(a.c-cell.c)===1)swap(a,cell);else select(cell);
+  say("اسحب الحلوى لخانة مجاورة للتبديل");
 }
 function select(cell){
   state.selected=cell;const item=state.grid[cell.r][cell.c];if(item&&item.mesh){item.mesh.scaling.scaleInPlace(1.12);}
