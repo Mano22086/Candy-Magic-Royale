@@ -84,9 +84,9 @@ function candyMesh(r,c,type,special){
   root.scaling=new BABYLON.Vector3(1,.92,1);
   const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+type;
   const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+type+".jpg";
-  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.98:1.02},scene);
+  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.88:.82},scene);
   face.parent=root;
-  face.position.z=-.30;
+  face.position.z=-.34;
   face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   face.material=candySpriteMaterial(spriteKey,spriteSrc);
   face.isPickable=false;
@@ -127,7 +127,7 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
   scene.imageProcessingConfiguration.exposure=1.08;
   scene.imageProcessingConfiguration.contrast=1.12;
-  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.88,13.2,new BABYLON.Vector3(0,0,0),scene);
+  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.08,13.2,new BABYLON.Vector3(0,0,0),scene);
   camera.lowerRadiusLimit=13.2;camera.upperRadiusLimit=13.2;camera.inputs.clear();camera.fov=.72;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
