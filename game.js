@@ -193,20 +193,16 @@ function pickCell(x=scene.pointerX,y=scene.pointerY){
 function bindInput(){
   let down=null,downPoint=null,pointerId=null;
   const reset=()=>{down=null;downPoint=null;pointerId=null;};
-  const pickAt=(event)=>{
-    const rect=canvas.getBoundingClientRect();
-    const sx=engine.getRenderWidth()/rect.width;
-    const sy=engine.getRenderHeight()/rect.height;
-    const x=(event.clientX-rect.left)*sx;
-    const y=(event.clientY-rect.top)*sy;
-    return pickCell(x,y);
-  };
+  // Babylon already converts browser pointer coordinates into render-space
+  // coordinates (including device-pixel scaling). Reuse its pointer position
+  // instead of scaling clientX/clientY a second time.
+  const pickAt=()=>pickCell(scene.pointerX,scene.pointerY);
   canvas.addEventListener("pointerdown",event=>{
     if(state.busy||state.won)return;
     event.preventDefault();
     try{canvas.setPointerCapture(event.pointerId);}catch(_){}
     pointerId=event.pointerId;
-    down=pickAt(event);
+    down=pickAt();
     downPoint={x:event.clientX,y:event.clientY};
   },{passive:false});
   canvas.addEventListener("pointerup",event=>{
@@ -215,7 +211,7 @@ function bindInput(){
     if(state.busy||state.won){reset();return;}
     const dx=event.clientX-downPoint.x,dy=event.clientY-downPoint.y;
     if(Math.hypot(dx,dy)>10){
-      const up=pickAt(event);
+      const up=pickAt();
       if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
         swap(down,up);
       }else{
