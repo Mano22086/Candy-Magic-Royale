@@ -49,7 +49,7 @@ function candySpriteMaterial(key,src){
       const canvas=document.createElement("canvas");
       canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
       const ctx=canvas.getContext("2d",{willReadFrequently:true});
-      ctx.drawImage(image,0,0);
+      ctx.drawImage(image,8,6,image.width-16,image.height-12,0,0,canvas.width,canvas.height);
       const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
       const data=pixels.data;
       const bgR=data[0],bgG=data[1],bgB=data[2];
@@ -119,14 +119,14 @@ function makeBoard(){
 }
 function setupScene(){
   canvas=$("renderCanvas");
-  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true});
-  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.12,.045,.22,1);
+  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},true);
+  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.10,.025,.19,1);\n  scene.imageProcessingConfiguration.toneMappingEnabled=true;\n  scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;\n  scene.imageProcessingConfiguration.exposure=1.08;\n  scene.imageProcessingConfiguration.contrast=1.12;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.88,13.2,new BABYLON.Vector3(0,0,0),scene);
   camera.lowerRadiusLimit=13.2;camera.upperRadiusLimit=13.2;camera.inputs.clear();camera.fov=.72;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
-  const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.25;
+  const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.34;
   makeBoard();bindInput();
   engine.runRenderLoop(()=>scene.render());
   window.addEventListener("resize",()=>engine.resize());
