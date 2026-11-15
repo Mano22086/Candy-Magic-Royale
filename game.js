@@ -152,7 +152,7 @@ function makeBoard(){
     tile.position=new BABYLON.Vector3((c-3.5)*SPACING,.08,(r-3.5)*SPACING);
     const tm=new BABYLON.StandardMaterial("tileMat"+r+c,scene);
     tm.diffuseColor=((r+c)%2===0)?new BABYLON.Color3(.35,.19,.55):new BABYLON.Color3(.27,.13,.45);
-    tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;
+    tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;tm.alpha=.16;
   }
 }
 function startVideoTexture(key,file){
@@ -163,7 +163,7 @@ function startVideoTexture(key,file){
   const texture=new BABYLON.VideoTexture("royalVideo_"+key,video,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
   const play=()=>video.play().catch(error=>console.warn("Video autoplay blocked:",key,error));
   video.addEventListener("canplay",play,{once:true});
-  play();
+  play();window.addEventListener("pointerdown",()=>video.paused&&play(),{once:true});
   return {video,texture};
 }
 function installGameVideos(){
@@ -175,7 +175,7 @@ function installGameVideos(){
   try{
     const board=startVideoTexture("board",VIDEO_FILES.board);
     board.texture.uScale=1;board.texture.vScale=1;
-    boardBaseMesh.material.diffuseTexture=board.texture;
+    boardBaseMesh.material.diffuseTexture=board.texture;boardBaseMesh.material.diffuseColor=new BABYLON.Color3(1,1,1);boardBaseMesh.material.emissiveTexture=board.texture;boardBaseMesh.material.disableLighting=true;const bp=BABYLON.MeshBuilder.CreateGround("boardVideoPlane",{width:8.35,height:8.35},scene);bp.position.y=.025;bp.isPickable=false;const bvm=new BABYLON.StandardMaterial("boardVideoMat",scene);bvm.diffuseColor=new BABYLON.Color3(0,0,0);bvm.specularColor=new BABYLON.Color3(0,0,0);bvm.emissiveTexture=board.texture;bvm.disableLighting=true;bp.material=bvm;
     boardBaseMesh.material.diffuseColor=new BABYLON.Color3(1,1,1);
     boardBaseMesh.material.emissiveColor=new BABYLON.Color3(.12,.08,.16);
     boardBaseMesh.material.specularColor=new BABYLON.Color3(.75,.58,.9);
