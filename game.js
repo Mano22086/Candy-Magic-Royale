@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)}
 ];
 const state={grid:[],score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
-let engine,scene,camera,canvas,materials=[],toastTimer;
+let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer;
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
@@ -72,12 +72,15 @@ function candySpriteMaterial(key,src){
 }
 function candyMesh(r,c,type,special){
   const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.72:.69,segments:24},scene);
-  const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
-  core.diffuseColor=palette[type-1].color.scale(.72);
-  core.specularColor=new BABYLON.Color3(1,1,1);
-  core.specularPower=150;
-  core.emissiveColor=palette[type-1].color.scale(.12);
-  root.material=core;
+  if(!coreMaterials[type]){
+    const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
+    core.diffuseColor=palette[type-1].color.scale(.72);
+    core.specularColor=new BABYLON.Color3(1,1,1);
+    core.specularPower=150;
+    core.emissiveColor=palette[type-1].color.scale(.12);
+    coreMaterials[type]=core;
+  }
+  root.material=coreMaterials[type];
   root.scaling=new BABYLON.Vector3(1,.92,1);
   const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+type;
   const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+type+".jpg";
@@ -244,15 +247,31 @@ function findSpecialCandidate(matches){
   return best;
 }
 async function activateSpecial(a,b){
-  const cells=new Set(),A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
-  [A,B].forEach((it,i)=>{
-    if(!it||!it.special)return;
-    const at=i===0?b:a;
-    if(it.special==="color"){const target=(i===0?B:A)?.type;for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(state.grid[r][c]&&state.grid[r][c].type===target)cells.add(r+","+c);}
-    else if(it.special==="striped"){for(let k=0;k<SIZE;k++){cells.add(at.r+","+k);cells.add(k+","+at.c);}}
-  });
-  for(const key of cells){const p=key.split(",").map(Number);const it=state.grid[p[0]][p[1]];if(it){it.mesh.dispose();state.grid[p[0]][p[1]]=null;state.score+=60;}}
-  updateHud();await wait(130);
+  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
+  const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
+  const addCross=cell=>{for(let k=0;k<SIZE;k++){cells.add(cell.r+","+k);cells.add(k+","+cell.c);}};
+  if(A?.special==="color"&&B?.special==="color"){
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)cells.add(r+","+c);
+  }else if(A?.special==="striped"&&B?.special==="striped"){
+    addCross(a);addCross(b);
+  }else if(A?.special==="color"||B?.special==="color"){
+    const colorCandy=A.special==="color"?A:B;
+    const other=A.special==="color"?B:A;
+    const target=other?.type;
+    if(target)for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      if(state.grid[r][c]?.type===target){cells.add(r+","+c);if(other.special==="striped")addCross({r,c});}
+    }
+    if(colorCandy===A&&B?.special==="striped")addCross(b);
+    if(colorCandy===B&&A?.special==="striped")addCross(a);
+  }else{
+    if(A?.special==="striped")addCross(b);
+    if(B?.special==="striped")addCross(a);
+  }
+  for(const key of cells){
+    const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
+    if(it){burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}
+  }
+  updateHud();await wait(170);
 }
 async function settle(){
   let chain=0;
@@ -293,7 +312,7 @@ function burstAt(position,type){
     p.position=position.clone();const m=new BABYLON.StandardMaterial("particleMat",scene);m.diffuseColor=color;m.emissiveColor=color;p.material=m;p.isPickable=false;
     const angle=Math.PI*2*i/7,dist=.35+Math.random()*.25;
     const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.25+Math.random()*.35,Math.sin(angle)*dist));
-    animate(p,target,250).then(()=>p.dispose());
+    animate(p,target,250).then(()=>{p.dispose();m.dispose();});
   }
 }
 function updateHud(){
@@ -315,9 +334,17 @@ function checkEnd(){
     $("characterMessage").textContent="متستسلمش، جرب تاني!";
   }
 }
-function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,coins:state.coins,stars:state.stars}));}catch(e){}}
-function loadProgress(){try{const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");state.level=Math.max(1,x.level||1);state.coins=x.coins||500;state.stars=x.stars||0;}catch(e){}}
-function restart(){if(state.busy)return;state.score=0;state.moves=25;state.won=false;state.booster=null;clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+function saveProgress(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars}));}catch(e){}}
+function loadProgress(){try{
+  const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
+  state.level=Math.max(1,Number(x.level)||1);
+  state.target=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,state.level-1)));
+  state.moves=Math.max(18,Number(x.moves)||Math.max(18,25-Math.floor(state.level/4)));
+  state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
+  state.stars=Math.max(0,Number(x.stars)||0);
+}catch(e){state.level=1;state.target=1500;state.moves=25;state.coins=500;state.stars=0;}}
+function restart(){if(state.busy)return;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
+  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
   if(state.won)return;
   const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
@@ -365,7 +392,10 @@ function shuffle(){
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
 }
 function nextLevel(){
-  state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;
+  state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
+  $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
+  $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
+  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
   $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress();$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
 }
 function bindUI(){
