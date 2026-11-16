@@ -195,8 +195,12 @@ function installGameVideos(){
 }
 function setupScene(){
   canvas=$("renderCanvas");
-  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},true);
+  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
+  // Keep mobile rendering sharp while capping internal resolution at 1.5x CSS pixels.
+  const deviceRatio=Math.max(1,window.devicePixelRatio||1);
+  engine.setHardwareScalingLevel(Math.max(1/deviceRatio,1/1.5));
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.10,.025,.19,1);
+  scene.skipPointerMovePicking=true;
   scene.imageProcessingConfiguration.toneMappingEnabled=true;
   scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
   scene.imageProcessingConfiguration.exposure=1.08;
@@ -253,38 +257,51 @@ function pickCellAtClient(clientX,clientY){
   return cell&&inBounds(cell.r,cell.c)?cell:null;
 }
 function bindInput(){
-  let down=null,downPoint=null,pointerId=null;
-  const reset=()=>{down=null;downPoint=null;pointerId=null;};
+  let active=null;
+  const reset=()=>{active=null;};
+  const swipeThreshold=()=>{
+    const rect=canvas.getBoundingClientRect();
+    return Math.max(14,Math.min(rect.width/SIZE,rect.height/SIZE)*.22);
+  };
+  const runSwipe=(gesture,dx,dy)=>{
+    if(!gesture?.cell||state.busy||state.won)return false;
+    if(Math.hypot(dx,dy)<swipeThreshold())return false;
+    // Candy-Crush style: the dominant finger direction chooses exactly one neighbour.
+    let next;
+    if(Math.abs(dx)>=Math.abs(dy)){
+      next={r:gesture.cell.r,c:gesture.cell.c+(dx>0?1:-1)};
+    }else{
+      next={r:gesture.cell.r+(dy>0?1:-1),c:gesture.cell.c};
+    }
+    if(!inBounds(next.r,next.c))return false;
+    clearSelection();
+    active=null;
+    void swap(gesture.cell,next);
+    return true;
+  };
   canvas.addEventListener("pointerdown",event=>{
-    if(state.busy||state.won)return;
+    if(state.busy||state.won||active)return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
+    const cell=pickCellAtClient(event.clientX,event.clientY);
+    if(!cell)return;
     event.preventDefault();
-    pointerId=event.pointerId;
-    down=pickCellAtClient(event.clientX,event.clientY);
-    downPoint={x:event.clientX,y:event.clientY};
+    active={id:event.pointerId,cell,x:event.clientX,y:event.clientY};
     try{canvas.setPointerCapture(event.pointerId);}catch(_){}
   },{passive:false});
-  canvas.addEventListener("pointerup",event=>{
-    if(event.pointerId!==pointerId)return;
+  canvas.addEventListener("pointermove",event=>{
+    if(!active||event.pointerId!==active.id)return;
     event.preventDefault();
-    if(!down){reset();return;}
-    if(state.busy||state.won){reset();return;}
-    const dx=event.clientX-downPoint.x,dy=event.clientY-downPoint.y;
-    const distance=Math.hypot(dx,dy);
-    const up=pickCellAtClient(event.clientX,event.clientY);
-    if(state.booster==="hammer"){
-      if(up)useHammer(up);
-      else say("المطرقة: اضغط على حلوى داخل اللوحة");
-    }else if(distance>10){
-      if(up&&Math.abs(up.r-down.r)+Math.abs(up.c-down.c)===1){
-        void swap(down,up);
-      }else{
-        say(up?"اسحب قطعة واحدة فقط إلى خانة مجاورة":"خلي السحب داخل لوحة الحلوى");
-      }
-    }else{
-      say("اسحب الحلوى لخانة مجاورة للتبديل");
+    runSwipe(active,event.clientX-active.x,event.clientY-active.y);
+  },{passive:false});
+  canvas.addEventListener("pointerup",event=>{
+    if(!active||event.pointerId!==active.id)return;
+    event.preventDefault();
+    const gesture=active;
+    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
+    if(!runSwipe(gesture,dx,dy)){
+      active=null;
+      if(!state.busy&&!state.won&&Math.hypot(dx,dy)<swipeThreshold())tapCell(gesture.cell);
     }
-    reset();
   },{passive:false});
   canvas.addEventListener("pointercancel",reset,{passive:true});
   canvas.addEventListener("lostpointercapture",reset,{passive:true});
@@ -293,19 +310,34 @@ function bindInput(){
 function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
 function tapCell(cell){
   if(state.booster==="hammer"){useHammer(cell);return;}
-  say("اسحب الحلوى لخانة مجاورة للتبديل");
+  if(state.selected){
+    const previous=state.selected;
+    if(previous.r===cell.r&&previous.c===cell.c){clearSelection();return;}
+    if(Math.abs(previous.r-cell.r)+Math.abs(previous.c-cell.c)===1){
+      clearSelection();void swap(previous,cell);return;
+    }
+  }
+  select(cell);
 }
 function select(cell){
-  state.selected=cell;const item=state.grid[cell.r][cell.c];if(item&&item.mesh){item.mesh.scaling.scaleInPlace(1.12);}
+  clearSelection();
+  state.selected=cell;
+  const item=state.grid[cell.r][cell.c];
+  if(item?.mesh)item.mesh.scaling.setAll((item.special?.94:1)*1.1);
 }
 function clearSelection(){
-  if(state.selected){const it=state.grid[state.selected.r][state.selected.c];if(it&&it.mesh)it.mesh.scaling.set(1,1,1);}
+  if(state.selected){
+    const it=state.grid[state.selected.r][state.selected.c];
+    if(it?.mesh)it.mesh.scaling.setAll(it.special?.94:1);
+  }
   state.selected=null;
 }
 async function swap(a,b){
-  if(state.busy||!inBounds(b.r,b.c))return;
+  if(state.busy||!inBounds(a.r,a.c)||!inBounds(b.r,b.c))return;
+  if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B)return;
   state.busy=true;
+  clearSelection();
   const ap=pos(b.r,b.c),bp=pos(a.r,a.c);
   await Promise.all([animate(A.mesh,ap,150),animate(B.mesh,bp,150)]);
   state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
