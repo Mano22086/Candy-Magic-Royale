@@ -157,3 +157,28 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 @media(max-height:700px){.start-screen{padding-top:calc(10px + env(safe-area-inset-top));}.start-heroes{inset:14% 0 25%;}.start-title h1{font-size:clamp(29px,8vw,45px);}.start-queen,.start-dragon{height:60%;}.start-bottom{bottom:calc(12px + env(safe-area-inset-bottom));gap:7px;}.start-button{height:48px;}.facebook-button{height:46px;}}
 @media(max-width:360px){.start-title h1{font-size:clamp(30px,9vw,39px);}.start-queen,.start-dragon{width:37%;}.start-bottom{width:calc(100% - 34px);}}
 @media(prefers-reduced-motion:reduce){.start-button{animation:none;}}
+
+
+/* Cinematic intro video: original artwork buttons remain visible in the video.
+   The existing real buttons become transparent touch targets in the same positions. */
+.start-cinematic-video{display:none}
+.start-screen.cinematic-ready{background:#17092f}
+.start-screen.cinematic-ready:before,.start-screen.cinematic-ready:after,
+.start-screen.cinematic-ready .start-sky,
+.start-screen.cinematic-ready .start-castle,
+.start-screen.cinematic-ready .start-stars,
+.start-screen.cinematic-ready .start-heroes,
+.start-screen.cinematic-ready .start-promise,
+.start-screen.cinematic-ready .start-bottom>small{display:none!important}
+.start-screen.cinematic-ready .start-cinematic-video{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;z-index:0}
+.start-screen.cinematic-ready .start-bottom{position:absolute;z-index:4;left:50%;bottom:4.2%;transform:translateX(-50%);width:60%;max-width:440px;gap:1.4vh}
+.start-screen.cinematic-ready .start-button,
+.start-screen.cinematic-ready .facebook-button{display:flex;width:100%;height:8.3vh;min-height:42px;max-height:76px;padding:0;margin:0;border:0;border-radius:22px;background:transparent!important;color:transparent!important;box-shadow:none!important;text-shadow:none!important;opacity:0;animation:none!important}
+.start-screen.cinematic-ready .start-button span,
+.start-screen.cinematic-ready .facebook-button span{opacity:0}
+.start-screen.cinematic-ready .start-button:focus-visible,
+.start-screen.cinematic-ready .facebook-button:focus-visible{outline:3px solid #fff4a8;outline-offset:3px}
+@media(max-width:380px){
+ .start-screen.cinematic-ready .start-bottom{width:60%;bottom:4.2%}
+ .start-screen.cinematic-ready .start-button,.start-screen.cinematic-ready .facebook-button{min-height:38px}
+}
