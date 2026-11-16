@@ -113,8 +113,8 @@ function candyMesh(r,c,type,special){
     core.emissiveColor=palette[type-1].color.scale(.12);coreMaterials[type]=core;
   }
   root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
-  const spriteKey=special==="color"?"special1":special==="striped"?"special2":"basic"+Math.min(type,6);
-  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
+  const spriteKey=special==="color"?"special1":special==="striped"?"special2":special==="wrapped"?"special3":"basic"+Math.min(type,6);
+  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":special==="wrapped"?"./assets/candy_special_3.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
   const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.88:.82},scene);
   face.parent=root;face.position.z=-.34;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   face.material=candySpriteMaterial(spriteKey,spriteSrc);face.isPickable=false;
@@ -215,7 +215,7 @@ function buildGrid(){
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
     const savedCell=canRestore?saved[r][c]:null;
     const type=savedCell?savedCell.type:randomType(r,c);
-    const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped")?savedCell.special:null;
+    const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped"||savedCell.special==="wrapped")?savedCell.special:null;
     state.grid[r][c]={type,special,mesh:candyMesh(r,c,type,special)};
   }
   state.savedGrid=null;
@@ -325,6 +325,17 @@ function findMatches(){
   return found;
 }
 function findSpecialCandidate(matches){
+  // A T/L intersection of two runs (3+ in each direction) creates a wrapped candy.
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(!matches.has(r+","+c))continue;
+    const item=state.grid[r][c];if(!item)continue;
+    let left=0,right=0,up=0,down=0;
+    for(let x=c-1;x>=0&&state.grid[r][x]?.type===item.type;x--)left++;
+    for(let x=c+1;x<SIZE&&state.grid[r][x]?.type===item.type;x++)right++;
+    for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)up++;
+    for(let y=r+1;y<SIZE&&state.grid[y][c]?.type===item.type;y++)down++;
+    if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
+  }
   let best=null;
   const consider=(cells,type)=>{
     if(cells.length<4)return;
@@ -354,6 +365,24 @@ async function activateSpecial(a,b){
   const addCross=cell=>{for(let k=0;k<SIZE;k++){cells.add(cell.r+","+k);cells.add(k+","+cell.c);}};
   if(A?.special==="color"&&B?.special==="color"){
     for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)cells.add(r+","+c);
+  }else if(A?.special==="wrapped"&&B?.special==="wrapped"){
+    for(const center of [a,b])for(let r=center.r-2;r<=center.r+2;r++)for(let c=center.c-2;c<=center.c+2;c++)if(inBounds(r,c))cells.add(r+","+c);
+  }else if((A?.special==="wrapped"&&B?.special==="striped")||(B?.special==="wrapped"&&A?.special==="striped")){
+    const center=A.special==="wrapped"?a:b;
+    for(let offset=-1;offset<=1;offset++){
+      for(let c=0;c<SIZE;c++)if(inBounds(center.r+offset,c))cells.add((center.r+offset)+","+c);
+      for(let r=0;r<SIZE;r++)if(inBounds(r,center.c+offset))cells.add(r+","+(center.c+offset));
+    }
+  }else if((A?.special==="wrapped"&&B?.special==="color")||(B?.special==="wrapped"&&A?.special==="color")){
+    const wrapped=A.special==="wrapped"?A:B,center=A.special==="wrapped"?a:b;
+    const target=(wrapped===A?B:A)?.type;
+    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(state.grid[r][c]?.type===target){
+      for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))cells.add(y+","+x);
+    }
+    for(let r=center.r-1;r<=center.r+1;r++)for(let c=center.c-1;c<=center.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
+  }else if(A?.special==="wrapped"||B?.special==="wrapped"){
+    const center=A?.special==="wrapped"?a:b;
+    for(let r=center.r-1;r<=center.r+1;r++)for(let c=center.c-1;c<=center.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
   }else if(A?.special==="striped"&&B?.special==="striped"){
     addCross(a);addCross(b);
   }else if(A?.special==="color"||B?.special==="color"){
@@ -468,7 +497,7 @@ function loadProgress(){try{
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(3,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(2,Math.max(0,Math.floor(extraValue))):2);
-  const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped")));
+  const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.hammer=3;state.extra=2;state.savedGrid=null;}}
 function restart(){if(state.busy)return;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
