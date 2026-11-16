@@ -7,7 +7,7 @@
   <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=royal-title-gold-1">
+  <link rel="stylesheet" href="./styles.css?v=cinematic-video-hotspots-1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -103,6 +103,6 @@
       <button id="resultButton" class="primary-button">استمرار</button>
     </div>
   </div>
-  <script src="./game.js?v=swipe-60fps-1"></script>
+  <script>\n(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.pause();video.currentTime=6.45;} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();\n</script>\n  <script src="./game.js?v=swipe-60fps-1"></script>
 </body>
 </html>
