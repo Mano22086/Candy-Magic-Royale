@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
@@ -209,10 +209,16 @@ function randomType(r,c){
   return t;
 }
 function buildGrid(){
+  const saved=state.savedGrid;
+  const canRestore=Array.isArray(saved)&&saved.length===SIZE&&saved.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
   state.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-    const type=randomType(r,c);state.grid[r][c]={type:type,special:null,mesh:candyMesh(r,c,type,null)};
+    const savedCell=canRestore?saved[r][c]:null;
+    const type=savedCell?savedCell.type:randomType(r,c);
+    const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped")?savedCell.special:null;
+    state.grid[r][c]={type,special,mesh:candyMesh(r,c,type,special)};
   }
+  state.savedGrid=null;
 }
 function gridPointAtClient(clientX,clientY){
   const rect=canvas.getBoundingClientRect();
@@ -292,7 +298,7 @@ async function swap(a,b){
   await Promise.all([animate(A.mesh,ap,150),animate(B.mesh,bp,150)]);
   state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
   A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;checkEnd();return;}
+  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;checkEnd();saveProgress(state.won&&state.score>=state.target);return;}
   if(findMatches().size===0){
     await Promise.all([animate(A.mesh,pos(a.r,a.c),140),animate(B.mesh,pos(b.r,b.c),140)]);
     state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
@@ -302,6 +308,7 @@ async function swap(a,b){
   }
   state.busy=false;checkEnd();
   if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
+  saveProgress(state.won&&state.score>=state.target);
 }
 function findMatches(){
   const found=new Set();
@@ -440,19 +447,32 @@ function ensureGuestIdentity(){
     return identity;
   }catch(e){return {id:"guest-session",provider:"guest"};}
 }
-function saveProgress(completed=false){try{const identity=ensureGuestIdentity();localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,coins:state.coins,stars:state.stars,completed}));}catch(e){}}
+function saveProgress(completed=false){try{
+  const identity=ensureGuestIdentity();
+  const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(Boolean));
+  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,grid,completed}));
+}catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
-  const savedLevel=Math.max(1,Number(x.level)||1);
-  state.level=savedLevel+(x.completed?1:0);
+  const completed=!!x.completed;
+  const savedLevel=Math.max(1,Math.floor(Number(x.level)||1));
+  state.level=savedLevel+(completed?1:0);
   const savedTarget=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,savedLevel-1)));
-  state.target=x.completed?Math.round(savedTarget*1.22):savedTarget;
-  state.moves=x.completed?Math.max(18,25-Math.floor(state.level/4)):Math.max(18,Number(x.moves)||Math.max(18,25-Math.floor(state.level/4)));
+  state.target=completed?Math.round(savedTarget*1.22):savedTarget;
+  const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
+  state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
+  state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
-  state.stars=Math.max(0,Number(x.stars)||0);
-}catch(e){state.level=1;state.target=1500;state.moves=25;state.coins=500;state.stars=0;}}
+  state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
+  const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
+  state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(3,Math.max(0,Math.floor(hammerValue))):3);
+  state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(2,Math.max(0,Math.floor(extraValue))):2);
+  const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped")));
+  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
+}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.hammer=3;state.extra=2;state.savedGrid=null;}}
 function restart(){if(state.busy)return;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
-  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
   if(state.won)return;
   const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
@@ -468,6 +488,7 @@ async function useHammer(cell){
   await settle();
   state.busy=false;updateHud();checkEnd();
   if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
+  saveProgress(state.won&&state.score>=state.target);
 }
 function hasPossibleMove(){
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
@@ -498,6 +519,7 @@ function shuffle(){
     const it=state.grid[r][c];it.mesh.dispose();it.special=null;it.mesh=candyMesh(r,c,it.type,null);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
+  saveProgress(false);
 }
 function nextLevel(){
   state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
@@ -512,15 +534,17 @@ function bindUI(){
   $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
   $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
   $("shuffleBtn").addEventListener("click",shuffle);
-  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();say("+5 حركات إضافية!");});
+  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();saveProgress(false);say("+5 حركات إضافية!");});
   $("plusCoins").addEventListener("click",()=>say("العملات والمكافآت هتتفتح مع نظام المتجر."));
   $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
 }
 async function start(){
   loadProgress();setupScene();await loadCandyModels();buildGrid();bindUI();updateHud();
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
-  $("hammerBtn").disabled=false;$("movesBtn").disabled=false;
+  $("hammerBtn").disabled=state.hammer===0;$("movesBtn").disabled=state.extra===0;
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
+  checkEnd();
+  saveProgress(state.won&&state.score>=state.target);
 }
 window.addEventListener("DOMContentLoaded",()=>{
   const launch=$("startGameBtn"),screen=$("startScreen"),facebookModal=$("facebookModal");
