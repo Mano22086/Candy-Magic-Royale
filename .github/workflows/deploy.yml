@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate game JavaScript
+        run: node --check game.js
       - name: Upload static game
         uses: actions/upload-pages-artifact@v3
         with:
