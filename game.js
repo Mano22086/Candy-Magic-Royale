@@ -102,6 +102,18 @@ function candyMesh(r,c,type,special){
     }
     root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
     root.scaling.setAll(special?.94:1);
+    if(special){
+      const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
+      ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
+      ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
+      ringMat.specularColor=new BABYLON.Color3(1,1,1);
+      const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.92,thickness:.075,tessellation:32},scene);
+      ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
+      if(special==="wrapped"){
+        const second=BABYLON.MeshBuilder.CreateTorus("wrappedRibbon_"+r+"_"+c,{diameter:.92,thickness:.065,tessellation:32},scene);
+        second.parent=root;second.rotation.set(Math.PI/2,0,.72);second.position.y=.12;second.material=ringMat;second.isPickable=false;
+      }
+    }
     root.metadata.animationGroups=entries.animationGroups||[];
     return root;
   }
