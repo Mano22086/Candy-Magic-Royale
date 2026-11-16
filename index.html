@@ -17,7 +17,7 @@
 <body>
   <section class="start-screen" id="startScreen" aria-label="شاشة بداية Candy Magic Royale">
     <video class="start-cinematic-video" id="startCinematicVideo" muted playsinline preload="auto" aria-hidden="true">
-      <source src="./assets/start-screen-cinematic.mp4" type="video/mp4">
+      <source src="./assets/1027565433_1794873190877752.mp4" type="video/mp4">
     </video>
     <div class="start-sky"></div>
     <img class="start-castle" src="./assets/enchanted-castle.svg" alt="">
@@ -106,6 +106,9 @@
       <button id="resultButton" class="primary-button">استمرار</button>
     </div>
   </div>
-  <script>\n(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.pause();video.currentTime=6.45;} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();\n</script>\n  <script src="./game.js?v=swipe-60fps-1"></script>
+  <script>
+(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.pause();video.currentTime=6.45;} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
+</script>
+  <script src="./game.js?v=swipe-60fps-1"></script>
 </body>
 </html>
