@@ -12,14 +12,15 @@ function ensure(){if(overlay)return;overlay=document.createElement("section");ov
 document.body.appendChild(overlay);
 overlay.querySelector("#wmZoomIn").onclick=()=>zoom(.12);overlay.querySelector("#wmZoomOut").onclick=()=>zoom(-.12);overlay.querySelector("#wmBack").onclick=renderWorld;
 let startDist=0;overlay.addEventListener("touchstart",e=>{if(e.touches.length===2)startDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
-overlay.addEventListener("touchmove",e=>{if(e.touches.length===2&&startDist){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(Math.abs(d-startDist)>18){zoom(d>startDist?.04:-.04);startDist=d}}},{passive:true});
+overlay.addEventListener("touchmove",e=>{if(e.touches.length===2&&startDist){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(Math.abs(d-startDist)>18){zoom(d > startDist ? 0.04 : -0.04);startDist=d}}},{passive:true});
 }
 function zoom(delta){scale=Math.max(.72,Math.min(1.35,scale+delta));const world=overlay.querySelector("#wmWorld");if(world)world.style.setProperty("--wm-scale",scale)}
 function show(){ensure();overlay.classList.remove("hidden");renderWorld();document.body.classList.add("map-open")}
 function hide(){overlay?.classList.add("hidden");document.body.classList.remove("map-open")}
 function renderWorld(){ensure();const c=castle(),w=overlay.querySelector("#wmWorld");currentCastle=-1;overlay.querySelector("#wmBack").classList.add("hidden");overlay.querySelector("#wmSubtitle").textContent="رحلتك بين القصور السحرية";w.innerHTML="";
-for(let i=Math.max(0,c-2);i<c+7;i++){const done=i<c,active=i===c,locked=i>c;const card=document.createElement("button");card.className="wm-castle "+(done?"done":active?"active":"locked");card.style.setProperty("--island",i%4);card.innerHTML='<span class="wm-island"><i>'+themes[i%themes.length]+'</i><b class="wm-castle-art">♜</b><em>'+(done?"✓":locked?"🔒":"✦")+'</em></span><strong>القصر '+(i+1)+' · '+label(i)+'</strong><small>'+(done?"اكتمل القصر":active?"القصر الحالي":"افتحه بعد إكمال القصر السابق")+'</small>';
-card.onclick=()=>{if(locked){toast("كمّل الـ 50 بيت في القصر الحالي الأول");return}renderHouses(i)};w.appendChild(card)}
+let next=Math.max(0,c-2);const addCard=i=>{const done=i<c,active=i===c,locked=i>c,card=document.createElement("button");card.className="wm-castle "+(done?"done":active?"active":"locked");card.style.setProperty("--island",i%4);card.innerHTML='<span class="wm-island"><i>'+themes[i%themes.length]+'</i><b class="wm-castle-art">🏰</b><em>'+(done?"✓":locked?"🔒":"✦")+'</em></span><strong>القصر '+(i+1)+' · '+label(i)+'</strong><small>'+(done?"اكتمل القصر":active?"القصر الحالي":"افتحه بعد إكمال القصر السابق")+'</small>';card.onclick=()=>{if(locked){toast("كمّل الـ 50 بيت في القصر الحالي الأول");return}renderHouses(i)};w.appendChild(card)};
+for(;next<c+7;next++)addCard(next);
+const scroller=overlay.querySelector("#wmScroll");scroller.onscroll=()=>{if(scroller.scrollTop+scroller.clientHeight>=scroller.scrollHeight-220){for(let j=0;j<6;j++)addCard(next++);}};
 w.style.setProperty("--wm-scale",scale);
 }
 function renderHouses(c){ensure();currentCastle=c;const w=overlay.querySelector("#wmWorld"),activeCastle=castle(),h=house();overlay.querySelector("#wmBack").classList.remove("hidden");overlay.querySelector("#wmSubtitle").textContent="القصر "+(c+1)+" — 50 بيت سحري";w.innerHTML='<div class="wm-house-title"><span>'+themes[c%themes.length]+'</span><b>'+label(c)+'</b><small>البيت '+(c===activeCastle?h:50)+' من 50</small></div><div class="wm-houses" id="wmHouses"></div>';
