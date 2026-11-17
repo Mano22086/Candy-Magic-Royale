@@ -543,6 +543,19 @@ async function start(){
   checkEnd();
   saveProgress(state.won&&state.score>=state.target);
 }
+let gameInitialized=false;
+window.CMRStartSelectedHouse=async()=>{
+  if(gameInitialized){window.CMRHideWorldMap?.();return;}
+  try{
+    await start();
+    gameInitialized=true;
+    document.body.classList.add("game-started");
+    window.CMRHideWorldMap?.();
+  }catch(error){
+    console.error(error);
+    say("حصلت مشكلة أثناء تجهيز المرحلة، حاول تاني.");
+  }
+};
 window.addEventListener("DOMContentLoaded",()=>{
   const launch=$("startGameBtn"),screen=$("startScreen"),facebookModal=$("facebookModal");
   let launching=false;
@@ -552,14 +565,14 @@ window.addEventListener("DOMContentLoaded",()=>{
     ensureGuestIdentity();
     launch.disabled=true;launch.textContent="جاري فتح المملكة...";
     screen.classList.add("start-screen-leaving");
-    setTimeout(()=>start().then(()=>{
-      document.body.classList.add("game-started");
-      screen.remove();\n      window.CMRShowWorldMap?.();
-    }).catch(error=>{
-      console.error(error);launching=false;launch.disabled=false;launch.textContent="العب كضيف";
-      screen.classList.remove("start-screen-leaving");
-      say("حصلت مشكلة أثناء فتح اللعبة، حاول تاني.");
-    }),520);
+    setTimeout(()=>{
+      screen.remove();
+      window.CMRShowWorldMap?.();
+      if(!document.getElementById("worldMap")){
+        launching=false;launch.disabled=false;launch.textContent="العب كضيف";
+        say("الخريطة مش جاهزة، حدّث الصفحة وحاول تاني.");
+      }
+    },520);
   };
   launch.addEventListener("click",launchAsGuest);
   $("facebookLoginBtn").addEventListener("click",()=>{
