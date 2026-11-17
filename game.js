@@ -23,6 +23,7 @@ const candyImages={
   5:"./assets/models/Picsart_26-11-15_03-49-03-571.png",
   6:"./assets/models/Picsart_26-11-17_03-33-19-702.png"
 };
+const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
 function candySpriteMaterial(type){
   if(spriteMaterials[type])return spriteMaterials[type];
   const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+type,scene);
@@ -75,7 +76,11 @@ function candyMesh(r,c,type,special){
 
   const artworkPath=candyImages[type];
   if(artworkPath){
-    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:SPACING*.88,height:SPACING*.88},scene);
+    const ratio=candyImageRatios[type]||1;
+    const maxSide=SPACING*.88;
+    const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
+    const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
+    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:artworkWidth,height:artworkHeight},scene);
     artwork.parent=root;
     artwork.position=new BABYLON.Vector3(0,.17,-.43);
     artwork.material=candySpriteMaterial(type);
