@@ -523,7 +523,8 @@ function nextLevel(){
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
-  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";\n  window.CMRShowWorldMap?.();
+  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
+  window.CMRShowWorldMap?.();
 }
 function bindUI(){
   $("restartBtn").addEventListener("click",restart);
