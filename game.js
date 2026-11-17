@@ -14,106 +14,46 @@ const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:5
 let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
+const spriteTextures={};
 const candyImages={
-  1:"./assets/candy_basic_1.png",
-  2:"./assets/candy_basic_2.png",
-  3:"./assets/candy_basic_3.png",
-  4:"./assets/candy_basic_4.png",
-  5:"./assets/candy_basic_5.png",
-  6:"./assets/candy_basic_6.png",
-  7:"./assets/candy_special_1.png"
+  1:"./assets/models/Picsart_26-11-15_03-44-50-856.png",
+  2:"./assets/models/Picsart_26-11-15_03-45-16-342.png",
+  3:"./assets/models/Picsart_26-11-15_03-46-24-543.png",
+  4:"./assets/models/Picsart_26-11-15_03-47-28-079.png",
+  5:"./assets/models/Picsart_26-11-15_03-49-03-571.png",
+  6:"./assets/models/Picsart_26-11-17_03-33-19-702.png"
 };
-const $=id=>document.getElementById(id);
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const rand=()=>Math.floor(Math.random()*TYPES)+1;
-function say(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1800);}
-function playSfx(kind="tap"){
-  if(!soundEnabled)return;
-  try{
-    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
-    audioContext=audioContext||new Ctx();if(audioContext.state==="suspended")void audioContext.resume();
-    const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
-    const notes={tap:520,match:760,win:980,lose:180,coin:1120};
-    osc.type=kind==="lose"?"triangle":"sine";osc.frequency.setValueAtTime(notes[kind]||520,now);
-    if(kind==="win")osc.frequency.exponentialRampToValueAtTime(1480,now+.18);
-    gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+(kind==="win"?.28:.12));
-    osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+(kind==="win"?.3:.14));
-  }catch(e){console.warn("Audio unavailable",e);}
-}
-const HEART_INTERVAL=30*60*1000;
-
-const LEVEL_REWARD_KEY="cmr_level_rewards_v1";
-const sessionRewardClaims=new Set();
-function claimLevelReward(level){
-  const key=String(Math.max(1,Math.floor(Number(level)||1)));
-  try{
-    const ledger=JSON.parse(localStorage.getItem(LEVEL_REWARD_KEY)||"{}");
-    if(ledger&&ledger[key])return false;
-    ledger[key]={claimedAt:Date.now()};
-    localStorage.setItem(LEVEL_REWARD_KEY,JSON.stringify(ledger));
-    return true;
-  }catch(error){
-    if(sessionRewardClaims.has(key))return false;
-    sessionRewardClaims.add(key);return true;
-  }
-}
-
-function applyHeartRegen(){
-  const now=Date.now();
-  if(state.lives>=5){state.lives=5;state.lastHeartAt=now;return false;}
-  if(!state.lastHeartAt)state.lastHeartAt=now;
-  const elapsed=now-state.lastHeartAt,earned=Math.floor(elapsed/HEART_INTERVAL);
-  if(earned>0){state.lives=Math.min(5,state.lives+earned);state.lastHeartAt=state.lives>=5?now:state.lastHeartAt+earned*HEART_INTERVAL;return true;}
-  return false;
-}
-function startHeartClock(){
-  clearInterval(heartTimer);
-  heartTimer=setInterval(()=>{if(applyHeartRegen()){updateHud();saveProgress(false);}else updateHud();},30000);
-}
-
-function pos(r,c){return new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,.55,(r-(SIZE-1)/2)*SPACING);}
-function makeMaterial(type){
-  if(materials[type])return materials[type];
-  const mat=new BABYLON.StandardMaterial("sugarMat"+type,scene);
-  mat.diffuseColor=palette[type-1].color;
-  mat.specularColor=new BABYLON.Color3(1,.96,1);
-  mat.specularPower=110;
-  mat.emissiveColor=palette[type-1].color.scale(.10);
-  mat.ambientColor=palette[type-1].color.scale(.22);
-  mat.useSpecularOverAlpha=true;
-  mat.emissiveFresnelParameters=new BABYLON.FresnelParameters();
-  mat.emissiveFresnelParameters.bias=.04;
-  mat.emissiveFresnelParameters.power=2.2;
-  mat.emissiveFresnelParameters.leftColor=palette[type-1].color.scale(.12);
-  mat.emissiveFresnelParameters.rightColor=new BABYLON.Color3(.62,.42,.85);
-  materials[type]=mat;return mat;
-}
 function candySpriteMaterial(type){
   if(spriteMaterials[type])return spriteMaterials[type];
-  const mat=new BABYLON.StandardMaterial("candyPngMat_"+type,scene);
+  const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+type,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
-  mat.emissiveColor=new BABYLON.Color3(0,0,0);
+  mat.emissiveColor=new BABYLON.Color3(1,1,1);
   mat.disableLighting=true;
   mat.backFaceCulling=false;
-  mat.useAlphaFromDiffuseTexture=false;
-  mat.transparencyMode=BABYLON.Material.MATERIAL_OPAQUE;
-  spriteMaterials[type]=mat;
+  mat.useAlphaFromDiffuseTexture=true;
+  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
+  const source=candyImages[type];
+  if(!source){spriteMaterials[type]=mat;return mat;}
   const texture=new BABYLON.Texture(
-    candyImages[type],scene,
-    false,true,
-    BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-    ()=>{texture.hasAlpha=false;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
-    (message,error)=>console.error("Candy PNG failed to load:",candyImages[type],message,error)
+    source,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
+    (message,error)=>console.warn("Candy artwork unavailable; keeping native 3D fallback:",source,message,error)
   );
-  texture.hasAlpha=false;
+  texture.hasAlpha=true;
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
   mat.diffuseTexture=texture;
+  spriteTextures[type]=texture;
+  spriteMaterials[type]=mat;
   return mat;
 }
 function candyMesh(r,c,type,special){
-  // Reliable native 3D candy: no external image textures, so missing/white PNGs cannot blank the board.
   const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
+  root.position=pos(r,c);
+  root.metadata={r,c,candy:true};
+  root.isPickable=false;
+
+  // Native 3D candy remains visible until its PNG artwork has loaded successfully.
   const body=BABYLON.MeshBuilder.CreateSphere("candy3D_"+r+"_"+c,{diameter:SPACING*.76,segments:20},scene);
   body.parent=root;
   body.position.y=.17;
@@ -121,10 +61,7 @@ function candyMesh(r,c,type,special){
   body.material=makeMaterial(type);
   body.isPickable=true;
   body.metadata={r,c,candy:true};
-  root.position=pos(r,c);
-  root.metadata={r,c,candy:true};
-  root.isPickable=false;
-  // A small glossy highlight gives each candy a polished, dimensional finish.
+
   const shine=BABYLON.MeshBuilder.CreateSphere("candyShine_"+r+"_"+c,{diameter:SPACING*.17,segments:12},scene);
   shine.parent=root;
   shine.position=new BABYLON.Vector3(-.13,.31,-.12);
@@ -135,6 +72,26 @@ function candyMesh(r,c,type,special){
   shineMat.alpha=.72;
   shine.material=shineMat;
   shine.isPickable=false;
+
+  const artworkPath=candyImages[type];
+  if(artworkPath){
+    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:SPACING*.88,height:SPACING*.88},scene);
+    artwork.parent=root;
+    artwork.position=new BABYLON.Vector3(0,.17,-.43);
+    artwork.material=candySpriteMaterial(type);
+    artwork.isPickable=false;
+    artwork.isVisible=false;
+    const texture=spriteTextures[type];
+    const revealArtwork=()=>{
+      if(root.isDisposed?.())return;
+      artwork.isVisible=true;
+      body.setEnabled(false);
+      shine.setEnabled(false);
+    };
+    if(texture?.isReady())revealArtwork();
+    else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealArtwork);
+  }
+
   if(special){
     const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
     ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
@@ -142,7 +99,7 @@ function candyMesh(r,c,type,special){
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:32},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
   }
-  root.__cmrSpriteBacked=false;
+  root.__cmrSpriteBacked=!!artworkPath;
   return root;
 }
 function animate(mesh,target,duration=170){
