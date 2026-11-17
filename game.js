@@ -142,7 +142,7 @@ function candyMesh(r,c,type,special){
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
   return root;
 }
-async function loadCandyModels(){
+async async function loadCandyModels(){
   // Load one model at a time to avoid seven simultaneous downloads and GPU spikes on phones.
   for(const [type,file] of Object.entries(modelFiles)){
     try{
