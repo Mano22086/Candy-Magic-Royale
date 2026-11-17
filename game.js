@@ -112,12 +112,29 @@ function candySpriteMaterial(type){
   return mat;
 }
 function candyMesh(r,c,type,special){
+  // Reliable native 3D candy: no external image textures, so missing/white PNGs cannot blank the board.
   const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
-  const plane=BABYLON.MeshBuilder.CreatePlane("candyArt_"+r+"_"+c,{size:SPACING*.82},scene);
-  plane.parent=root;plane.position.y=.035;plane.rotation.x=Math.PI/2;
-  plane.material=candySpriteMaterial(type);plane.isPickable=true;
-  plane.metadata={r,c,candy:true};
-  root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
+  const body=BABYLON.MeshBuilder.CreateSphere("candy3D_"+r+"_"+c,{diameter:SPACING*.76,segments:20},scene);
+  body.parent=root;
+  body.position.y=.17;
+  body.scaling.y=.48;
+  body.material=makeMaterial(type);
+  body.isPickable=true;
+  body.metadata={r,c,candy:true};
+  root.position=pos(r,c);
+  root.metadata={r,c,candy:true};
+  root.isPickable=false;
+  // A small glossy highlight gives each candy a polished, dimensional finish.
+  const shine=BABYLON.MeshBuilder.CreateSphere("candyShine_"+r+"_"+c,{diameter:SPACING*.17,segments:12},scene);
+  shine.parent=root;
+  shine.position=new BABYLON.Vector3(-.13,.31,-.12);
+  shine.scaling=new BABYLON.Vector3(1,.28,.62);
+  const shineMat=new BABYLON.StandardMaterial("candyShineMat_"+r+"_"+c,scene);
+  shineMat.diffuseColor=new BABYLON.Color3(1,1,1);
+  shineMat.emissiveColor=new BABYLON.Color3(.22,.22,.22);
+  shineMat.alpha=.72;
+  shine.material=shineMat;
+  shine.isPickable=false;
   if(special){
     const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
     ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
@@ -125,7 +142,7 @@ function candyMesh(r,c,type,special){
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:32},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
   }
-  root.__cmrSpriteBacked=true;root.__candyPlane=plane;
+  root.__cmrSpriteBacked=false;
   return root;
 }
 function animate(mesh,target,duration=170){
