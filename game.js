@@ -216,8 +216,10 @@ function gridPointAtClient(clientX,clientY){
   const worldZ=(.5-ny)*7.4;
   const half=SIZE*SPACING/2;
   if(worldX < -half || worldX >= half || worldZ < -half || worldZ >= half)return null;
-  const c=Math.floor((worldX+half)/SPACING);
-  const r=Math.floor((half-worldZ)/SPACING);
+  // The camera looks from the -Z side: screen-left is +X and screen-up is +Z.
+  // Reverse both screen axes to match the board's row/column world positions.
+  const c=Math.floor((half-worldX)/SPACING);
+  const r=Math.floor((worldZ+half)/SPACING);
   return {r,c};
 }
 function pickCellAtClient(clientX,clientY){
@@ -232,10 +234,11 @@ function bindInput(){
     return Math.max(10,Math.min(rect.width/SIZE,rect.height/SIZE)*.16);
   };
   const chooseNeighbour=(cell,dx,dy)=>{
+    // Gesture directions follow the rendered camera orientation.
     if(Math.abs(dx)>=Math.abs(dy)){
-      return {r:cell.r,c:cell.c+(dx>=0?1:-1)};
+      return {r:cell.r,c:cell.c+(dx>=0?-1:1)};
     }
-    return {r:cell.r+(dy>=0?1:-1),c:cell.c};
+    return {r:cell.r+(dy>=0?-1:1),c:cell.c};
   };
   canvas.style.touchAction="none";
   canvas.addEventListener("contextmenu",event=>event.preventDefault());
