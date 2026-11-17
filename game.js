@@ -195,6 +195,8 @@ function randomType(r,c){
   return t;
 }
 function buildGrid(){
+  // Dispose the previous board before creating another one to prevent GPU memory leaks.
+  for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===SIZE&&saved.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
   state.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
@@ -543,8 +545,8 @@ function bindUI(){
 }
 async function start(){
   loadProgress();setupScene();buildGrid();bindUI();updateHud();
-  // Load detailed models in the background; gameplay becomes responsive immediately.
-  void loadCandyModels();
+  // Keep the mobile board responsive: don't launch seven large GLB downloads at once.
+  // Candy models can be enabled later through an on-demand, progressive loader.
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
   $("hammerBtn").disabled=state.hammer===0;$("movesBtn").disabled=state.extra===0;
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
