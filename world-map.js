@@ -4,10 +4,10 @@ const names=["مملكة الملكة","مملكة الشوكولاتة","ممل
 const themes=["👑","🍫","🍓","🍦","🍮","🫐","⭐","💎","☁️","🍬"];
 let overlay,scale=1,currentCastle=0;
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(_){return {}}};
-const level=()=>Math.max(1,Number(read().level)||1);
+const level=()=>{const x=read();return Math.max(1,Math.floor(Number(x.level)||1)+(x.completed?1:0))};
 const castle=()=>Math.floor((level()-1)/50);
 const house=()=>((level()-1)%50)+1;
-const label=n=>names[n%names.length]+" · القصر "+(n+1);
+const label=n=>names[n%names.length]+" رقم "+(n+1);
 function ensure(){if(overlay)return;overlay=document.createElement("section");overlay.id="worldMap";overlay.className="world-map hidden";overlay.innerHTML='<header class="wm-header"><div><small>THE KINGDOM OF SWEETS</small><h1>خريطة المملكة</h1><p id="wmSubtitle">اختار القصر اللي هتستكشفه</p></div><div class="wm-zoom"><button id="wmZoomOut" aria-label="تصغير">−</button><button id="wmZoomIn" aria-label="تكبير">＋</button></div></header><div class="wm-scroll" id="wmScroll"><div class="wm-world" id="wmWorld"></div></div><footer class="wm-footer"><span>✦ كل قصر فيه 50 بيت ✦</span><button id="wmBack" class="hidden">رجوع للقصور</button></footer>';
 document.body.appendChild(overlay);
 overlay.querySelector("#wmZoomIn").onclick=()=>zoom(.12);overlay.querySelector("#wmZoomOut").onclick=()=>zoom(-.12);overlay.querySelector("#wmBack").onclick=renderWorld;
@@ -25,7 +25,10 @@ w.style.setProperty("--wm-scale",scale);
 }
 function renderHouses(c){ensure();overlay.querySelector("#wmScroll").onscroll=null;currentCastle=c;const w=overlay.querySelector("#wmWorld"),activeCastle=castle(),h=house();overlay.querySelector("#wmBack").classList.remove("hidden");overlay.querySelector("#wmSubtitle").textContent="القصر "+(c+1)+" — 50 بيت سحري";w.innerHTML='<div class="wm-house-title"><img src="./assets/castle-'+["queen","chocolate","ice"][c%3]+'.svg" alt=""><b>'+label(c)+'</b><small>اختار البيت التالي — '+(c===activeCastle?h:50)+' من 50</small></div><div class="wm-houses" id="wmHouses"></div>';
 const grid=w.querySelector("#wmHouses");for(let n=1;n<=50;n++){const global=c*50+n,unlocked=global<=level(),done=global<level(),btn=document.createElement("button");btn.className="wm-house "+(done?"done":unlocked?"current":"locked");const row=Math.floor((n-1)/5),offset=(n-1)%5,col=(row%2===0?offset:4-offset)+1;btn.style.gridColumn=String(col);btn.style.gridRow=String(row+1);btn.innerHTML='<span>'+(done?"✓":unlocked?"✦":"🔒")+'</span><b>'+n+'</b>';btn.setAttribute("aria-label","البيت "+n);btn.onclick=()=>{if(global===level()){toast("جاري دخول البيت "+n+"...");window.CMRStartSelectedHouse?.()}else if(global<level())toast("البيت ده اتكمل بالفعل");else toast("البيت ده لسه مقفول")};grid.appendChild(btn)}
-w.style.setProperty("--wm-scale",scale);overlay.querySelector("#wmScroll").scrollTop=0;
+w.style.setProperty("--wm-scale",scale);
+overlay.querySelector("#wmScroll").scrollTop=0;
+const current=grid.querySelector(".wm-house.current");
+if(current)requestAnimationFrame(()=>current.scrollIntoView({block:"center",behavior:"smooth"}));
 }
 function toast(msg){const t=document.getElementById("toast");if(!t)return;t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
 window.CMRShowWorldMap=show;window.CMRHideWorldMap=hide;
