@@ -466,7 +466,7 @@ function loadProgress(){try{
   const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
   state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
   state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
-  state.lossHandled=!!x.lossHandled;
+  state.lossHandled=!!x.lossHandled||Number(x.moves)===0;
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
   state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
   state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
