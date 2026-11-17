@@ -29,7 +29,7 @@ body.map-open .game-shell{visibility:hidden!important;opacity:0!important;pointe
 .wm-house-title img{width:118px;height:94px;object-fit:contain;filter:drop-shadow(0 6px 8px #16082c88)}
 .wm-house-title b{font-size:17px;color:#ffe8a6}
 .wm-houses{position:relative;max-width:390px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(10,64px);gap:8px 6px;padding:8px 2px 24px}
-.wm-houses:before{content:"";position:absolute;inset:28px 9% 42px;z-index:0;pointer-events:none;border:5px dotted #ffdc79b8;border-radius:42% 35% 40% 35%;filter:drop-shadow(0 0 5px #ffe28b)}
+.wm-houses:before{display:none}.wm-route{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;pointer-events:none}.wm-route polyline{fill:none;stroke:#ffe18a;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:3 15;filter:drop-shadow(0 0 5px #ffe7a4)}
 .wm-house{position:relative;z-index:1;width:100%;height:58px;min-width:0;aspect-ratio:auto;border-radius:17px;background:linear-gradient(150deg,#8b61bd,#32175e);box-shadow:inset 0 1px #fff8,0 5px 0 #170b38,0 7px 12px #12062677}
 .wm-house span{font-size:15px}.wm-house b{font-size:14px}
 .wm-house.current{transform:scale(1.12);z-index:2;animation:houseGlow 1.7s ease-in-out infinite alternate}
@@ -37,3 +37,6 @@ body.map-open .game-shell{visibility:hidden!important;opacity:0!important;pointe
 .wm-house.locked{opacity:.56}
 @keyframes houseGlow{from{filter:brightness(1);box-shadow:0 0 9px #ffe58c,0 5px 0 #874b28}to{filter:brightness(1.2);box-shadow:0 0 22px #fff0a4,0 5px 0 #874b28}}
 @media(max-width:380px){.wm-houses{grid-template-rows:repeat(10,56px);gap:7px 4px}.wm-house{height:51px}}
+
+.wm-house{animation:houseArrive .32s ease both}.wm-house:nth-of-type(2n){animation-delay:.025s}@keyframes houseArrive{from{opacity:.35;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.wm-house{animation:none!important}}
