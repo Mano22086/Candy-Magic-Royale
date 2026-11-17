@@ -7,7 +7,7 @@
   <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=reference-castle-board-4">
+  <link rel="stylesheet" href="./styles.css?v=exact-royal-layout-5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -45,45 +45,14 @@
     </div>
   </div>
   <main class="game-shell">
-    <header class="topbar">
-      <button class="icon-button" id="soundBtn" aria-label="الصوت">♫</button>
-      <div class="brand">
-        <span class="brand-crown">♛</span>
-        <div><strong>CANDY MAGIC</strong><small>ROYale kingdom</small></div>
-      </div>
-      <div class="coin-pill"><span>✦</span><b id="coinCount">500</b><button id="plusCoins" aria-label="المزيد">＋</button></div>
-    </header>
-
-    <section class="level-strip">
-      <div class="level-label"><span>المملكة المسحورة</span><b id="levelLabel">المستوى 1</b></div>
-      <div class="level-progress"><i id="levelProgress"></i></div>
-      <div class="level-stats"><span>⭐ <b id="stars">0</b></span><span>الحركات <b id="moves">25</b></span></div>
+    <section class="reference-hud" aria-label="معلومات المرحلة">
+      <div class="ref-card ref-target"><small>Target</small><div class="target-icons"><span>👑</span><span>💗</span></div><strong id="targetScore">1,500</strong><label>نقاط الهدف</label><span class="ref-level" id="levelLabel">المستوى 1</span><div class="level-progress"><i id="levelProgress"></i></div><span class="ref-stars">⭐ <b id="stars">0</b></span></div>
+      <div class="ref-card ref-queen"><img id="queen" src="./assets/queen-luma.svg" alt="الملكة لوما"><strong>الملكة لوما</strong></div>
+      <div class="ref-card ref-dragon"><img id="dragon" src="./assets/dragon-prince.svg" alt="أمير التنين"><strong>أمير التنين</strong></div>
+      <div class="ref-card ref-moves"><small>Moves</small><strong id="moves">25</strong><span>الحركات</span><div class="ref-coins">✦ <b id="coinCount">500</b></div><button id="plusCoins" aria-label="المزيد">＋</button><button id="soundBtn" class="ref-sound" aria-label="الصوت">♫</button></div>
+      <div class="ref-message" id="characterMessage">أهلاً بك! أنقذ مملكتي بالحلوى.</div>
+      <span class="ref-score">⭐ <b id="score">0</b></span>
     </section>
-
-    <section class="character-stage royal-character-stage" aria-label="حراس المملكة">
-      <div class="stage-glow"></div>
-      <img class="castle-art" src="./assets/enchanted-castle.svg" alt="">
-      <div class="hero-slot queen-slot">
-        <span class="hero-slot-label">الملكة لوما</span>
-        <img class="character queen" id="queen" src="./assets/queen-luma.svg" alt="الملكة لوما">
-      </div>
-      <div class="royal-center">
-        <div class="royal-emblem">♛</div>
-        <div class="speech-bubble" id="characterMessage">مرحباً بك في مملكتي!</div>
-        <div class="stage-title"><span>✧</span> حدائق السكر السحرية <span>✧</span></div>
-      </div>
-      <div class="hero-slot dragon-slot">
-        <span class="hero-slot-label">أمير التنين</span>
-        <img class="character dragon" id="dragon" src="./assets/dragon-prince.svg" alt="أمير التنين">
-      </div>
-    </section>
-
-    <section class="mission-row">
-      <div class="mission-icon">🎯</div>
-      <div class="mission-copy"><small>هدف المرحلة</small><strong>اجمع <b id="targetScore">1,500</b> نقطة</strong></div>
-      <div class="score-box"><small>نقاطك</small><strong id="score">0</strong></div>
-    </section>
-
     <section class="board-wrap" aria-label="لوحة الحلوى">
       <div class="board-rim">
         <canvas id="renderCanvas" touch-action="none"></canvas>
@@ -118,6 +87,6 @@
   <script>
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
-  <script src="./game.js?v=swipe-60fps-1"></script>
+  <script src="./game.js?v=exact-royal-layout-5"></script>
 </body>
 </html>
