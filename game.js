@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const SIZE=8, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
+const SIZE=7, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
@@ -15,13 +15,11 @@ let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBas
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
 const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
-const VIDEO_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
-const VIDEO_FILES={background:"VID_٢٠٢٦١١١٥٢١١٨٤٣.mp4",board:"gemini_generated_video_6bbb2c9b.mp4"};
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
 function say(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1800);}
-function pos(r,c){return new BABYLON.Vector3((c-3.5)*SPACING,.55,(r-3.5)*SPACING);}
+function pos(r,c){return new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,.55,(r-(SIZE-1)/2)*SPACING);}
 function makeMaterial(type){
   if(materials[type])return materials[type];
   const mat=new BABYLON.StandardMaterial("sugarMat"+type,scene);
@@ -153,15 +151,15 @@ function animate(mesh,target,duration=170){
   });
 }
 function makeBoard(){
-  const base=BABYLON.MeshBuilder.CreateBox("royalBoard",{width:8.45,height:.38,depth:8.45},scene);
+  const base=BABYLON.MeshBuilder.CreateBox("royalBoard",{width:7.45,height:.38,depth:7.45},scene);
   boardBaseMesh=base;
   base.position.y=-.17;
   const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.19,.08,.34);bm.specularColor=new BABYLON.Color3(.7,.45,.9);bm.specularPower=80;base.material=bm;
-  const edge=BABYLON.MeshBuilder.CreateBox("goldEdge",{width:8.55,height:.13,depth:8.55},scene);edge.position.y=-.37;
+  const edge=BABYLON.MeshBuilder.CreateBox("goldEdge",{width:7.55,height:.13,depth:7.55},scene);edge.position.y=-.37;
   const em=new BABYLON.StandardMaterial("goldEdgeMat",scene);em.diffuseColor=new BABYLON.Color3(.82,.48,.96);em.emissiveColor=new BABYLON.Color3(.12,.04,.2);edge.material=em;
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
     const tile=BABYLON.MeshBuilder.CreateBox("tile"+r+"_"+c,{width:.96,height:.12,depth:.96},scene);
-    tile.position=new BABYLON.Vector3((c-3.5)*SPACING,.08,(r-3.5)*SPACING);
+    tile.position=new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,.08,(r-(SIZE-1)/2)*SPACING);
     const tm=new BABYLON.StandardMaterial("tileMat"+r+c,scene);
     tm.diffuseColor=((r+c)%2===0)?new BABYLON.Color3(.35,.19,.55):new BABYLON.Color3(.27,.13,.45);
     tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;tm.alpha=.16;
