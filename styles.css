@@ -572,3 +572,71 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
  position:absolute!important;top:39%!important;left:0!important;right:0!important;
  width:100%!important;order:initial!important;
 }
+
+
+/* FINAL MOBILE FIT: portraits stay fully inside the two circular gold frames */
+.game-shell{visibility:hidden;opacity:0;pointer-events:none;transition:opacity .18s ease}
+body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
+.art-hero{
+ position:absolute!important;top:4.1%!important;height:12.1%!important;
+ width:17.2%!important;overflow:hidden!important;contain:paint!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ border-radius:0!important;isolation:isolate;
+}
+.art-dragon{left:29.3%!important;right:auto!important}
+.art-queen{left:53.5%!important;right:auto!important}
+.art-hero img{
+ display:block!important;width:88%!important;height:88%!important;
+ max-width:88%!important;max-height:88%!important;flex:0 0 88%!important;
+ object-fit:contain!important;object-position:center center!important;
+ transform:none!important;filter:drop-shadow(0 2px 2px #16051f88)!important;
+}
+/* Values centered in the cream panels, titles gold on the purple ribbons */
+.art-moves,.art-target{
+ top:2.1%!important;height:16.2%!important;width:20.8%!important;
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;
+ flex-direction:column!important;gap:0!important;
+}
+.art-moves{left:4.1%!important;right:auto!important}
+.art-target{right:4.1%!important;left:auto!important}
+.art-moves .art-hud-title,.art-target .art-hud-title{
+ position:absolute!important;top:3%!important;left:0!important;right:0!important;
+ width:100%!important;text-align:center!important;margin:0!important;
+ color:#ffe6a0!important;font-family:Georgia,"Times New Roman",serif!important;
+ font-size:clamp(16px,5vw,26px)!important;font-weight:900!important;
+ line-height:1.1!important;letter-spacing:.2px!important;
+ -webkit-text-stroke:.7px #9b5b16!important;
+ text-shadow:0 1px 0 #fff2b8,0 2px 0 #8e4d18,0 3px 4px #321044!important;
+}
+.art-moves>strong{
+ position:absolute!important;top:40%!important;left:0!important;right:0!important;
+ width:100%!important;text-align:center!important;margin:0!important;
+ color:#fff1c9!important;font-family:Georgia,serif!important;
+ font-size:clamp(34px,10vw,53px)!important;font-weight:1000!important;
+ line-height:1!important;-webkit-text-stroke:1px #773a70!important;
+ text-shadow:0 2px 0 #773a70,0 4px 4px #351044!important;
+}
+.heart-counter{
+ position:absolute!important;top:39%!important;left:0!important;right:0!important;
+ width:100%!important;display:flex!important;align-items:center!important;
+ justify-content:center!important;gap:5px!important;min-height:0!important;
+}
+.heart-counter>strong{
+ color:#fff1c9!important;font-family:Georgia,serif!important;
+ font-size:clamp(29px,8.5vw,46px)!important;font-weight:1000!important;
+ line-height:1!important;-webkit-text-stroke:1px #773a70!important;
+ text-shadow:0 2px 0 #773a70,0 4px 4px #351044!important;
+}
+.heart-counter>span{
+ color:#f51d87!important;font-size:clamp(34px,9vw,49px)!important;
+ line-height:1!important;-webkit-text-stroke:1.5px #fff1c9!important;
+ filter:drop-shadow(0 2px 0 #75205c)!important;
+}
+.art-target #targetScore,.art-target #levelLabel,.art-target .level-progress,.art-target .art-stars{display:none!important}
+@media(max-height:760px){
+ .art-hero{top:4.1%!important;height:12.1%!important}
+ .art-moves,.art-target{top:2.1%!important;height:16.2%!important}
+}
+/* Avoid intro flash: keep gameplay hidden until the intro action completes */
+.start-screen{z-index:100!important;background-color:#17092f}
+.start-cinematic-video{background:#17092f}
