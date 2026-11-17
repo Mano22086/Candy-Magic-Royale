@@ -470,3 +470,31 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
   .art-hero{top:4.8%!important;height:13.8%!important}
   .art-board-wrap{top:35.4%!important;height:33.2%!important}
 }
+
+
+/* Heart lives + reference-style English HUD headings */
+.art-target{left:4.2%!important;right:auto!important;width:26%!important;top:2.8%!important;height:10.8%!important;gap:2px!important}
+.art-moves{right:4.2%!important;left:auto!important;width:26%!important;top:2.8%!important;height:10.8%!important}
+.art-hud-title{
+  display:block;color:#fff8e8!important;font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(17px,5vw,27px)!important;font-weight:900!important;line-height:1.05;
+  letter-spacing:-.6px;-webkit-text-stroke:.55px #8c3d83;
+  text-shadow:0 2px 0 #7b286f,0 3px 3px #3b164c,0 0 7px #fff1b4!important;
+}
+.heart-counter{display:flex;align-items:center;justify-content:center;gap:7px;line-height:1}
+.heart-counter>span{
+  color:#f51d87;font-family:Arial,sans-serif;font-size:clamp(31px,9vw,49px);line-height:.95;
+  -webkit-text-stroke:1.5px #fff0c7;
+  filter:drop-shadow(0 2px 0 #7a205d) drop-shadow(0 2px 3px #3c1647);
+}
+.heart-counter>strong{
+  color:#fff5db;font-family:Georgia,"Times New Roman",serif;font-size:clamp(25px,7.5vw,41px);
+  font-weight:1000;line-height:1;-webkit-text-stroke:1px #873b76;
+  text-shadow:0 2px 0 #6b285f,0 3px 4px #3a174c;
+}
+.art-moves .art-hud-title{font-size:clamp(17px,5vw,27px)!important}
+.art-moves>strong{
+  color:#fff4d8!important;font-family:Georgia,"Times New Roman",serif;font-size:clamp(36px,10vw,54px)!important;
+  -webkit-text-stroke:1px #8d3b75;text-shadow:0 2px 0 #71306d,0 4px 3px #351445!important;
+}
+@media(max-height:760px){.art-target,.art-moves{top:2.8%!important;height:10.8%!important}}
