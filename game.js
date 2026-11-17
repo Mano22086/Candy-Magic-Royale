@@ -197,14 +197,14 @@ function buildGrid(){
 function gridPointAtClient(clientX,clientY){
   const rect=canvas.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
-  // The board is an 8x8 grid in a fixed 10x10 orthographic camera view.
+  // Map touch coordinates to the 7x7 board inside the uploaded artwork.
   // Map the touch to board-world coordinates directly; this avoids device-pixel-ratio
   // and Babylon picking-ray discrepancies on mobile browsers.
   const nx=(clientX-rect.left)/rect.width;
   const ny=(clientY-rect.top)/rect.height;
-  const worldX=(nx-.5)*10;
-  const worldZ=(.5-ny)*10;
-  const boardHalf=8.45/2;
+  const worldX=(nx-.5)*7.4;
+  const worldZ=(.5-ny)*7.4;
+  const boardHalf=(SIZE*SPACING)/2;
   if(Math.abs(worldX)>boardHalf||Math.abs(worldZ)>boardHalf)return null;
   const c=Math.floor((worldX+SIZE*SPACING/2)/SPACING);
   const r=Math.floor((worldZ+SIZE*SPACING/2)/SPACING);
