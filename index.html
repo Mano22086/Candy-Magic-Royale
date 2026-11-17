@@ -7,7 +7,7 @@
   <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=royal-performance-2">
+  <link rel="stylesheet" href="./styles.css?v=royal-ui-3">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -61,11 +61,11 @@
       </div>
     </section>
     <section class="art-boosters" aria-label="المساعدات">
-      <button class="booster art-booster art-booster-one" id="hammerBtn" aria-label="مطرقة السكر"><span class="booster-art">🔨</span><small>3</small></button>
-      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلطة سحرية"><span class="booster-art">🔀</span><small>∞</small></button>
-      <button class="booster art-booster art-booster-three" id="movesBtn" aria-label="حركات إضافية"><span class="booster-art">＋5</span><small>2</small></button>
-      <button class="art-booster art-booster-four" id="restartBtn" aria-label="إعادة المرحلة">↻</button>
-      <button class="art-booster art-booster-five" id="nextBtn" aria-label="المرحلة التالية" disabled>➜</button>
+      <button class="booster art-booster art-booster-one" id="hammerBtn" aria-label="مطرقة السكر"><img class="booster-icon" src="./assets/Picsart_26-11-17_03-30-30-749.png" alt="Hammer"><small class="booster-badge">3</small></button>
+      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلطة سحرية"><img class="booster-icon" src="./assets/Picsart_26-11-17_03-32-32-076.png" alt="Wand"><small class="booster-badge">&#8734;</small></button>
+      <button class="booster art-booster art-booster-three" id="movesBtn" aria-label="حركات إضافية"><img class="booster-icon" src="./assets/Picsart_26-11-17_03-31-16-632.png" alt="Bomb"><small class="booster-badge">2</small></button>
+      <button class="art-booster art-booster-four" id="restartBtn" aria-label="إعادة المرحلة"><img class="booster-icon" src="./assets/Picsart_26-11-17_03-33-19-702.png" alt="Restart"></button>
+      <button class="art-booster art-booster-five" id="nextBtn" aria-label="المرحلة التالية" disabled><img class="booster-icon" src="./assets/Picsart_26-11-17_03-29-52-301.png" alt="Next"></button>
     </section>
   </main>
   <div class="toast" id="toast" role="status"></div>
@@ -81,6 +81,6 @@
   <script>
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
-  <script src="./game.js?v=royal-performance-2"></script>
+  <script src="./game.js?v=royal-ui-3"></script>
 </body>
 </html>
