@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
@@ -240,23 +240,20 @@ async function swap(a,b){
   if(state.busy||!inBounds(a.r,a.c)||!inBounds(b.r,b.c))return;
   if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B)return;
-  state.busy=true;
-  clearSelection();
-  const ap=pos(b.r,b.c),bp=pos(a.r,a.c);
-  await Promise.all([animate(A.mesh,ap,115),animate(B.mesh,bp,115)]);
-  state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
-  A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-  if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;checkEnd();saveProgress(state.won&&state.score>=state.target);return;}
-  if(findMatches().size===0){
-    await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
-    state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
-    A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
-  }else{
-    state.moves--;updateHud();await settle();
-  }
-  state.busy=false;checkEnd();
-  if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
-  saveProgress(state.won&&state.score>=state.target);
+  state.busy=true;clearSelection();
+  try{
+    await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
+    state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
+    A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
+    if(A.special||B.special){
+      await activateSpecial(a,b);state.moves--;updateHud();await settle();
+    }else if(findMatches().size===0){
+      await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
+      state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
+      A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
+    }else{state.moves--;updateHud();await settle();}
+  }catch(error){console.error("Candy swap failed:",error);say("حصلت مشكلة في الحركة، جرّب تاني.");}
+  finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
 function findMatches(){
   const found=new Set();
@@ -368,7 +365,8 @@ function triggerCharacterCombo(chain){
 }
 async function settle(){
   let chain=0;
-  while(true){
+  // Prevent a pathological cascade from locking the board or monopolizing a mobile frame.
+  while(chain<18){
     const matches=findMatches();if(matches.size===0)break;
     chain++;
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
@@ -395,7 +393,8 @@ async function settle(){
     await Promise.all(falling);
     await wait(80);
   }
-  if(chain>1)say("سلسلة سحرية ×"+chain+"!");
+  if(findMatches().size>0)say("سلسلة طويلة! كمل المطابقة بحركة جديدة.");
+  else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   updateHud();
 }
 function burstAt(position,type){
@@ -424,13 +423,13 @@ function triggerCharacterResult(won){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
+    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
     $("resultTitle").textContent="انتصار سحري!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
     triggerCharacterResult(true);saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
-    state.lives=Math.max(0,state.lives-1);
+    if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;}
     updateHud();
     $("resultTitle").textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
     $("resultText").textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت كل القلوب المتاحة. تقدر تشوف عددها في شريط Heart.";
@@ -455,7 +454,7 @@ function saveProgress(completed=false){try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -467,6 +466,7 @@ function loadProgress(){try{
   const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
   state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
   state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
+  state.lossHandled=!!x.lossHandled;
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
   state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
   state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
@@ -476,24 +476,23 @@ function loadProgress(){try{
   const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.hammer=3;state.extra=2;state.savedGrid=null;}}
-function restart(){if(state.busy)return;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
+function restart(){if(state.busy)return;state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
-  if(state.won)return;
-  const it=state.grid[cell.r][cell.c];if(!it||state.busy)return;
+  if(state.won||state.busy)return;
+  const it=state.grid[cell.r][cell.c];if(!it)return;
   state.busy=true;clearSelection();
-  burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
-  state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
-  $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
-  state.booster=null;$("hammerBtn").classList.remove("active");
-  const replacement={type:rand(),special:null,mesh:null};
-  replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
-  replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
-  await animate(replacement.mesh,pos(cell.r,cell.c),220);
-  await settle();
-  state.busy=false;updateHud();checkEnd();
-  if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();
-  saveProgress(state.won&&state.score>=state.target);
+  try{
+    burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
+    state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
+    $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
+    state.booster=null;$("hammerBtn").classList.remove("active");
+    const replacement={type:rand(),special:null,mesh:null};
+    replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
+    replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
+    await animate(replacement.mesh,pos(cell.r,cell.c),220);await settle();
+  }catch(error){console.error("Hammer action failed:",error);say("حصلت مشكلة في المطرقة، جرّب تاني.");}
+  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
 function hasPossibleMove(){
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
@@ -527,7 +526,7 @@ function shuffle(){
   saveProgress(false);
 }
 function nextLevel(){
-  state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
+  state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
