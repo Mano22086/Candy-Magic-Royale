@@ -605,7 +605,7 @@ window.addEventListener("DOMContentLoaded",()=>{
       }
     },520);
   };
-  launch.addEventListener("click",launchAsGuest);
+  // Play is bound by the independent mobile-safe bootstrap in index.html.
   $("facebookLoginBtn").addEventListener("click",()=>{
     facebookModal.classList.remove("hidden");
   });
