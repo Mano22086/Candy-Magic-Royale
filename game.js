@@ -211,6 +211,7 @@ function animate(mesh,target,duration=170){
 }
 function makeBoard(){ /* The uploaded artwork supplies the empty 7x7 board and frame. */ }
 function setupScene(){
+  if(engine&&scene)return;
   canvas=$("renderCanvas");
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
   // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
@@ -470,7 +471,7 @@ function checkEnd(){
   if(state.score>=state.target&&!state.won){
     state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=claimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
-    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
+    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
     triggerCharacterResult(true);playSfx("win");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
@@ -504,18 +505,19 @@ function saveProgress(completed=false){try{
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
   const completed=!!x.completed;
-  const savedLevel=Math.max(1,Math.floor(Number(x.level)||1));
+  const rawLevel=Number(x.level),savedLevel=Number.isFinite(rawLevel)?Math.min(1000000,Math.max(1,Math.floor(rawLevel)||1)):1;
   state.level=savedLevel+(completed?1:0);
-  const savedTarget=Math.max(1500,Number(x.target)||Math.round(1500*Math.pow(1.22,savedLevel-1)));
+  const rawTarget=Number(x.target),fallbackTarget=Math.round(1500*Math.pow(1.22,Math.min(savedLevel-1,1000)));
+   const savedTarget=Number.isFinite(rawTarget)?Math.min(1e12,Math.max(1500,rawTarget)):(Number.isFinite(fallbackTarget)?fallbackTarget:1e12);
   state.target=completed?Math.round(savedTarget*1.22):savedTarget;
   const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
   state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
   state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
   state.lossHandled=!!x.lossHandled||Number(x.moves)===0;
-  state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
-  state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
+  state.coins=Number.isFinite(Number(x.coins))?Math.min(999999999,Math.max(0,Math.floor(Number(x.coins)))):500;
+  state.stars=Number.isFinite(Number(x.stars))?Math.min(999999999,Math.max(0,Math.floor(Number(x.stars)))):0;
   state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
-  state.lastHeartAt=Number(x.lastHeartAt)||Date.now();applyHeartRegen();
+  const savedHeartTime=Number(x.lastHeartAt);state.lastHeartAt=Number.isFinite(savedHeartTime)&&savedHeartTime>0?Math.min(Date.now(),savedHeartTime):Date.now();applyHeartRegen();
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
