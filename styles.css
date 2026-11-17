@@ -589,11 +589,11 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
  display:block!important;width:88%!important;height:88%!important;
  max-width:88%!important;max-height:88%!important;flex:0 0 88%!important;
  object-fit:contain!important;object-position:center center!important;
- transform:none!important;filter:drop-shadow(0 2px 2px #16051f88)!important;
+ filter:drop-shadow(0 2px 2px #16051f88)!important;
 }
 /* Values centered in the cream panels, titles gold on the purple ribbons */
 .art-moves,.art-target{
- top:2.1%!important;height:16.2%!important;width:20.8%!important;
+ top:2.1%!important;height:16.2%!important;width:26%!important;
  display:flex!important;align-items:center!important;justify-content:flex-start!important;
  flex-direction:column!important;gap:0!important;
 }
