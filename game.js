@@ -63,9 +63,20 @@ function candySpriteMaterial(key,src){
         if(distance<34)data[i+3]=0;
         else if(distance<74)data[i+3]=Math.round(data[i+3]*(distance-34)/40);
       }
+      // Trim transparent margins so the fruit artwork fills its own board cell.
+      let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
+      for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
+        const a=data[(y*canvas.width+x)*4+3];
+        if(a>28){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+      }
       ctx.putImageData(pixels,0,0);
-      const texture=new BABYLON.DynamicTexture("candySpriteTex_"+key,{width:canvas.width,height:canvas.height},scene,false);
-      texture.hasAlpha=true;texture.getContext().drawImage(canvas,0,0);texture.update(true);
+      const cropW=maxX>=minX?maxX-minX+1:canvas.width;
+      const cropH=maxY>=minY?maxY-minY+1:canvas.height;
+      const cropped=document.createElement("canvas");
+      cropped.width=cropW;cropped.height=cropH;
+      cropped.getContext("2d").drawImage(canvas,minX>=0?minX:0,minY>=0?minY:0,cropW,cropH,0,0,cropW,cropH);
+      const texture=new BABYLON.DynamicTexture("candySpriteTex_"+key,{width:cropW,height:cropH},scene,false);
+      texture.hasAlpha=true;texture.getContext().drawImage(cropped,0,0);texture.update(true);
       mat.diffuseTexture=texture;
       mat.useAlphaFromDiffuseTexture=true;
     }catch(error){console.warn("Candy sprite texture failed:",key,error);}
