@@ -498,3 +498,61 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
   -webkit-text-stroke:1px #8d3b75;text-shadow:0 2px 0 #71306d,0 4px 3px #351445!important;
 }
 @media(max-height:760px){.art-target,.art-moves{top:2.8%!important;height:10.8%!important}}
+
+
+/* HEART HUD FIX — match the actual left Moves / right Heart panels */
+.art-moves{
+  left:4.2%!important;right:auto!important;width:20.5%!important;
+  top:2%!important;height:17%!important;display:flex!important;
+  flex-direction:column!important;align-items:center!important;justify-content:center!important;
+}
+.art-target{
+  left:auto!important;right:4.2%!important;width:20.5%!important;
+  top:2%!important;height:17%!important;display:flex!important;
+  flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:2px!important;
+}
+.art-moves .art-hud-title,.art-target .art-hud-title{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  color:#fff8e8!important;font-family:Georgia,serif!important;
+  font-size:clamp(16px,4.9vw,25px)!important;font-weight:900!important;
+  line-height:1.05!important;-webkit-text-stroke:1px #77306d;
+  text-shadow:0 2px #70246b,0 3px 4px #351044,0 0 7px #ffe9a8!important;
+}
+.art-target #targetScore,.art-target #levelLabel,.art-target .level-progress,.art-target .art-stars{display:none!important}
+.heart-counter{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  align-items:center!important;justify-content:center!important;gap:7px!important;
+  min-height:42px!important;
+}
+.heart-counter>span{
+  display:block!important;color:#f31d83!important;font-size:clamp(34px,9vw,49px)!important;
+  line-height:1!important;-webkit-text-stroke:1.5px #fff2c8;
+  filter:drop-shadow(0 2px 0 #75205c) drop-shadow(0 3px 3px #351044);
+}
+.heart-counter>strong{
+  display:block!important;color:#fff4d8!important;font-family:Georgia,serif!important;
+  font-size:clamp(28px,7.8vw,42px)!important;font-weight:1000!important;
+  line-height:1!important;-webkit-text-stroke:1px #7c2b70;
+  text-shadow:0 2px #71286a,0 4px 4px #351044!important;
+}
+.art-moves>strong{
+  display:block!important;color:#fff4d8!important;font-family:Georgia,serif!important;
+  font-size:clamp(37px,10vw,55px)!important;line-height:.95!important;
+  -webkit-text-stroke:1px #7c2b70;text-shadow:0 2px #71286a,0 4px 4px #351044!important;
+  order:2!important;
+}
+.art-moves .art-hud-title{order:1!important}
+.art-target .art-hud-title{order:1!important}
+.heart-counter{order:2!important}
+/* Character portraits: dragon in the left slot, queen in the right slot */
+.art-dragon{left:27.3%!important;right:auto!important;top:4.8%!important;width:21%!important;height:13.8%!important}
+.art-queen{left:51.7%!important;right:auto!important;top:4.8%!important;width:21%!important;height:13.8%!important}
+.art-hero{overflow:hidden!important;contain:paint!important}
+.art-hero img{width:150%!important;height:150%!important;max-width:none!important;max-height:none!important;object-fit:contain!important}
+/* Give sprite fallback candies a larger visible footprint */
+#renderCanvas{image-rendering:auto}
+@media(max-height:760px){
+ .art-moves,.art-target{top:2%!important;height:17%!important}
+ .art-dragon,.art-queen{top:4.8%!important;height:13.8%!important}
+}
