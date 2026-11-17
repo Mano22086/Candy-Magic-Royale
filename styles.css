@@ -668,3 +668,34 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 .start-screen .start-cinematic-video{pointer-events:none!important}
 .start-screen .start-bottom{z-index:20!important;pointer-events:auto!important}
 .start-screen .start-button,.start-screen .facebook-button{position:relative!important;z-index:21!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
+
+
+/* PLAY BUTTON FIX 2: use visible, real controls instead of invisible video hit areas */
+.start-screen.cinematic-ready .start-bottom{
+  z-index:30!important;pointer-events:auto!important;
+  width:min(78%,420px)!important;bottom:calc(5% + env(safe-area-inset-bottom))!important;
+  gap:10px!important;
+}
+.start-screen.cinematic-ready .start-button,
+.start-screen.cinematic-ready .facebook-button{
+  position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;height:58px!important;min-height:52px!important;max-height:none!important;
+  padding:0 18px!important;border:2px solid #fff0b8!important;border-radius:18px!important;
+  opacity:1!important;pointer-events:auto!important;touch-action:manipulation!important;
+  background:linear-gradient(180deg,#fff1b5 0%,#ffd36e 52%,#ed9846 100%)!important;
+  color:#54265f!important;font-size:17px!important;font-weight:900!important;
+  box-shadow:0 5px 0 #a75b45,0 9px 22px #090018aa,inset 0 2px #fff!important;
+  text-shadow:none!important;animation:none!important;
+}
+.start-screen.cinematic-ready .facebook-button{
+  background:linear-gradient(180deg,#8ab8ff,#3977d9)!important;
+  color:#fff!important;border-color:#d9e7ff!important;
+}
+.start-screen.cinematic-ready .start-button span,
+.start-screen.cinematic-ready .facebook-button span{opacity:1!important;color:inherit!important}
+.start-screen.cinematic-ready .start-button:active,
+.start-screen.cinematic-ready .facebook-button:active{transform:scale(.97)!important}
+@media(max-height:650px){
+ .start-screen.cinematic-ready .start-bottom{bottom:calc(3% + env(safe-area-inset-bottom))!important;gap:7px!important}
+ .start-screen.cinematic-ready .start-button,.start-screen.cinematic-ready .facebook-button{height:48px!important;min-height:46px!important}
+}
