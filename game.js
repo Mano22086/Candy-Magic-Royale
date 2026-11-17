@@ -451,7 +451,7 @@ function triggerCharacterResult(won){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
+    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent="انتصار سحري!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
     triggerCharacterResult(true);playSfx("win");saveProgress(true);
@@ -500,8 +500,8 @@ function loadProgress(){try{
   state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
   state.lastHeartAt=Number(x.lastHeartAt)||Date.now();applyHeartRegen();
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
-  state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(3,Math.max(0,Math.floor(hammerValue))):3);
-  state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(2,Math.max(0,Math.floor(extraValue))):2);
+  state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
+  state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
@@ -514,7 +514,7 @@ async function useHammer(cell){
   try{
     burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
     state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
-    $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=state.hammer===0;
+    refreshBoosterBadges();
     state.booster=null;$("hammerBtn").classList.remove("active");
     const replacement={type:rand(),special:null,mesh:null};
     replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
@@ -564,13 +564,49 @@ function nextLevel(){
   state.grid=[];state.savedGrid=null;state.selected=null;updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
   window.CMRShowWorldMap?.();
 }
+
+function refreshBoosterBadges(){
+  const hammer=$("hammerBtn"),moves=$("movesBtn");
+  if(hammer){hammer.querySelector("small").textContent=state.hammer;hammer.disabled=state.hammer<=0;}
+  if(moves){moves.querySelector("small").textContent=state.extra;moves.disabled=state.extra<=0;}
+}
+function ensureShop(){
+  if($("royalShop"))return;
+  const trigger=document.createElement("button");
+  trigger.id="shopOpenBtn";trigger.type="button";trigger.className="shop-open-btn";
+  trigger.setAttribute("aria-label","المتجر");trigger.textContent="🛍️";
+  $("plusCoins").insertAdjacentElement("afterend",trigger);
+  const modal=document.createElement("div");modal.id="royalShop";modal.className="royal-shop hidden";
+  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">🔨</span><div><b>مطارق إضافية</b><small>+3 مطارق · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
+  document.body.appendChild(modal);
+  const close=()=>modal.classList.add("hidden");
+  trigger.addEventListener("click",()=>{refreshShop();modal.classList.remove("hidden");});
+  modal.querySelector(".shop-close").addEventListener("click",close);
+  modal.addEventListener("click",e=>{if(e.target===modal)close();});
+  modal.querySelectorAll("[data-buy]").forEach(btn=>btn.addEventListener("click",()=>{
+    const kind=btn.dataset.buy;
+    const offer={hammer:{cost:150,limit:9,amount:3},moves:{cost:120,limit:10,amount:2},heart:{cost:180,limit:5,amount:1}}[kind];
+    const current=kind==="hammer"?state.hammer:kind==="moves"?state.extra:state.lives;
+    if(current>=offer.limit){say(kind==="heart"?"قلوبك كاملة بالفعل!":"وصلت للحد الأقصى من المعززات.");return;}
+    if(state.coins<offer.cost){say("عملاتك مش كفاية للشراء ده.");return;}
+    state.coins-=offer.cost;
+    if(kind==="hammer")state.hammer=Math.min(offer.limit,state.hammer+offer.amount);
+    if(kind==="moves")state.extra=Math.min(offer.limit,state.extra+offer.amount);
+    if(kind==="heart"){state.lives=Math.min(5,state.lives+1);if(state.lives===5)state.lastHeartAt=Date.now();}
+    updateHud();refreshBoosterBadges();saveProgress(false);playSfx("coin");refreshShop();
+    say("تم الشراء بنجاح!");
+  }));
+}
+function refreshShop(){const wallet=$("shopCoins");if(wallet)wallet.textContent=state.coins.toLocaleString("en-US");}
+
 function bindUI(){
+  ensureShop();
   $("restartBtn").addEventListener("click",restart);
   $("nextBtn").addEventListener("click",nextLevel);
   $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
   $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
   $("shuffleBtn").addEventListener("click",shuffle);
-  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();saveProgress(false);say("+5 حركات إضافية!");});
+  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
   $("plusCoins").addEventListener("click",()=>{
     const today=new Date().toISOString().slice(0,10),key="cmr_daily_reward_v1";
     let claimed="";try{claimed=localStorage.getItem(key)||"";}catch(e){}
@@ -587,8 +623,7 @@ async function start(){
   loadProgress();setupScene();buildGrid();bindUI();updateHud();startHeartClock();
   // Download the candy models progressively, one at a time, while the board is playable.
   void loadCandyModels();
-  $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
-  $("hammerBtn").disabled=state.hammer===0;$("movesBtn").disabled=state.extra===0;
+  refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
   checkEnd();
   saveProgress(state.won&&state.score>=state.target);
