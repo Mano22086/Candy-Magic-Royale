@@ -627,14 +627,15 @@ window.addEventListener("DOMContentLoaded",()=>{
     launching=true;
     ensureGuestIdentity();
     launch.disabled=true;launch.textContent="جاري فتح المملكة...";
-    start().then(()=>{
-      screen.classList.add("start-screen-leaving");
+    screen.classList.add("start-screen-leaving");
+    setTimeout(()=>start().then(()=>{
       document.body.classList.add("game-started");
-      setTimeout(()=>screen.remove(),520);
+      screen.remove();
     }).catch(error=>{
       console.error(error);launching=false;launch.disabled=false;launch.textContent="العب كضيف";
+      screen.classList.remove("start-screen-leaving");
       say("حصلت مشكلة أثناء فتح اللعبة، حاول تاني.");
-    });
+    }),520);
   };
   launch.addEventListener("click",launchAsGuest);
   $("facebookLoginBtn").addEventListener("click",()=>{
