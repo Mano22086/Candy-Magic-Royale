@@ -169,6 +169,7 @@ function candyMesh(r,c,type,special){
       }
     }
     root.metadata.animationGroups=entries.animationGroups||[];
+    root.__cmrModelBacked=true;
     return root;
   }
   const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?1.04:1.02,segments:32},scene);
@@ -194,10 +195,35 @@ async function loadCandyModels(){
     while(document.body.classList.contains("map-open")) await wait(300);
     try{
       modelContainers[type]=await BABYLON.SceneLoader.LoadAssetContainerAsync(MODEL_BASE,file,scene,"",".glb");
+      // Replace the temporary sprite candies already on the board once this GLB is ready.
+      // This prevents a mixed board where old placeholders remain beside newly spawned 3D models.
+      while(document.body.classList.contains("map-open")||state.busy) await wait(180);
+      refreshLoadedCandyType(Number(type));
       console.info("Loaded 3D candy:",file);
     }catch(error){console.warn("3D candy load failed; fallback active:",file,error);}
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   }
+}
+function refreshLoadedCandyType(type){
+  if(!modelContainers[type]||state.grid.length!==SIZE)return 0;
+  let replaced=0;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    const item=state.grid[r]?.[c],old=item?.mesh;
+    if(!item||item.type!==type||!old||old.__cmrModelBacked||old.isDisposed?.())continue;
+    try{
+      const position=old.position.clone();
+      const selected=state.selected?.r===r&&state.selected?.c===c;
+      const replacement=candyMesh(r,c,item.type,item.special);
+      replacement.position.copyFrom(position);
+      if(selected)replacement.scaling.scaleInPlace(1.1);
+      replacement.metadata={r,c,candy:true};
+      item.mesh=replacement;
+      old.dispose();
+      replaced++;
+    }catch(error){console.warn("Could not refresh loaded candy:",type,r,c,error);}
+  }
+  if(replaced)console.info("Replaced temporary candies with 3D models:",type,replaced);
+  return replaced;
 }
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
@@ -316,7 +342,7 @@ function findMatches(){
   return found;
 }
 function findSpecialCandidate(matches){
-  // A T/L intersection of two runs (3+ in each direction) creates a wrapped candy.
+  // A T/L intersection of two same-type runs (3+ in each direction) creates a wrapped candy.
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
     if(!matches.has(r+","+c))continue;
     const item=state.grid[r][c];if(!item)continue;
@@ -334,18 +360,31 @@ function findSpecialCandidate(matches){
       best={length:cells.length,type,cell:cells[Math.floor(cells.length/2)]};
     }
   };
+  // Scan real same-type contiguous runs, not merely adjacent cells that happen to
+  // belong to different crossing matches. A vertical match must not join two
+  // separate horizontal runs into a false four- or five-candy special.
   for(let r=0;r<SIZE;r++){
-    let run=[];
-    for(let c=0;c<=SIZE;c++){
-      if(c<SIZE&&matches.has(r+","+c)){run.push({r,c});}
-      else{consider(run,run.length>=5?"color":"striped");run=[];}
+    let c=0;
+    while(c<SIZE){
+      const item=state.grid[r][c];
+      if(!item||!matches.has(r+","+c)){c++;continue;}
+      const type=item.type;let end=c+1;
+      while(end<SIZE&&matches.has(r+","+end)&&state.grid[r][end]?.type===type)end++;
+      const cells=[];for(let x=c;x<end;x++)cells.push({r,c:x});
+      consider(cells,cells.length>=5?"color":"striped");
+      c=end;
     }
   }
   for(let c=0;c<SIZE;c++){
-    let run=[];
-    for(let r=0;r<=SIZE;r++){
-      if(r<SIZE&&matches.has(r+","+c)){run.push({r,c});}
-      else{consider(run,run.length>=5?"color":"striped");run=[];}
+    let r=0;
+    while(r<SIZE){
+      const item=state.grid[r][c];
+      if(!item||!matches.has(r+","+c)){r++;continue;}
+      const type=item.type;let end=r+1;
+      while(end<SIZE&&matches.has(end+","+c)&&state.grid[end][c]?.type===type)end++;
+      const cells=[];for(let y=r;y<end;y++)cells.push({r:y,c});
+      consider(cells,cells.length>=5?"color":"striped");
+      r=end;
     }
   }
   return best;
