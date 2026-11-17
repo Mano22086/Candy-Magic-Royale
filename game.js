@@ -571,20 +571,24 @@ async function start(){
 }
 let gameInitialized=false;
 window.CMRStartSelectedHouse=async()=>{
-  if(gameInitialized){
-    state.won=false;state.busy=false;state.booster=null;state.savedGrid=null;
-    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
-    buildGrid();updateHud();
-    window.CMRHideWorldMap?.();return;
-  }
   try{
-    await start();
-    gameInitialized=true;
+    if(!gameInitialized){
+      await start();
+      gameInitialized=true;
+    }else{
+      state.won=false;state.busy=false;state.booster=null;state.savedGrid=null;
+      $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
+      buildGrid();updateHud();
+    }
     document.body.classList.add("game-started");
     window.CMRHideWorldMap?.();
+    return true;
   }catch(error){
-    console.error(error);
-    say("حصلت مشكلة أثناء تجهيز المرحلة، حاول تاني.");
+    console.error("House game launch failed:",error);
+    const message="تعذر فتح شاشة اللعب: "+(error?.message||"خطأ غير معروف");
+    const diagnostic=document.getElementById("toast");
+    if(diagnostic){diagnostic.textContent=message;diagnostic.classList.add("show");}
+    return false;
   }
 };
 window.addEventListener("DOMContentLoaded",()=>{
