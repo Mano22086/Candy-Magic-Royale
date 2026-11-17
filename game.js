@@ -571,6 +571,10 @@ async function start(){
 }
 let gameInitialized=false;
 window.CMRStartSelectedHouse=async()=>{
+  // Reveal gameplay first; the hidden game shell was preventing the user from
+  // seeing the board whenever Babylon initialization failed.
+  document.body.classList.add("game-started");
+  window.CMRHideWorldMap?.();
   try{
     if(!gameInitialized){
       await start();
@@ -580,15 +584,14 @@ window.CMRStartSelectedHouse=async()=>{
       $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
       buildGrid();updateHud();
     }
-    document.body.classList.add("game-started");
-    window.CMRHideWorldMap?.();
     return true;
   }catch(error){
-    console.error("House game launch failed:",error);
-    const message="تعذر فتح شاشة اللعب: "+(error?.message||"خطأ غير معروف");
+    console.error("House game initialization failed:",error);
+    const message="شاشة اللعب اتفتحت لكن حصل خطأ في تجهيز اللوحة: "+(error?.message||"خطأ غير معروف");
     const diagnostic=document.getElementById("toast");
     if(diagnostic){diagnostic.textContent=message;diagnostic.classList.add("show");}
-    return false;
+    else alert(message);
+    return true;
   }
 };
 window.addEventListener("DOMContentLoaded",()=>{
