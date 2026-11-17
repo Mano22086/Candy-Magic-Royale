@@ -523,7 +523,7 @@ function nextLevel(){
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
-  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
+  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";\n  window.CMRShowWorldMap?.();
 }
 function bindUI(){
   $("restartBtn").addEventListener("click",restart);
@@ -554,7 +554,7 @@ window.addEventListener("DOMContentLoaded",()=>{
     screen.classList.add("start-screen-leaving");
     setTimeout(()=>start().then(()=>{
       document.body.classList.add("game-started");
-      screen.remove();
+      screen.remove();\n      window.CMRShowWorldMap?.();
     }).catch(error=>{
       console.error(error);launching=false;launch.disabled=false;launch.textContent="العب كضيف";
       screen.classList.remove("start-screen-leaving");
