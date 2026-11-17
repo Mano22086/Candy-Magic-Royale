@@ -15,13 +15,13 @@ let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
 const candyImages={
-  1:"./assets/candy-heart.svg",
-  2:"./assets/candy-orange.svg",
-  3:"./assets/candy-star.svg",
-  4:"./assets/candy-leaf.svg",
-  5:"./assets/candy-diamond.svg",
-  6:"./assets/candy-jelly.svg",
-  7:"./assets/candy-star.svg"
+  1:"./assets/candy_basic_1.jpg",
+  2:"./assets/candy_basic_2.jpg",
+  3:"./assets/candy_basic_3.jpg",
+  4:"./assets/candy_basic_4.jpg",
+  5:"./assets/candy_basic_5.jpg",
+  6:"./assets/candy_basic_6.jpg",
+  7:"./assets/candy_special_1.jpg"
 };
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
