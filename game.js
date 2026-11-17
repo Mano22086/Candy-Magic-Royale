@@ -406,6 +406,20 @@ async function activateSpecial(a,b){
   }
   updateHud();await wait(170);
 }
+function triggerCharacterCombo(chain){
+  const queen=$("queen"),dragon=$("dragon");
+  if(!queen||!dragon)return;
+  const tier=chain>=3?3:chain===2?2:1;
+  const message=tier===3?"قوة سحرية هائلة!":tier===2?"الكومبو بيزيد!":"رائع! استمر!";
+  $("characterMessage").textContent=message;
+  for(const [el,kind] of [[queen,"queen"],[dragon,"dragon"]]){
+    el.classList.remove("combo-1","combo-2","combo-3");
+    // Restart the CSS animation even when two cascades happen quickly.
+    void el.offsetWidth;
+    el.classList.add("combo-"+tier);
+    el.addEventListener("animationend",()=>el.classList.remove("combo-1","combo-2","combo-3"),{once:true});
+  }
+}
 async function settle(){
   let chain=0;
   while(true){
