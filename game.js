@@ -150,28 +150,14 @@ function animate(mesh,target,duration=170){
     };requestAnimationFrame(tick);
   });
 }
-function makeBoard(){
-  const base=BABYLON.MeshBuilder.CreateBox("royalBoard",{width:7.45,height:.38,depth:7.45},scene);
-  boardBaseMesh=base;
-  base.position.y=-.17;
-  const bm=new BABYLON.StandardMaterial("boardMat",scene);bm.diffuseColor=new BABYLON.Color3(.19,.08,.34);bm.specularColor=new BABYLON.Color3(.7,.45,.9);bm.specularPower=80;base.material=bm;
-  const edge=BABYLON.MeshBuilder.CreateBox("goldEdge",{width:7.55,height:.13,depth:7.55},scene);edge.position.y=-.37;
-  const em=new BABYLON.StandardMaterial("goldEdgeMat",scene);em.diffuseColor=new BABYLON.Color3(.82,.48,.96);em.emissiveColor=new BABYLON.Color3(.12,.04,.2);edge.material=em;
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-    const tile=BABYLON.MeshBuilder.CreateBox("tile"+r+"_"+c,{width:.96,height:.12,depth:.96},scene);
-    tile.position=new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,.08,(r-(SIZE-1)/2)*SPACING);
-    const tm=new BABYLON.StandardMaterial("tileMat"+r+c,scene);
-    tm.diffuseColor=((r+c)%2===0)?new BABYLON.Color3(.35,.19,.55):new BABYLON.Color3(.27,.13,.45);
-    tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;tm.alpha=.16;
-  }
-}
+function makeBoard(){ /* The uploaded artwork supplies the empty 7x7 board and frame. */ }
 function setupScene(){
   canvas=$("renderCanvas");
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
   // Keep mobile rendering sharp while capping internal resolution at 1.5x CSS pixels.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
   engine.setHardwareScalingLevel(Math.max(1/deviceRatio,1/1.5));
-  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(.10,.025,.19,1);
+  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
   scene.imageProcessingConfiguration.toneMappingEnabled=true;
   scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
@@ -179,7 +165,7 @@ function setupScene(){
   scene.imageProcessingConfiguration.contrast=1.12;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
   camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-  camera.orthoLeft=-5;camera.orthoRight=5;camera.orthoTop=5;camera.orthoBottom=-5;
+  camera.orthoLeft=-3.7;camera.orthoRight=3.7;camera.orthoTop=3.7;camera.orthoBottom=-3.7;
   camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
