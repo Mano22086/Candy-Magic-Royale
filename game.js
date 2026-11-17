@@ -11,6 +11,54 @@ const palette=[
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
 const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+
+const $=id=>document.getElementById(id);
+const rand=()=>1+Math.floor(Math.random()*TYPES);
+const pos=(r,c)=>new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,0,(r-(SIZE-1)/2)*SPACING);
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function makeMaterial(type){
+  const index=Math.max(1,Math.min(TYPES,Number(type)||1));
+  if(materials[index])return materials[index];
+  const mat=new BABYLON.StandardMaterial("candyMaterial_"+index,scene);
+  mat.diffuseColor=palette[index-1].color.clone();
+  mat.emissiveColor=palette[index-1].color.scale(.18);
+  mat.specularColor=new BABYLON.Color3(.85,.85,.85);
+  mat.specularPower=48;
+  materials[index]=mat;
+  return mat;
+}
+function say(message){
+  const el=$("toast");if(!el)return;
+  el.textContent=String(message||"");el.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
+}
+function playSfx(kind){
+  if(!soundEnabled)return;
+  try{
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtx)return;
+    audioContext=audioContext||new AudioCtx();
+    if(audioContext.state==="suspended")void audioContext.resume();
+    const osc=audioContext.createOscillator(),gain=audioContext.createGain();
+    const tones={match:660,coin:880,tap:440,win:990,lose:180};
+    osc.type="sine";osc.frequency.value=tones[kind]||520;
+    gain.gain.setValueAtTime(.0001,audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.07,audioContext.currentTime+.012);
+    gain.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+.13);
+    osc.connect(gain);gain.connect(audioContext.destination);osc.start();osc.stop(audioContext.currentTime+.14);
+  }catch(_){}
+}
+function applyHeartRegen(){
+  const now=Date.now(),interval=30*60*1000;
+  if(state.lives>=5){state.lives=5;state.lastHeartAt=now;return;}
+  if(!state.lastHeartAt||state.lastHeartAt>now){state.lastHeartAt=now;return;}
+  const gained=Math.floor((now-state.lastHeartAt)/interval);
+  if(gained>0){state.lives=Math.min(5,state.lives+gained);state.lastHeartAt=state.lives>=5?now:state.lastHeartAt+gained*interval;}
+}
+function startHeartClock(){
+  if(heartTimer)clearInterval(heartTimer);
+  heartTimer=setInterval(()=>{const before=state.lives;applyHeartRegen();if(state.lives!==before){updateHud();saveProgress(false);}},60000);
+}
 let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
