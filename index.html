@@ -8,7 +8,7 @@
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./styles.css?v=royal-ui-3">
-  <link rel="stylesheet" href="./world-map.css?v=quality-pass-4">
+  <link rel="stylesheet" href="./world-map.css?v=mobile-perf-5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -82,7 +82,7 @@
   <script>
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
-  <script src="./game.js?v=quality-pass-4"></script>
-  <script src="./world-map.js?v=quality-pass-4"></script>
+  <script src="./game.js?v=loader-fix-5"></script>
+  <script src="./world-map.js?v=map-perf-5"></script>
 </body>
 </html>
