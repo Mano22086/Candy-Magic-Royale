@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
@@ -463,7 +463,7 @@ function burstAt(position,type){
   }
 }
 function updateHud(){
-  $("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;
+  $("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
   $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
   $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
@@ -484,9 +484,14 @@ function checkEnd(){
     triggerCharacterResult(true);saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
-    $("resultTitle").textContent="حاول مرة أخرى";$("resultText").textContent="محتاج نقاط أكتر لإنقاذ الحديقة.";
+    state.lives=Math.max(0,state.lives-1);
+    updateHud();
+    $("resultTitle").textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
+    $("resultText").textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت كل القلوب المتاحة. تقدر تشوف عددها في شريط Heart.";
     $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
-    $("characterMessage").textContent="متستسلمش، جرب تاني!";\n    triggerCharacterResult(false);
+    $("characterMessage").textContent="متستسلمش، جرب تاني!";
+    triggerCharacterResult(false);
+    saveProgress(false);
   }
 }
 function ensureGuestIdentity(){
@@ -504,7 +509,7 @@ function saveProgress(completed=false){try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,grid,completed}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -518,12 +523,13 @@ function loadProgress(){try{
   state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
   state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
+  state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(3,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(2,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
-}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.hammer=3;state.extra=2;state.savedGrid=null;}}
+}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.hammer=3;state.extra=2;state.savedGrid=null;}}
 function restart(){if(state.busy)return;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
