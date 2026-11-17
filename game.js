@@ -587,11 +587,19 @@ window.CMRStartSelectedHouse=async()=>{
     return true;
   }catch(error){
     console.error("House game initialization failed:",error);
-    const message="شاشة اللعب اتفتحت لكن حصل خطأ في تجهيز اللوحة: "+(error?.message||"خطأ غير معروف");
+    const detail=(error?.name?error.name+": ":"")+(error?.message||String(error)||"خطأ غير معروف");
+    const loading=document.getElementById("loading");
+    if(loading){
+      loading.style.display="grid";
+      loading.style.zIndex="5";
+      loading.style.padding="18px";
+      loading.style.textAlign="center";
+      loading.style.whiteSpace="normal";
+      loading.textContent="تعذر تجهيز اللوحة\n"+detail;
+    }
     const diagnostic=document.getElementById("toast");
-    if(diagnostic){diagnostic.textContent=message;diagnostic.classList.add("show");}
-    else alert(message);
-    return true;
+    if(diagnostic){diagnostic.textContent="تعذر تشغيل اللعبة: "+detail;diagnostic.classList.add("show");}
+    return false;
   }
 };
 window.addEventListener("DOMContentLoaded",()=>{
