@@ -7,7 +7,7 @@
   <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=exact-royal-layout-5">
+  <link rel="stylesheet" href="./styles.css?v=image-artboard-layout-6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -45,33 +45,27 @@
     </div>
   </div>
   <main class="game-shell">
-    <section class="reference-hud" aria-label="معلومات المرحلة">
-      <div class="ref-card ref-target"><small>Target</small><div class="target-icons"><span>👑</span><span>💗</span></div><strong id="targetScore">1,500</strong><label>نقاط الهدف</label><span class="ref-level" id="levelLabel">المستوى 1</span><div class="level-progress"><i id="levelProgress"></i></div><span class="ref-stars">⭐ <b id="stars">0</b></span></div>
-      <div class="ref-card ref-queen"><img id="queen" src="./assets/queen-luma.svg" alt="الملكة لوما"><strong>الملكة لوما</strong></div>
-      <div class="ref-card ref-dragon"><img id="dragon" src="./assets/dragon-prince.svg" alt="أمير التنين"><strong>أمير التنين</strong></div>
-      <div class="ref-card ref-moves"><small>Moves</small><strong id="moves">25</strong><span>الحركات</span><div class="ref-coins">✦ <b id="coinCount">500</b></div><button id="plusCoins" aria-label="المزيد">＋</button><button id="soundBtn" class="ref-sound" aria-label="الصوت">♫</button></div>
-      <div class="ref-message" id="characterMessage">أهلاً بك! أنقذ مملكتي بالحلوى.</div>
-      <span class="ref-score">⭐ <b id="score">0</b></span>
+    <img class="royal-artboard" src="./assets/fantasy_game_ui_background_frame_vertical_mobile.png" alt="" aria-hidden="true">
+    <section class="art-hud" aria-label="بيانات المرحلة">
+      <div class="art-target"><span>👑　💗</span><strong id="targetScore">1,500</strong><small>الهدف</small><b id="levelLabel">المستوى 1</b><i class="level-progress"><i id="levelProgress"></i></i><span class="art-stars">⭐ <b id="stars">0</b></span></div>
+      <div class="art-hero art-queen"><img id="queen" src="./assets/queen-luma.svg" alt="الملكة لوما"></div>
+      <div class="art-hero art-dragon"><img id="dragon" src="./assets/dragon-prince.svg" alt="أمير التنين"></div>
+      <div class="art-moves"><strong id="moves">25</strong><small>الحركات</small><span>✦ <b id="coinCount">500</b></span><button id="plusCoins" aria-label="المزيد">＋</button><button id="soundBtn" aria-label="الصوت">♫</button></div>
+      <div class="art-score">⭐ <b id="score">0</b></div>
+      <div class="art-message" id="characterMessage">أهلاً بك! أنقذ مملكتي بالحلوى.</div>
     </section>
-    <section class="board-wrap" aria-label="لوحة الحلوى">
-      <div class="board-rim">
+    <section class="board-wrap art-board-wrap" aria-label="لوحة الحلوى">
+      <div class="board-rim art-board-rim">
         <canvas id="renderCanvas" touch-action="none"></canvas>
         <div class="board-loading" id="loading">جاري تجهيز عالم الحلوى...</div>
       </div>
-      <div class="board-sparkle sparkle-one">✦</div><div class="board-sparkle sparkle-two">✧</div>
     </section>
-
-    <section class="bottom-panel">
-      <div class="booster-heading"><span>⚡</span> مساعدات سحرية <span>⚡</span></div>
-      <div class="boosters">
-        <button class="booster" id="hammerBtn"><span class="booster-art hammer">🔨</span><b>مطرقة السكر</b><small>3</small></button>
-        <button class="booster" id="shuffleBtn"><span class="booster-art shuffle">🔀</span><b>خلطة سحرية</b><small>∞</small></button>
-        <button class="booster" id="movesBtn"><span class="booster-art extra">＋5</span><b>حركات إضافية</b><small>2</small></button>
-      </div>
-      <div class="bottom-actions">
-        <button id="restartBtn" class="soft-button">↻ إعادة المرحلة</button>
-        <button id="nextBtn" class="primary-button" disabled>المرحلة التالية <span>➜</span></button>
-      </div>
+    <section class="art-boosters" aria-label="المساعدات">
+      <button class="booster art-booster art-booster-one" id="hammerBtn" aria-label="مطرقة السكر"><span class="booster-art">🔨</span><small>3</small></button>
+      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلطة سحرية"><span class="booster-art">🔀</span><small>∞</small></button>
+      <button class="booster art-booster art-booster-three" id="movesBtn" aria-label="حركات إضافية"><span class="booster-art">＋5</span><small>2</small></button>
+      <button class="art-booster art-booster-four" id="restartBtn" aria-label="إعادة المرحلة">↻</button>
+      <button class="art-booster art-booster-five" id="nextBtn" aria-label="المرحلة التالية" disabled>➜</button>
     </section>
   </main>
   <div class="toast" id="toast" role="status"></div>
