@@ -468,17 +468,25 @@ function updateHud(){
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
   $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
 }
+function triggerCharacterResult(won){
+  for(const id of ["queen","dragon"]){
+    const el=$(id);if(!el)continue;
+    el.classList.remove("combo-1","combo-2","combo-3","celebrate","defeat");
+    void el.offsetWidth;
+    el.classList.add(won?"celebrate":"defeat");
+  }
+}
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
     state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
     $("resultTitle").textContent="انتصار سحري!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
-    $("queen").classList.add("celebrate");saveProgress(true);
+    triggerCharacterResult(true);saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
     $("resultTitle").textContent="حاول مرة أخرى";$("resultText").textContent="محتاج نقاط أكتر لإنقاذ الحديقة.";
     $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
-    $("characterMessage").textContent="متستسلمش، جرب تاني!";
+    $("characterMessage").textContent="متستسلمش، جرب تاني!";\n    triggerCharacterResult(false);
   }
 }
 function ensureGuestIdentity(){
