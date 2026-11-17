@@ -434,3 +434,39 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
 @keyframes dragonVictoryMotion{0%,100%{transform:translateY(0) scale(1) rotate(0)}30%{transform:translateY(-23%) scale(1.2) rotate(-12deg);filter:drop-shadow(0 0 22px #ffc36e)}65%{transform:translateY(-12%) scale(1.15) rotate(12deg);filter:drop-shadow(0 0 25px #e8a6ff)}}
 @keyframes queenDefeatMotion{0%,100%{transform:translateY(0) rotate(0);filter:grayscale(0)}45%{transform:translateY(5%) rotate(-8deg);filter:grayscale(.55) brightness(.8)}}
 @keyframes dragonDefeatMotion{0%,100%{transform:translateY(0) rotate(0);filter:grayscale(0)}45%{transform:translateY(5%) rotate(9deg);filter:grayscale(.55) brightness(.8)}}
+
+
+/* Final fit: keep both heroes inside their illustrated portrait slots */
+.art-hero{
+  top:4.8%!important;
+  height:13.8%!important;
+  overflow:hidden!important;
+  contain:paint;
+  border-radius:12px;
+  isolation:isolate;
+}
+.art-queen{left:27.3%!important;right:auto!important;width:21%!important}
+.art-dragon{left:51.7%!important;right:auto!important;width:21%!important}
+.art-hero img{
+  width:138%!important;
+  height:138%!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex:0 0 auto;
+  object-fit:contain!important;
+  object-position:center center;
+  pointer-events:none;
+}
+/* Keep the 7x7 playfield aligned with the visible square grid */
+.art-board-wrap{
+  left:16.1%!important;
+  top:35.4%!important;
+  width:67.8%!important;
+  height:33.2%!important;
+}
+.art-board-rim,#renderCanvas{overflow:hidden;touch-action:none}
+#renderCanvas{user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+@media(max-height:760px){
+  .art-hero{top:4.8%!important;height:13.8%!important}
+  .art-board-wrap{top:35.4%!important;height:33.2%!important}
+}
