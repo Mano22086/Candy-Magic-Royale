@@ -6,7 +6,7 @@
 .wm-header,.wm-footer{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:linear-gradient(180deg,#1d0d42dd,transparent)}
 .wm-header small{font:800 9px Georgia,serif;letter-spacing:2px;color:#f9d887}.wm-header h1{margin:2px 0;font-size:25px;color:#ffe5a0;text-shadow:0 3px #6a357b}.wm-header p{margin:0;font-size:11px;color:#e7d6ff}
 .wm-zoom{display:flex;gap:7px}.wm-zoom button,.wm-footer button{width:38px;height:38px;border-radius:50%;background:linear-gradient(#ffeaa6,#d99542);color:#52265e;font-size:23px;font-weight:900;box-shadow:0 3px 0 #78422c}
-.wm-scroll{position:relative;z-index:1;flex:1;overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.wm-scroll{position:relative;z-index:1;flex:1;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y}
 .wm-world{--wm-scale:1;min-height:100%;padding:12px 18px 28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;align-content:start;transform:scale(var(--wm-scale));transform-origin:top center}
 .wm-castle{position:relative;min-height:164px;padding:10px 6px 12px;border:1px solid #ffe8a9aa;border-radius:22px;background:linear-gradient(160deg,#fff7e8bb,#43246fc9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;box-shadow:inset 0 1px #fff9,0 9px 18px #0a042d66}
 .wm-island{position:relative;width:142px;height:112px;display:grid;place-items:center;background:transparent;}
