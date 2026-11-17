@@ -419,3 +419,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
 @keyframes queenCombo3{0%{transform:translateY(0) scale(1) rotate(0)}22%{transform:translateY(-20%) scale(1.16) rotate(-9deg);filter:drop-shadow(0 0 20px #fff1a6)}48%{transform:translateY(-10%) scale(1.2) rotate(9deg);filter:drop-shadow(0 0 24px #e8a6ff)}72%{transform:translateY(-16%) scale(1.12) rotate(-4deg)}100%{transform:translateY(0) scale(1) rotate(0)}}
 @keyframes dragonCombo3{0%{transform:translateY(0) scale(1) rotate(0)}20%{transform:translateY(-18%) scale(1.15) rotate(-12deg);filter:drop-shadow(0 0 18px #ffcb78)}48%{transform:translateY(-10%) scale(1.22) rotate(13deg);filter:drop-shadow(0 0 25px #ff8bdc)}72%{transform:translateY(-17%) scale(1.12) rotate(-7deg)}100%{transform:translateY(0) scale(1) rotate(0)}}
 @media(prefers-reduced-motion:reduce){.art-hero img.combo-1,.art-hero img.combo-2,.art-hero img.combo-3{animation:none}}
+
+
+/* Character states: idle, match, combo x2, combo x3, victory, defeat */
+.art-hero img#queen{animation:queenIdleMotion 3.8s ease-in-out infinite}
+.art-hero img#dragon{animation:dragonIdleMotion 2.8s ease-in-out infinite}
+.art-hero img.celebrate{animation:queenVictoryMotion 1.15s ease-in-out 2 both!important}
+.art-hero img#dragon.celebrate{animation:dragonVictoryMotion 1.15s ease-in-out 2 both!important}
+.art-hero img.defeat{animation:queenDefeatMotion 1s ease-in-out both!important}
+.art-hero img#dragon.defeat{animation:dragonDefeatMotion 1s ease-in-out both!important}
+@keyframes queenIdleMotion{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3%) rotate(1.5deg)}}
+@keyframes dragonIdleMotion{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-2%) rotate(-2deg)}70%{transform:translateY(0) rotate(2deg)}}
+@keyframes queenVictoryMotion{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(-22%) scale(1.18) rotate(-8deg);filter:drop-shadow(0 0 22px #ffe58d)}70%{transform:translateY(-10%) scale(1.12) rotate(8deg);filter:drop-shadow(0 0 24px #e9aaff)}}
+@keyframes dragonVictoryMotion{0%,100%{transform:translateY(0) scale(1) rotate(0)}30%{transform:translateY(-23%) scale(1.2) rotate(-12deg);filter:drop-shadow(0 0 22px #ffc36e)}65%{transform:translateY(-12%) scale(1.15) rotate(12deg);filter:drop-shadow(0 0 25px #e8a6ff)}}
+@keyframes queenDefeatMotion{0%,100%{transform:translateY(0) rotate(0);filter:grayscale(0)}45%{transform:translateY(5%) rotate(-8deg);filter:grayscale(.55) brightness(.8)}}
+@keyframes dragonDefeatMotion{0%,100%{transform:translateY(0) rotate(0);filter:grayscale(0)}45%{transform:translateY(5%) rotate(9deg);filter:grayscale(.55) brightness(.8)}}
