@@ -11,7 +11,7 @@ const palette=[
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
 const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,selected:null,busy:false,won:false,booster:null,hammer:3,extra:2};
-let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer;
+let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
 const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
@@ -91,7 +91,7 @@ function candyMesh(r,c,type,special){
     const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
     const modelRoot=new BABYLON.TransformNode("candyModel_"+r+"_"+c,scene);
     modelRoot.parent=root;
-    const entries=container.instantiateModelsToScene(name=>name+"_"+r+"_"+c,false);
+    const entries=container.instantiateModelsToScene(name=>name+"_"+r+"_"+c,true);
     entries.rootNodes.forEach(node=>{node.parent=modelRoot;});
     const meshes=[];
     const collect=node=>{
@@ -180,7 +180,10 @@ function setupScene(){
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   // Keep the scene lightweight on mobile: two lights, no full-screen glow post-process.
   makeBoard();bindInput();
-  engine.runRenderLoop(()=>{if(!document.hidden)scene.render();});
+  renderLoop=()=>{if(!document.hidden)scene.render();};
+  engine.runRenderLoop(renderLoop);
+  window.CMRPauseGameRender=()=>{if(engine&&renderLoop)engine.stopRenderLoop(renderLoop);};
+  window.CMRResumeGameRender=()=>{if(engine&&renderLoop&&!document.hidden)engine.runRenderLoop(renderLoop);};
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&engine)engine.resize();});
   window.addEventListener("resize",()=>engine.resize());
   requestAnimationFrame(()=>engine.resize());
@@ -523,7 +526,9 @@ function nextLevel(){
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
-  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
+  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
+  for(const row of state.grid)for(const item of row)if(item?.mesh)item.mesh.dispose();
+  state.grid=[];state.savedGrid=null;state.selected=null;updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
   window.CMRShowWorldMap?.();
 }
 function bindUI(){
@@ -537,7 +542,9 @@ function bindUI(){
   $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
 }
 async function start(){
-  loadProgress();setupScene();await loadCandyModels();buildGrid();bindUI();updateHud();
+  loadProgress();setupScene();buildGrid();bindUI();updateHud();
+  // Load detailed models in the background; gameplay becomes responsive immediately.
+  void loadCandyModels();
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
   $("hammerBtn").disabled=state.hammer===0;$("movesBtn").disabled=state.extra===0;
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
@@ -546,7 +553,12 @@ async function start(){
 }
 let gameInitialized=false;
 window.CMRStartSelectedHouse=async()=>{
-  if(gameInitialized){window.CMRHideWorldMap?.();return;}
+  if(gameInitialized){
+    state.won=false;state.busy=false;state.booster=null;state.savedGrid=null;
+    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
+    buildGrid();updateHud();
+    window.CMRHideWorldMap?.();return;
+  }
   try{
     await start();
     gameInitialized=true;
