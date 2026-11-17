@@ -662,3 +662,9 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 .shop-note{margin:13px 0 0;color:#d6c2e8;font-size:10px}
 .result-stars{letter-spacing:3px;color:#ffe27b;text-shadow:0 2px 8px #f3a72e}
 @media(max-width:380px){.royal-shop-card{padding:18px 12px}.shop-item{gap:6px}.shop-item button{padding:7px 8px;font-size:12px}}
+
+
+/* PLAY BUTTON INPUT FIX: keep intro controls above the cinematic video on touch devices */
+.start-screen .start-cinematic-video{pointer-events:none!important}
+.start-screen .start-bottom{z-index:20!important;pointer-events:auto!important}
+.start-screen .start-button,.start-screen .facebook-button{position:relative!important;z-index:21!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
