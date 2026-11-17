@@ -180,11 +180,8 @@ function candyMesh(r,c,type,special){
     core.emissiveColor=palette[type-1].color.scale(.12);coreMaterials[type]=core;
   }
   root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
-  const spriteKey=special==="color"?"special1":special==="striped"?"special2":special==="wrapped"?"special3":"basic"+Math.min(type,6);
-  const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":special==="wrapped"?"./assets/candy_special_3.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
-  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?1.16:1.14},scene);
-  face.parent=root;face.position.z=-.43;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
-  face.material=candySpriteMaterial(spriteKey,spriteSrc);face.isPickable=false;
+  // Fallback pieces use a single 3D candy core. The old billboard sprite plane
+  // sat behind this sphere and looked like a second, oversized candy underneath it.
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
   return root;
 }
