@@ -279,3 +279,7 @@ body:before{opacity:.08}
 #renderCanvas{background:linear-gradient(145deg,#38205d,#261444);border-radius:20px}
 .bottom-panel{background:linear-gradient(180deg,#542b83ee,#281347f5);border:1px solid #e7c4ff99}
 @media(max-height:760px){.board-rim{width:min(100%,460px,45dvh)}}
+
+/* Match the reference portrait order: Queen on the left, Dragon on the right */
+.royal-character-stage{direction:ltr}
+.royal-center{direction:rtl}
