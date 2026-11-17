@@ -15,13 +15,13 @@ let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
 const candyImages={
-  1:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-44-50-856.glb",
-  2:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-45-16-342.glb",
-  3:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-46-24-543.glb",
-  4:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-47-28-079.glb",
-  5:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-49-03-571.glb",
-  6:"https://raw.githubusercontent.com/Mano22086/Candy-Magic-Royale/main/assets/Picsart_26-11-17_03-33-19-702.png",
-  7:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-44-50-856.glb"
+  1:"./assets/candy-heart.svg",
+  2:"./assets/candy-orange.svg",
+  3:"./assets/candy-star.svg",
+  4:"./assets/candy-leaf.svg",
+  5:"./assets/candy-diamond.svg",
+  6:"./assets/candy-jelly.svg",
+  7:"./assets/candy-star.svg"
 };
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -93,41 +93,22 @@ function candySpriteMaterial(type){
   const mat=new BABYLON.StandardMaterial("candySpriteMat_"+type,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
   mat.emissiveColor=new BABYLON.Color3(1,1,1);
-  mat.disableLighting=true;mat.backFaceCulling=false;
+  mat.disableLighting=true;
+  mat.backFaceCulling=false;
   mat.useAlphaFromDiffuseTexture=true;
   mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
+  mat.alpha=1;
   spriteMaterials[type]=mat;
-  const image=new Image();image.crossOrigin="anonymous";
-  image.onload=()=>{
-    try{
-      const canvas=document.createElement("canvas");
-      canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-      const ctx=canvas.getContext("2d",{willReadFrequently:true});
-      ctx.drawImage(image,0,0);
-      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;
-      const bgR=data[0],bgG=data[1],bgB=data[2];
-      for(let i=0;i<data.length;i+=4){
-        if(data[i+3]===0)continue;
-        const d=Math.hypot(data[i]-bgR,data[i+1]-bgG,data[i+2]-bgB);
-        if(d<30)data[i+3]=0;
-        else if(d<65)data[i+3]=Math.round(data[i+3]*(d-30)/35);
-      }
-      let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
-      for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
-        if(data[(y*canvas.width+x)*4+3]>24){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
-      }
-      ctx.putImageData(pixels,0,0);
-      if(maxX<minX||maxY<minY){minX=0;minY=0;maxX=canvas.width-1;maxY=canvas.height-1;}
-      const w=maxX-minX+1,h=maxY-minY+1;
-      const trimmed=document.createElement("canvas");trimmed.width=w;trimmed.height=h;
-      trimmed.getContext("2d").drawImage(canvas,minX,minY,w,h,0,0,w,h);
-      const tex=new BABYLON.DynamicTexture("candySpriteTex_"+type,{width:w,height:h},scene,false);
-      tex.hasAlpha=true;tex.getContext().drawImage(trimmed,0,0);tex.update(true);
-      mat.diffuseTexture=tex;mat.useAlphaFromDiffuseTexture=true;
-    }catch(error){console.warn("Candy artwork processing failed:",type,error);}
-  };
-  image.onerror=()=>console.warn("Candy artwork failed to load:",type);
-  image.src=candyImages[type];
+  const texture=new BABYLON.Texture(
+    candyImages[type],scene,
+    true,false,
+    BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;},
+    error=>console.warn("Candy SVG failed to load:",type,error)
+  );
+  texture.hasAlpha=true;
+  texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
   return mat;
 }
 function candyMesh(r,c,type,special){
