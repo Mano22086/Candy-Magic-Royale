@@ -150,12 +150,14 @@ function candyMesh(r,c,type,special){
       const bounds=modelRoot.getHierarchyBoundingVectors(true);
       const center=bounds.min.add(bounds.max).scale(.5);
       const extent=bounds.max.subtract(bounds.min);
-      const scale=1.24/(Math.max(extent.x,extent.y,extent.z)||1);
+      // Fit the complete 3D model inside one board cell, leaving a clear gap.
+      const cellFootprint=SPACING*.84;
+      const scale=cellFootprint/(Math.max(extent.x,extent.y,extent.z)||1);
       modelRoot.position=center.scale(-1);
       modelRoot.scaling.setAll(scale);
     }
     root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
-    root.scaling.setAll(special?1.08:1.12);
+    root.scaling.setAll(1);
     if(special){
       const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
       ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
@@ -172,7 +174,7 @@ function candyMesh(r,c,type,special){
     root.__cmrModelBacked=true;
     return root;
   }
-  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?1.04:1.02,segments:32},scene);
+  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.84:.82,segments:32},scene);
   if(!coreMaterials[type]){
     const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
     core.diffuseColor=palette[type-1].color.scale(.72);
@@ -296,12 +298,12 @@ function select(cell){
   clearSelection();
   state.selected=cell;
   const item=state.grid[cell.r][cell.c];
-  if(item?.mesh)item.mesh.scaling.setAll((item.special?1.08:1.12)*1.1);
+  if(item?.mesh)item.mesh.scaling.setAll(1.08);
 }
 function clearSelection(){
   if(state.selected){
     const it=state.grid[state.selected.r][state.selected.c];
-    if(it?.mesh)it.mesh.scaling.setAll(it.special?1.08:1.12);
+    if(it?.mesh)it.mesh.scaling.setAll(1);
   }
   state.selected=null;
 }
