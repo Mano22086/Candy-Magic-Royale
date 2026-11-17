@@ -332,3 +332,48 @@ body:before{opacity:.16;background-image:radial-gradient(#f7d8ff 1px,transparent
  .ref-card{border-radius:15px}
  .ref-queen img,.ref-dragon img{height:78px}
 }
+
+
+/* Image-authored full-screen gameplay layout: keep the uploaded art intact */
+html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
+.game-shell{
+ position:relative;display:block;width:100vw;height:100dvh;min-height:0;max-width:560px;margin:0 auto;
+ padding:0;overflow:hidden;gap:0;background:#16072f;
+}
+.royal-artboard{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;user-select:none}
+.art-hud{position:absolute;inset:0;z-index:2;pointer-events:none}
+.art-target,.art-moves{position:absolute;top:2.8%;height:10.8%;width:26%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#4b216b;text-shadow:0 1px #fff9}
+.art-target{left:4.2%}.art-moves{right:4.2%}
+.art-target>span{font-size:clamp(11px,3.4vw,18px)}
+.art-target>strong{font-size:clamp(14px,4vw,21px);font-weight:1000;color:#58216d}
+.art-target small,.art-moves small{font-size:clamp(8px,2.4vw,12px);font-weight:900}
+.art-target>b{font-size:clamp(8px,2.5vw,12px)}
+.art-target .level-progress{width:68%;height:4px;border-radius:9px;background:#55206d55;overflow:hidden}
+.art-target .level-progress>i{display:block;width:0;height:100%;background:#ffce53}
+.art-stars{font-size:9px}
+.art-moves>strong{font-size:clamp(30px,9vw,48px);line-height:.95;color:#6b287d;text-shadow:0 1px #fff}
+.art-moves>span{font-size:9px;color:#6b287d;font-weight:900}
+.art-moves button{display:none}
+.art-hero{position:absolute;top:2.5%;height:11.5%;width:17%;display:flex;align-items:center;justify-content:center}
+.art-queen{left:31%}.art-dragon{right:31%}
+.art-hero img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 3px #20073388)}
+.art-score{position:absolute;left:4%;top:15%;font-size:10px;color:#fff0a6;text-shadow:0 2px 4px #200733}
+.art-message{position:absolute;left:50%;top:16%;transform:translateX(-50%);max-width:50%;padding:3px 8px;border-radius:12px;background:#fff0dff0;border:1px solid #f6d99a;color:#4b216c;font-size:clamp(7px,2vw,10px);font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art-board-wrap{position:absolute;left:8.4%;top:34.2%;width:83.2%;height:49%;max-height:none;min-height:0;z-index:3;display:block}
+.art-board-rim{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
+.art-board-rim:before{display:none}
+#renderCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;background:transparent;border:0;border-radius:0;outline:0}
+.board-loading{position:absolute;inset:0;display:grid;place-items:center;color:#fff}
+.art-boosters{position:absolute;inset:0;z-index:4;pointer-events:none}
+.art-booster{position:absolute;top:89.7%;width:17%;height:8.4%;padding:0;border:0;border-radius:50%;background:transparent;box-shadow:none;color:transparent;display:grid;place-items:center;pointer-events:auto}
+.art-booster-one{left:2.5%}.art-booster-two{left:21.5%}.art-booster-three{left:40.8%}
+.art-booster-four{left:60%;font-size:0}.art-booster-five{left:79.5%;font-size:0}
+.art-booster .booster-art{font-size:clamp(22px,7vw,38px);line-height:1;filter:drop-shadow(0 2px 2px #260b48)}
+.art-booster small{position:absolute;right:2%;bottom:1%;font-size:10px;color:#fff;background:#d92770;border-radius:50%;padding:2px 5px}
+.art-booster-four,.art-booster-five{color:transparent}
+.bottom-panel,.reference-hud,.board-sparkle{display:none!important}
+@media(min-width:560px){.game-shell{border-left:1px solid #8d5ab0;border-right:1px solid #8d5ab0}}
+@media(max-height:700px){
+ .art-board-wrap{top:33.5%;height:49.5%}
+ .art-booster{top:89.5%;height:8.5%}
+}
