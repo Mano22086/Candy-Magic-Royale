@@ -396,7 +396,7 @@ async function settle(){
   // Prevent a pathological cascade from locking the board or monopolizing a mobile frame.
   while(chain<18){
     const matches=findMatches();if(matches.size===0)break;
-    chain++;
+    chain++;playSfx("match");
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
     const specialCandidate=chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
