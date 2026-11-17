@@ -142,9 +142,11 @@ function candyMesh(r,c,type,special){
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
   return root;
 }
-async async function loadCandyModels(){
+async function loadCandyModels(){
   // Load one model at a time to avoid seven simultaneous downloads and GPU spikes on phones.
   for(const [type,file] of Object.entries(modelFiles)){
+    // Keep background downloads idle while the player is browsing the map.
+    while(document.body.classList.contains("map-open")) await wait(300);
     try{
       modelContainers[type]=await BABYLON.SceneLoader.LoadAssetContainerAsync(MODEL_BASE,file,scene,"",".glb");
       console.info("Loaded 3D candy:",file);
