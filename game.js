@@ -94,7 +94,7 @@ function candyMesh(r,c,type,special){
       const bounds=modelRoot.getHierarchyBoundingVectors(true);
       const center=bounds.min.add(bounds.max).scale(.5);
       const extent=bounds.max.subtract(bounds.min);
-      const scale=.72/(Math.max(extent.x,extent.y,extent.z)||1);
+      const scale=.94/(Math.max(extent.x,extent.y,extent.z)||1);
       modelRoot.position=center.scale(-1);
       modelRoot.scaling.setAll(scale);
     }
@@ -115,7 +115,7 @@ function candyMesh(r,c,type,special){
     root.metadata.animationGroups=entries.animationGroups||[];
     return root;
   }
-  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.72:.69,segments:24},scene);
+  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.88:.86,segments:32},scene);
   if(!coreMaterials[type]){
     const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
     core.diffuseColor=palette[type-1].color.scale(.72);
@@ -125,8 +125,8 @@ function candyMesh(r,c,type,special){
   root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
   const spriteKey=special==="color"?"special1":special==="striped"?"special2":special==="wrapped"?"special3":"basic"+Math.min(type,6);
   const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":special==="wrapped"?"./assets/candy_special_3.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
-  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.88:.82},scene);
-  face.parent=root;face.position.z=-.34;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
+  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.98:.96},scene);
+  face.parent=root;face.position.z=-.43;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   face.material=candySpriteMaterial(spriteKey,spriteSrc);face.isPickable=false;
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
   return root;
@@ -197,17 +197,16 @@ function buildGrid(){
 function gridPointAtClient(clientX,clientY){
   const rect=canvas.getBoundingClientRect();
   if(!rect.width||!rect.height)return null;
-  // Map touch coordinates to the 7x7 board inside the uploaded artwork.
-  // Map the touch to board-world coordinates directly; this avoids device-pixel-ratio
-  // and Babylon picking-ray discrepancies on mobile browsers.
   const nx=(clientX-rect.left)/rect.width;
   const ny=(clientY-rect.top)/rect.height;
+  // The orthographic camera shows a 7.4 x 7.4 world area.
+  // The 7x7 candy grid occupies the centered 7.14 x 7.14 area.
   const worldX=(nx-.5)*7.4;
   const worldZ=(.5-ny)*7.4;
-  const boardHalf=(SIZE*SPACING)/2;
-  if(Math.abs(worldX)>boardHalf||Math.abs(worldZ)>boardHalf)return null;
-  const c=Math.floor((worldX+SIZE*SPACING/2)/SPACING);
-  const r=Math.floor((worldZ+SIZE*SPACING/2)/SPACING);
+  const half=SIZE*SPACING/2;
+  if(worldX < -half || worldX >= half || worldZ < -half || worldZ >= half)return null;
+  const c=Math.floor((worldX+half)/SPACING);
+  const r=Math.floor((half-worldZ)/SPACING);
   return {r,c};
 }
 function pickCellAtClient(clientX,clientY){
@@ -215,50 +214,51 @@ function pickCellAtClient(clientX,clientY){
   return cell&&inBounds(cell.r,cell.c)?cell:null;
 }
 function bindInput(){
-  let active=null;
-  const reset=()=>{active=null;};
-  const swipeThreshold=()=>{
+  let gesture=null;
+  const reset=()=>{gesture=null;};
+  const threshold=()=>{
     const rect=canvas.getBoundingClientRect();
-    return Math.max(14,Math.min(rect.width/SIZE,rect.height/SIZE)*.22);
+    return Math.max(10,Math.min(rect.width/SIZE,rect.height/SIZE)*.16);
   };
-  const runSwipe=(gesture,dx,dy)=>{
-    if(!gesture?.cell||state.busy||state.won)return false;
-    if(Math.hypot(dx,dy)<swipeThreshold())return false;
-    // Candy-Crush style: the dominant finger direction chooses exactly one neighbour.
-    let next;
+  const chooseNeighbour=(cell,dx,dy)=>{
     if(Math.abs(dx)>=Math.abs(dy)){
-      next={r:gesture.cell.r,c:gesture.cell.c+(dx>0?1:-1)};
-    }else{
-      next={r:gesture.cell.r+(dy>0?1:-1),c:gesture.cell.c};
+      return {r:cell.r,c:cell.c+(dx>=0?1:-1)};
     }
-    if(!inBounds(next.r,next.c))return false;
-    clearSelection();
-    active=null;
-    void swap(gesture.cell,next);
-    return true;
+    return {r:cell.r+(dy>=0?1:-1),c:cell.c};
   };
+  canvas.style.touchAction="none";
+  canvas.addEventListener("contextmenu",event=>event.preventDefault());
   canvas.addEventListener("pointerdown",event=>{
-    if(state.busy||state.won||active)return;
+    if(state.busy||state.won||gesture)return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
     const cell=pickCellAtClient(event.clientX,event.clientY);
     if(!cell)return;
     event.preventDefault();
-    active={id:event.pointerId,cell,x:event.clientX,y:event.clientY};
+    gesture={pointerId:event.pointerId,startCell:cell,startX:event.clientX,startY:event.clientY};
     try{canvas.setPointerCapture(event.pointerId);}catch(_){}
   },{passive:false});
-  canvas.addEventListener("pointermove",event=>{
-    if(!active||event.pointerId!==active.id)return;
-    event.preventDefault();
-    runSwipe(active,event.clientX-active.x,event.clientY-active.y);
-  },{passive:false});
   canvas.addEventListener("pointerup",event=>{
-    if(!active||event.pointerId!==active.id)return;
+    if(!gesture||event.pointerId!==gesture.pointerId)return;
     event.preventDefault();
-    const gesture=active;
-    const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
-    if(!runSwipe(gesture,dx,dy)){
-      active=null;
-      if(!state.busy&&!state.won&&Math.hypot(dx,dy)<swipeThreshold())tapCell(gesture.cell);
+    const g=gesture;
+    gesture=null;
+    if(state.busy||state.won)return;
+    const dx=event.clientX-g.startX,dy=event.clientY-g.startY;
+    const distance=Math.hypot(dx,dy);
+    const endCell=pickCellAtClient(event.clientX,event.clientY);
+    if(distance<threshold()){
+      tapCell(g.startCell);
+      return;
+    }
+    let next=null;
+    if(endCell&&Math.abs(endCell.r-g.startCell.r)+Math.abs(endCell.c-g.startCell.c)===1){
+      next=endCell;
+    }else{
+      next=chooseNeighbour(g.startCell,dx,dy);
+    }
+    if(inBounds(next.r,next.c)){
+      clearSelection();
+      void swap(g.startCell,next);
     }
   },{passive:false});
   canvas.addEventListener("pointercancel",reset,{passive:true});
