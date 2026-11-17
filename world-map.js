@@ -7,7 +7,8 @@ const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(_){
 const level=()=>{const x=read();return Math.max(1,Math.floor(Number(x.level)||1)+(x.completed?1:0))};
 const castle=()=>Math.floor((level()-1)/50);
 const house=()=>((level()-1)%50)+1;
-const label=n=>names[n%names.length]+" رقم "+(n+1);
+const descriptors=["الذهبية","البلورية","المضيئة","المسحورة","الملكية","الوردية","الزمردية","السماوية","الفضية","العنبرية","المرصعة","القمرية"];
+const label=n=>names[n%names.length]+" "+descriptors[Math.floor(n/names.length)%descriptors.length]+" · "+(n+1);
 function ensure(){if(overlay)return;overlay=document.createElement("section");overlay.id="worldMap";overlay.className="world-map hidden";overlay.innerHTML='<header class="wm-header"><div><small>THE KINGDOM OF SWEETS</small><h1>خريطة المملكة</h1><p id="wmSubtitle">اختار القصر اللي هتستكشفه</p></div><div class="wm-zoom"><button id="wmZoomOut" aria-label="تصغير">−</button><button id="wmZoomIn" aria-label="تكبير">＋</button></div></header><div class="wm-scroll" id="wmScroll"><div class="wm-world" id="wmWorld"></div></div><footer class="wm-footer"><span>✦ كل قصر فيه 50 بيت ✦</span><button id="wmBack" class="hidden">رجوع للقصور</button></footer>';
 document.body.appendChild(overlay);
 overlay.querySelector("#wmZoomIn").onclick=()=>zoom(.12);overlay.querySelector("#wmZoomOut").onclick=()=>zoom(-.12);overlay.querySelector("#wmBack").onclick=renderWorld;
