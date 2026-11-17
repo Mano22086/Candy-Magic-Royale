@@ -182,3 +182,81 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
  .start-screen.cinematic-ready .start-bottom{width:60%;bottom:4.2%}
  .start-screen.cinematic-ready .start-button,.start-screen.cinematic-ready .facebook-button{min-height:38px}
 }
+
+
+/* Royal gameplay HUD: dedicated Queen and Dragon portrait slots */
+.royal-character-stage{
+  height:clamp(112px,17vh,148px);
+  display:grid;
+  grid-template-columns:minmax(88px,1fr) minmax(90px,1.12fr) minmax(88px,1fr);
+  align-items:stretch;
+  gap:7px;
+  padding:7px 9px 16px;
+  border:1px solid #f4d18c77;
+  border-radius:20px;
+  background:
+    radial-gradient(ellipse at 50% 55%,#f6d58d35,transparent 42%),
+    linear-gradient(180deg,#7546a0dd,#32165ddd 75%,#21103f);
+  box-shadow:inset 0 1px #fff5,0 8px 22px #08001466,0 0 18px #d5a0ff22;
+}
+.royal-character-stage:before{opacity:.38;background-position:center 48%}
+.royal-character-stage .castle-art{width:44%;height:95%;left:28%;bottom:-8%;opacity:.34;filter:drop-shadow(0 0 12px #f4d58c)}
+.hero-slot{
+  position:relative;z-index:1;min-width:0;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid #f7d99b99;border-radius:15px;overflow:hidden;
+  background:linear-gradient(145deg,#fff2c51f,#b78be833 55%,#2b124d88);
+  box-shadow:inset 0 1px 5px #fff4,0 4px 12px #10052266;
+}
+.hero-slot:before{
+  content:"";position:absolute;inset:4px;border:1px solid #ffe6ae55;
+  border-radius:11px;pointer-events:none;
+}
+.hero-slot:after{
+  content:"";position:absolute;inset:auto 10% 5%;height:13px;
+  border-radius:50%;background:#f8d78c55;filter:blur(9px);
+}
+.hero-slot-label{
+  position:absolute;z-index:3;top:5px;left:4px;right:4px;
+  text-align:center;font-size:clamp(8px,2.3vw,10px);font-weight:900;
+  color:#fff0bd;text-shadow:0 2px 5px #1a0734;
+}
+.hero-slot .character{
+  position:absolute;z-index:2;bottom:-3%;height:83%;width:92%;
+  max-width:112px;object-fit:contain;
+  filter:drop-shadow(0 5px 6px #12051fbb) drop-shadow(0 0 8px #f1caff55);
+}
+.hero-slot .queen{left:4%;animation:queenIdle 3.6s ease-in-out infinite}
+.hero-slot .dragon{right:4%;animation:dragonIdle 3.1s ease-in-out infinite}
+.royal-center{
+  z-index:2;min-width:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;text-align:center;
+}
+.royal-emblem{
+  width:29px;height:29px;display:grid;place-items:center;
+  border-radius:50%;font-size:19px;color:#ffe6a0;
+  border:1px solid #ffe5a277;
+  background:radial-gradient(circle,#9a64ba,#442064);
+  box-shadow:0 0 15px #f5d18c55,inset 0 1px #fff6;
+}
+.royal-center .speech-bubble{
+  position:static;transform:none;max-width:100%;white-space:normal;
+  padding:4px 7px;font-size:clamp(8px,2.2vw,10px);line-height:1.4;
+}
+.royal-center .stage-title{
+  position:static;transform:none;white-space:normal;
+  font-size:clamp(8px,2.1vw,10px);line-height:1.3;
+}
+.hero-slot .character.celebrate{animation:queenCelebrate .55s ease-in-out 3}
+@media(max-width:380px){
+  .royal-character-stage{height:clamp(104px,15vh,120px);grid-template-columns:minmax(78px,1fr) minmax(76px,1fr) minmax(78px,1fr);gap:5px;padding:6px 6px 15px}
+  .hero-slot-label{font-size:8px}
+  .royal-emblem{width:25px;height:25px;font-size:16px}
+  .royal-center .speech-bubble{font-size:8px}
+}
+@media(max-height:700px){
+  .royal-character-stage{height:104px}
+}
+@media(min-width:520px){
+  .royal-character-stage{height:138px}
+}
