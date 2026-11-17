@@ -283,3 +283,52 @@ body:before{opacity:.08}
 /* Match the reference portrait order: Queen on the left, Dragon on the right */
 .royal-character-stage{direction:ltr}
 .royal-center{direction:rtl}
+
+
+/* Rebuild the gameplay HUD to match the approved portrait reference */
+html,body{background:#190a35}
+body:before{opacity:.16;background-image:radial-gradient(#f7d8ff 1px,transparent 1px),radial-gradient(#b98cff 1px,transparent 1px);background-size:39px 39px,71px 71px}
+.game-shell{width:min(100%,520px);padding:10px 13px calc(12px + env(safe-area-inset-bottom));gap:8px;background:radial-gradient(ellipse at 50% 40%,#582a89 0%,#2b124e 52%,#17082e 100%)}
+.reference-hud{position:relative;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;min-height:154px;padding:5px 0 29px}
+.ref-card{position:relative;min-width:0;min-height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:19px;border:2px solid #f3d5ff;background:linear-gradient(150deg,#8a54b4,#43216f 65%,#2a124b);box-shadow:inset 0 0 0 3px #fff2,0 5px 13px #09001899}
+.ref-card small{font-weight:900;font-size:clamp(11px,3vw,15px);color:#fff1c9;text-shadow:0 2px 3px #301044}
+.ref-target{padding:7px 3px;gap:3px}
+.target-icons{display:flex;gap:7px;font-size:22px}
+.ref-target>strong{font-size:17px;color:#ffe58c;text-shadow:0 2px #632d79}
+.ref-target label,.ref-moves span{font-size:9px;color:#f4ddff}
+.ref-level{font-size:10px;color:#ffe8a6;font-weight:900}
+.ref-target .level-progress{width:80%;height:5px}
+.ref-stars{font-size:10px;color:#ffe58a}
+.ref-queen,.ref-dragon{overflow:hidden;justify-content:flex-end;padding:3px 2px 7px}
+.ref-queen img,.ref-dragon img{height:88px;width:100%;object-fit:contain;filter:drop-shadow(0 4px 5px #16051f99)}
+.ref-queen strong,.ref-dragon strong{font-size:9px;color:#fff1c9;white-space:nowrap}
+.ref-moves{gap:3px}
+.ref-moves>strong{font-size:clamp(32px,10vw,48px);line-height:1;color:#ffe48d;text-shadow:0 3px #783c80}
+.ref-coins{font-size:10px;color:#ffe48d}
+.ref-moves>button:not(.ref-sound){position:absolute;bottom:5px;right:5px;width:19px;height:19px;border-radius:50%;background:#ffdb79;color:#56256b}
+.ref-moves .ref-sound{position:absolute;top:4px;right:4px;background:#ffffff22;border-radius:50%;width:20px;height:20px;font-size:13px}
+.ref-message{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:80%;overflow:hidden;text-overflow:ellipsis;background:#fff0dfff;color:#4b216c;border:1px solid #f6d99a;border-radius:15px;padding:3px 10px;font-size:9px;font-weight:900;z-index:3}
+.ref-score{position:absolute;bottom:4px;left:2px;font-size:10px;color:#ffe58c}
+.board-wrap{flex:1 1 auto;min-height:0;max-height:none}
+.board-rim{width:min(100%,460px,56dvh);padding:7px;border-radius:27px;background:linear-gradient(145deg,#fff0ff,#d28cff 17%,#6b3995 48%,#f4c8ff);box-shadow:0 12px 30px #080014cc,0 0 28px #e4aaff77,inset 0 2px 5px #fff}
+.board-rim:before{inset:7px;border-radius:21px;border:2px solid #f9eaffaa}
+#renderCanvas{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);border-radius:17px;background:linear-gradient(145deg,#49306f,#30204f)}
+.bottom-panel{padding:9px 10px 11px;border-radius:19px;background:linear-gradient(180deg,#5b3286,#2b1450);border:1px solid #e8c5ff99}
+.booster-heading{font-size:12px;color:#ffe5a0}
+.booster{min-height:65px;border-radius:15px;background:linear-gradient(180deg,#8a5bb0,#4d2778);border:1px solid #f1d4ff88}
+.booster-art{font-size:23px;line-height:26px}
+.booster b{font-size:10px}
+.bottom-actions{margin-top:8px}
+@media(max-height:760px){
+ .reference-hud{min-height:130px;padding-bottom:25px}
+ .ref-card{min-height:99px}
+ .ref-queen img,.ref-dragon img{height:70px}
+ .board-rim{width:min(100%,440px,48dvh)}
+ .booster{min-height:54px}
+}
+@media(max-width:390px){
+ .game-shell{padding-left:9px;padding-right:9px}
+ .reference-hud{gap:4px}
+ .ref-card{border-radius:15px}
+ .ref-queen img,.ref-dragon img{height:78px}
+}
