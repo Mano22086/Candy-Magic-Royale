@@ -15,13 +15,13 @@ let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
 const candyImages={
-  1:"./assets/candy_basic_1.jpg",
-  2:"./assets/candy_basic_2.jpg",
-  3:"./assets/candy_basic_3.jpg",
-  4:"./assets/candy_basic_4.jpg",
-  5:"./assets/candy_basic_5.jpg",
-  6:"./assets/candy_basic_6.jpg",
-  7:"./assets/candy_special_1.jpg"
+  1:"./assets/candy_basic_1.png",
+  2:"./assets/candy_basic_2.png",
+  3:"./assets/candy_basic_3.png",
+  4:"./assets/candy_basic_4.png",
+  5:"./assets/candy_basic_5.png",
+  6:"./assets/candy_basic_6.png",
+  7:"./assets/candy_special_1.png"
 };
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -90,25 +90,25 @@ function makeMaterial(type){
 }
 function candySpriteMaterial(type){
   if(spriteMaterials[type])return spriteMaterials[type];
-  const mat=new BABYLON.StandardMaterial("candySpriteMat_"+type,scene);
+  const mat=new BABYLON.StandardMaterial("candyPngMat_"+type,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
-  mat.emissiveColor=new BABYLON.Color3(1,1,1);
+  mat.emissiveColor=new BABYLON.Color3(0,0,0);
   mat.disableLighting=true;
   mat.backFaceCulling=false;
-  mat.useAlphaFromDiffuseTexture=true;
-  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-  mat.alpha=1;
+  mat.useAlphaFromDiffuseTexture=false;
+  mat.transparencyMode=BABYLON.Material.MATERIAL_OPAQUE;
   spriteMaterials[type]=mat;
   const texture=new BABYLON.Texture(
     candyImages[type],scene,
-    true,false,
+    false,true,
     BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;},
-    error=>console.warn("Candy SVG failed to load:",type,error)
+    ()=>{texture.hasAlpha=false;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
+    (message,error)=>console.error("Candy PNG failed to load:",candyImages[type],message,error)
   );
-  texture.hasAlpha=true;
+  texture.hasAlpha=false;
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
+  mat.diffuseTexture=texture;
   return mat;
 }
 function candyMesh(r,c,type,special){
