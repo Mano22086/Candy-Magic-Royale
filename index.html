@@ -82,7 +82,7 @@
   <script>
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
-  <script src="./game.js?v=house-game-screen-reveal-3"></script>
+  <script src="./game.js?v=board-init-diagnostic-4"></script>
   <script src="./world-map.js?v=house-game-screen-fix-2"></script>
   <script>
   // Robust Play control: direct button binding plus coordinate hit-testing for mobile.
