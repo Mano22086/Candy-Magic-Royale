@@ -13,9 +13,16 @@ const palette=[
 const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
 let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
-const modelContainers={};
-const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
-const MODEL_BASE="https://raw.githubusercontent.com/Mano22086/-/main/";
+const spriteMaterials={};
+const candyImages={
+  1:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-44-50-856.glb",
+  2:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-45-16-342.glb",
+  3:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-46-24-543.glb",
+  4:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-47-28-079.glb",
+  5:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-49-03-571.glb",
+  6:"https://raw.githubusercontent.com/Mano22086/Candy-Magic-Royale/main/assets/Picsart_26-11-17_03-33-19-702.png",
+  7:"https://raw.githubusercontent.com/Mano22086/-/main/Picsart_26-11-15_03-44-50-856.glb"
+};
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
@@ -81,148 +88,64 @@ function makeMaterial(type){
   mat.emissiveFresnelParameters.rightColor=new BABYLON.Color3(.62,.42,.85);
   materials[type]=mat;return mat;
 }
-const spriteMaterials={};
-function candySpriteMaterial(key,src){
-  if(spriteMaterials[key])return spriteMaterials[key];
-  const mat=new BABYLON.StandardMaterial("candySpriteMat_"+key,scene);
+function candySpriteMaterial(type){
+  if(spriteMaterials[type])return spriteMaterials[type];
+  const mat=new BABYLON.StandardMaterial("candySpriteMat_"+type,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
-  mat.emissiveColor=new BABYLON.Color3(.92,.92,1);
-  mat.disableLighting=true;
-  mat.backFaceCulling=false;
+  mat.emissiveColor=new BABYLON.Color3(1,1,1);
+  mat.disableLighting=true;mat.backFaceCulling=false;
   mat.useAlphaFromDiffuseTexture=true;
   mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-  spriteMaterials[key]=mat;
-  const image=new Image();
+  spriteMaterials[type]=mat;
+  const image=new Image();image.crossOrigin="anonymous";
   image.onload=()=>{
     try{
       const canvas=document.createElement("canvas");
       canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
       const ctx=canvas.getContext("2d",{willReadFrequently:true});
-      ctx.drawImage(image,8,6,image.width-16,image.height-12,0,0,canvas.width,canvas.height);
-      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const data=pixels.data;
+      ctx.drawImage(image,0,0);
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;
       const bgR=data[0],bgG=data[1],bgB=data[2];
       for(let i=0;i<data.length;i+=4){
-        const dr=data[i]-bgR,dg=data[i+1]-bgG,db=data[i+2]-bgB;
-        const distance=Math.sqrt(dr*dr+dg*dg+db*db);
-        if(distance<34)data[i+3]=0;
-        else if(distance<74)data[i+3]=Math.round(data[i+3]*(distance-34)/40);
+        if(data[i+3]===0)continue;
+        const d=Math.hypot(data[i]-bgR,data[i+1]-bgG,data[i+2]-bgB);
+        if(d<30)data[i+3]=0;
+        else if(d<65)data[i+3]=Math.round(data[i+3]*(d-30)/35);
       }
-      // Trim transparent margins so the fruit artwork fills its own board cell.
       let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
       for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
-        const a=data[(y*canvas.width+x)*4+3];
-        if(a>28){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+        if(data[(y*canvas.width+x)*4+3]>24){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
       }
       ctx.putImageData(pixels,0,0);
-      const cropW=maxX>=minX?maxX-minX+1:canvas.width;
-      const cropH=maxY>=minY?maxY-minY+1:canvas.height;
-      const cropped=document.createElement("canvas");
-      cropped.width=cropW;cropped.height=cropH;
-      cropped.getContext("2d").drawImage(canvas,minX>=0?minX:0,minY>=0?minY:0,cropW,cropH,0,0,cropW,cropH);
-      const texture=new BABYLON.DynamicTexture("candySpriteTex_"+key,{width:cropW,height:cropH},scene,false);
-      texture.hasAlpha=true;texture.getContext().drawImage(cropped,0,0);texture.update(true);
-      mat.diffuseTexture=texture;
-      mat.useAlphaFromDiffuseTexture=true;
-    }catch(error){console.warn("Candy sprite texture failed:",key,error);}
+      if(maxX<minX||maxY<minY){minX=0;minY=0;maxX=canvas.width-1;maxY=canvas.height-1;}
+      const w=maxX-minX+1,h=maxY-minY+1;
+      const trimmed=document.createElement("canvas");trimmed.width=w;trimmed.height=h;
+      trimmed.getContext("2d").drawImage(canvas,minX,minY,w,h,0,0,w,h);
+      const tex=new BABYLON.DynamicTexture("candySpriteTex_"+type,{width:w,height:h},scene,false);
+      tex.hasAlpha=true;tex.getContext().drawImage(trimmed,0,0);tex.update(true);
+      mat.diffuseTexture=tex;mat.useAlphaFromDiffuseTexture=true;
+    }catch(error){console.warn("Candy artwork processing failed:",type,error);}
   };
-  image.onerror=()=>console.warn("Candy sprite unavailable:",src);
-  image.src=src;
+  image.onerror=()=>console.warn("Candy artwork failed to load:",type);
+  image.src=candyImages[type];
   return mat;
 }
 function candyMesh(r,c,type,special){
-  const container=modelContainers[type];
-  if(container){
-    const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
-    const modelRoot=new BABYLON.TransformNode("candyModel_"+r+"_"+c,scene);
-    modelRoot.parent=root;
-    const entries=container.instantiateModelsToScene(name=>name+"_"+r+"_"+c,true);
-    entries.rootNodes.forEach(node=>{node.parent=modelRoot;});
-    const meshes=[];
-    const collect=node=>{
-      if(node.getClassName&&node.getClassName()==="Mesh")meshes.push(node);
-      (node.getChildren?node.getChildren():[]).forEach(collect);
-    };
-    entries.rootNodes.forEach(collect);
-    meshes.forEach(mesh=>{mesh.isPickable=true;mesh.metadata={r,c,candy:true};});
-    modelRoot.computeWorldMatrix(true);
-    if(meshes.length){
-      const bounds=modelRoot.getHierarchyBoundingVectors(true);
-      const center=bounds.min.add(bounds.max).scale(.5);
-      const extent=bounds.max.subtract(bounds.min);
-      // Fit the complete 3D model inside one board cell, leaving a clear gap.
-      const cellFootprint=SPACING*.84;
-      const scale=cellFootprint/(Math.max(extent.x,extent.y,extent.z)||1);
-      modelRoot.position=center.scale(-1);
-      modelRoot.scaling.setAll(scale);
-    }
-    root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
-    root.scaling.setAll(1);
-    if(special){
-      const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
-      ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
-      ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
-      ringMat.specularColor=new BABYLON.Color3(1,1,1);
-      const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.92,thickness:.075,tessellation:32},scene);
-      ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
-      if(special==="wrapped"){
-        const second=BABYLON.MeshBuilder.CreateTorus("wrappedRibbon_"+r+"_"+c,{diameter:.92,thickness:.065,tessellation:32},scene);
-        second.parent=root;second.rotation.set(Math.PI/2,0,.72);second.position.y=.12;second.material=ringMat;second.isPickable=false;
-      }
-    }
-    root.metadata.animationGroups=entries.animationGroups||[];
-    root.__cmrModelBacked=true;
-    return root;
+  const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
+  const plane=BABYLON.MeshBuilder.CreatePlane("candyArt_"+r+"_"+c,{size:SPACING*.82},scene);
+  plane.parent=root;plane.position.y=.035;plane.rotation.x=0;
+  plane.material=candySpriteMaterial(type);plane.isPickable=true;
+  plane.metadata={r,c,candy:true};
+  root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
+  if(special){
+    const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
+    ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
+    ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
+    const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:32},scene);
+    ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
   }
-  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.84:.82,segments:32},scene);
-  if(!coreMaterials[type]){
-    const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
-    core.diffuseColor=palette[type-1].color.scale(.72);
-    core.specularColor=new BABYLON.Color3(1,1,1);core.specularPower=150;
-    core.emissiveColor=palette[type-1].color.scale(.12);coreMaterials[type]=core;
-  }
-  root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
-  // Fallback pieces use a single 3D candy core. The old billboard sprite plane
-  // sat behind this sphere and looked like a second, oversized candy underneath it.
-  root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
+  root.__cmrSpriteBacked=true;root.__candyPlane=plane;
   return root;
-}
-async function loadCandyModels(){
-  // Load one model at a time to avoid seven simultaneous downloads and GPU spikes on phones.
-  for(const [type,file] of Object.entries(modelFiles)){
-    // Keep background downloads idle while the player is browsing the map.
-    while(document.body.classList.contains("map-open")) await wait(300);
-    try{
-      modelContainers[type]=await BABYLON.SceneLoader.LoadAssetContainerAsync(MODEL_BASE,file,scene,"",".glb");
-      // Replace the temporary sprite candies already on the board once this GLB is ready.
-      // This prevents a mixed board where old placeholders remain beside newly spawned 3D models.
-      while(document.body.classList.contains("map-open")||state.busy) await wait(180);
-      refreshLoadedCandyType(Number(type));
-      console.info("Loaded 3D candy:",file);
-    }catch(error){console.warn("3D candy load failed; fallback active:",file,error);}
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  }
-}
-function refreshLoadedCandyType(type){
-  if(!modelContainers[type]||state.grid.length!==SIZE)return 0;
-  let replaced=0;
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-    const item=state.grid[r]?.[c],old=item?.mesh;
-    if(!item||item.type!==type||!old||old.__cmrModelBacked||old.isDisposed?.())continue;
-    try{
-      const position=old.position.clone();
-      const selected=state.selected?.r===r&&state.selected?.c===c;
-      const replacement=candyMesh(r,c,item.type,item.special);
-      replacement.position.copyFrom(position);
-      if(selected)replacement.scaling.scaleInPlace(1.1);
-      replacement.metadata={r,c,candy:true};
-      item.mesh=replacement;
-      old.dispose();
-      replaced++;
-    }catch(error){console.warn("Could not refresh loaded candy:",type,r,c,error);}
-  }
-  if(replaced)console.info("Replaced temporary candies with 3D models:",type,replaced);
-  return replaced;
 }
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
@@ -680,7 +603,7 @@ function bindUI(){
 async function start(){
   loadProgress();setupScene();buildGrid();bindUI();updateHud();startHeartClock();
   // Download the candy models progressively, one at a time, while the board is playable.
-  void loadCandyModels();
+  void // Candy artwork is loaded lazily by the board materials; no GLB models are requested.
   refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
   checkEnd();
