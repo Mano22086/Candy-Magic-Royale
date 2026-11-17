@@ -114,7 +114,7 @@ function candySpriteMaterial(type){
 function candyMesh(r,c,type,special){
   const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
   const plane=BABYLON.MeshBuilder.CreatePlane("candyArt_"+r+"_"+c,{size:SPACING*.82},scene);
-  plane.parent=root;plane.position.y=.035;plane.rotation.x=0;
+  plane.parent=root;plane.position.y=.035;plane.rotation.x=Math.PI/2;
   plane.material=candySpriteMaterial(type);plane.isPickable=true;
   plane.metadata={r,c,candy:true};
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
