@@ -10,7 +10,8 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const modelContainers={};
 const modelFiles={1:"strawberry.glb",2:"mango.glb",3:"grapes.glb",4:"pineapple.glb",5:"pear.glb",6:"corn-cob.glb",7:"eggplant.glb"};
@@ -19,6 +20,33 @@ const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const rand=()=>Math.floor(Math.random()*TYPES)+1;
 function say(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1800);}
+function playSfx(kind="tap"){
+  if(!soundEnabled)return;
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+    audioContext=audioContext||new Ctx();if(audioContext.state==="suspended")void audioContext.resume();
+    const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
+    const notes={tap:520,match:760,win:980,lose:180,coin:1120};
+    osc.type=kind==="lose"?"triangle":"sine";osc.frequency.setValueAtTime(notes[kind]||520,now);
+    if(kind==="win")osc.frequency.exponentialRampToValueAtTime(1480,now+.18);
+    gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+(kind==="win"?.28:.12));
+    osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+(kind==="win"?.3:.14));
+  }catch(e){console.warn("Audio unavailable",e);}
+}
+const HEART_INTERVAL=30*60*1000;
+function applyHeartRegen(){
+  const now=Date.now();
+  if(state.lives>=5){state.lives=5;state.lastHeartAt=now;return false;}
+  if(!state.lastHeartAt)state.lastHeartAt=now;
+  const elapsed=now-state.lastHeartAt,earned=Math.floor(elapsed/HEART_INTERVAL);
+  if(earned>0){state.lives=Math.min(5,state.lives+earned);state.lastHeartAt=state.lives>=5?now:state.lastHeartAt+earned*HEART_INTERVAL;return true;}
+  return false;
+}
+function startHeartClock(){
+  clearInterval(heartTimer);
+  heartTimer=setInterval(()=>{if(applyHeartRegen()){updateHud();saveProgress(false);}else updateHud();},30000);
+}
+
 function pos(r,c){return new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,.55,(r-(SIZE-1)/2)*SPACING);}
 function makeMaterial(type){
   if(materials[type])return materials[type];
@@ -408,7 +436,7 @@ function burstAt(position,type){
   }
 }
 function updateHud(){
-  $("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
+  applyHeartRegen();$("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
   $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
   $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
@@ -426,16 +454,16 @@ function checkEnd(){
     state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();
     $("resultTitle").textContent="انتصار سحري!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
-    triggerCharacterResult(true);saveProgress(true);
+    triggerCharacterResult(true);playSfx("win");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
-    if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;}
+    if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;if(state.lives<5&&!state.lastHeartAt)state.lastHeartAt=Date.now();}
     updateHud();
     $("resultTitle").textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
-    $("resultText").textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت كل القلوب المتاحة. تقدر تشوف عددها في شريط Heart.";
+    $("resultText").textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت القلوب المتاحة. هيرجع قلب كل 30 دقيقة.";
     $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
     $("characterMessage").textContent="متستسلمش، جرب تاني!";
-    triggerCharacterResult(false);
+    triggerCharacterResult(false);playSfx("lose");
     saveProgress(false);
   }
 }
@@ -454,7 +482,7 @@ function saveProgress(completed=false){try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -470,13 +498,14 @@ function loadProgress(){try{
   state.coins=Number.isFinite(Number(x.coins))?Number(x.coins):500;
   state.stars=Math.max(0,Math.floor(Number(x.stars)||0));
   state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
+  state.lastHeartAt=Number(x.lastHeartAt)||Date.now();applyHeartRegen();
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(3,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(2,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
-}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.hammer=3;state.extra=2;state.savedGrid=null;}}
-function restart(){if(state.busy)return;state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
+}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
+function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
   if(state.won||state.busy)return;
@@ -542,11 +571,20 @@ function bindUI(){
   $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
   $("shuffleBtn").addEventListener("click",shuffle);
   $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;$("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=state.extra===0;updateHud();saveProgress(false);say("+5 حركات إضافية!");});
-  $("plusCoins").addEventListener("click",()=>say("العملات والمكافآت هتتفتح مع نظام المتجر."));
-  $("soundBtn").addEventListener("click",()=>say("المؤثرات الصوتية قيد التجهيز."));
+  $("plusCoins").addEventListener("click",()=>{
+    const today=new Date().toISOString().slice(0,10),key="cmr_daily_reward_v1";
+    let claimed="";try{claimed=localStorage.getItem(key)||"";}catch(e){}
+    if(claimed===today){say("استلمت مكافأة النهارده بالفعل. ارجع بكرة!");return;}
+    state.coins+=100;try{localStorage.setItem(key,today);}catch(e){}
+    updateHud();saveProgress(false);playSfx("coin");say("مكافأة يومية: +100 عملة ذهبية!");
+  });
+  $("soundBtn").addEventListener("click",()=>{
+    soundEnabled=!soundEnabled;$("soundBtn").textContent=soundEnabled?"♫":"🔇";
+    if(soundEnabled)playSfx("tap");say(soundEnabled?"الصوت اتفتح":"الصوت اتقفل");
+  });
 }
 async function start(){
-  loadProgress();setupScene();buildGrid();bindUI();updateHud();
+  loadProgress();setupScene();buildGrid();bindUI();updateHud();startHeartClock();
   // Download the candy models progressively, one at a time, while the board is playable.
   void loadCandyModels();
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
