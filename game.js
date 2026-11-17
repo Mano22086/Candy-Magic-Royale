@@ -105,12 +105,12 @@ function candyMesh(r,c,type,special){
       const bounds=modelRoot.getHierarchyBoundingVectors(true);
       const center=bounds.min.add(bounds.max).scale(.5);
       const extent=bounds.max.subtract(bounds.min);
-      const scale=.94/(Math.max(extent.x,extent.y,extent.z)||1);
+      const scale=1.24/(Math.max(extent.x,extent.y,extent.z)||1);
       modelRoot.position=center.scale(-1);
       modelRoot.scaling.setAll(scale);
     }
     root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=false;
-    root.scaling.setAll(special?.94:1);
+    root.scaling.setAll(special?1.08:1.12);
     if(special){
       const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
       ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
@@ -126,7 +126,7 @@ function candyMesh(r,c,type,special){
     root.metadata.animationGroups=entries.animationGroups||[];
     return root;
   }
-  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?.88:.86,segments:32},scene);
+  const root=BABYLON.MeshBuilder.CreateSphere("candyCore_"+r+"_"+c,{diameter:special?1.04:1.02,segments:32},scene);
   if(!coreMaterials[type]){
     const core=new BABYLON.StandardMaterial("candyCoreMat_"+type,scene);
     core.diffuseColor=palette[type-1].color.scale(.72);
@@ -136,7 +136,7 @@ function candyMesh(r,c,type,special){
   root.material=coreMaterials[type];root.scaling=new BABYLON.Vector3(1,.92,1);
   const spriteKey=special==="color"?"special1":special==="striped"?"special2":special==="wrapped"?"special3":"basic"+Math.min(type,6);
   const spriteSrc=special==="color"?"./assets/candy_special_1.jpg":special==="striped"?"./assets/candy_special_2.jpg":special==="wrapped"?"./assets/candy_special_3.jpg":"./assets/candy_basic_"+Math.min(type,6)+".jpg";
-  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?.98:.96},scene);
+  const face=BABYLON.MeshBuilder.CreatePlane("candyFace_"+r+"_"+c,{size:special?1.16:1.14},scene);
   face.parent=root;face.position.z=-.43;face.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL;
   face.material=candySpriteMaterial(spriteKey,spriteSrc);face.isPickable=false;
   root.position=pos(r,c);root.metadata={r,c,candy:true};root.isPickable=true;
@@ -203,81 +203,7 @@ function buildGrid(){
   }
   state.savedGrid=null;
 }
-function gridPointAtClient(clientX,clientY){
-  const rect=canvas.getBoundingClientRect();
-  if(!rect.width||!rect.height)return null;
-  const nx=(clientX-rect.left)/rect.width;
-  const ny=(clientY-rect.top)/rect.height;
-  // The orthographic camera shows a 7.4 x 7.4 world area.
-  // The 7x7 candy grid occupies the centered 7.14 x 7.14 area.
-  const worldX=(nx-.5)*7.4;
-  const worldZ=(.5-ny)*7.4;
-  const half=SIZE*SPACING/2;
-  if(worldX < -half || worldX >= half || worldZ < -half || worldZ >= half)return null;
-  // The camera looks from the -Z side: screen-left is +X and screen-up is +Z.
-  // Reverse both screen axes to match the board's row/column world positions.
-  const c=Math.floor((half-worldX)/SPACING);
-  const r=Math.floor((worldZ+half)/SPACING);
-  return {r,c};
-}
-function pickCellAtClient(clientX,clientY){
-  const cell=gridPointAtClient(clientX,clientY);
-  return cell&&inBounds(cell.r,cell.c)?cell:null;
-}
-function bindInput(){
-  let gesture=null;
-  const reset=()=>{gesture=null;};
-  const threshold=()=>{
-    const rect=canvas.getBoundingClientRect();
-    return Math.max(10,Math.min(rect.width/SIZE,rect.height/SIZE)*.16);
-  };
-  const chooseNeighbour=(cell,dx,dy)=>{
-    // Gesture directions follow the rendered camera orientation.
-    if(Math.abs(dx)>=Math.abs(dy)){
-      return {r:cell.r,c:cell.c+(dx>=0?-1:1)};
-    }
-    return {r:cell.r+(dy>=0?-1:1),c:cell.c};
-  };
-  canvas.style.touchAction="none";
-  canvas.addEventListener("contextmenu",event=>event.preventDefault());
-  canvas.addEventListener("pointerdown",event=>{
-    if(state.busy||state.won||gesture)return;
-    if(event.pointerType==="mouse"&&event.button!==0)return;
-    const cell=pickCellAtClient(event.clientX,event.clientY);
-    if(!cell)return;
-    event.preventDefault();
-    gesture={pointerId:event.pointerId,startCell:cell,startX:event.clientX,startY:event.clientY};
-    try{canvas.setPointerCapture(event.pointerId);}catch(_){}
-  },{passive:false});
-  canvas.addEventListener("pointerup",event=>{
-    if(!gesture||event.pointerId!==gesture.pointerId)return;
-    event.preventDefault();
-    const g=gesture;
-    gesture=null;
-    if(state.busy||state.won)return;
-    const dx=event.clientX-g.startX,dy=event.clientY-g.startY;
-    const distance=Math.hypot(dx,dy);
-    const endCell=pickCellAtClient(event.clientX,event.clientY);
-    if(distance<threshold()){
-      tapCell(g.startCell);
-      return;
-    }
-    let next=null;
-    if(endCell&&Math.abs(endCell.r-g.startCell.r)+Math.abs(endCell.c-g.startCell.c)===1){
-      next=endCell;
-    }else{
-      next=chooseNeighbour(g.startCell,dx,dy);
-    }
-    if(inBounds(next.r,next.c)){
-      clearSelection();
-      void swap(g.startCell,next);
-    }
-  },{passive:false});
-  canvas.addEventListener("pointercancel",reset,{passive:true});
-  canvas.addEventListener("lostpointercapture",reset,{passive:true});
-  window.addEventListener("blur",reset);
-}
-function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
+function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width,rect.height)/SIZE*0.85;let best=null,bestD=Infinity;for(let r=0;r<SIZE;r++){for(let c=0;c<SIZE;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
 function tapCell(cell){
   if(state.booster==="hammer"){useHammer(cell);return;}
   if(state.selected){
@@ -293,12 +219,12 @@ function select(cell){
   clearSelection();
   state.selected=cell;
   const item=state.grid[cell.r][cell.c];
-  if(item?.mesh)item.mesh.scaling.setAll((item.special?.94:1)*1.1);
+  if(item?.mesh)item.mesh.scaling.setAll((item.special?1.08:1.12)*1.1);
 }
 function clearSelection(){
   if(state.selected){
     const it=state.grid[state.selected.r][state.selected.c];
-    if(it?.mesh)it.mesh.scaling.setAll(it.special?.94:1);
+    if(it?.mesh)it.mesh.scaling.setAll(it.special?1.08:1.12);
   }
   state.selected=null;
 }
@@ -309,12 +235,12 @@ async function swap(a,b){
   state.busy=true;
   clearSelection();
   const ap=pos(b.r,b.c),bp=pos(a.r,a.c);
-  await Promise.all([animate(A.mesh,ap,150),animate(B.mesh,bp,150)]);
+  await Promise.all([animate(A.mesh,ap,115),animate(B.mesh,bp,115)]);
   state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
   A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
   if(A.special||B.special){await activateSpecial(a,b);state.moves--;updateHud();await settle();state.busy=false;checkEnd();saveProgress(state.won&&state.score>=state.target);return;}
   if(findMatches().size===0){
-    await Promise.all([animate(A.mesh,pos(a.r,a.c),140),animate(B.mesh,pos(b.r,b.c),140)]);
+    await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
     state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
     A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
   }else{
