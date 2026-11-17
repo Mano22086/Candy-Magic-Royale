@@ -377,3 +377,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#16072f}
  .art-board-wrap{top:33.5%;height:49.5%}
  .art-booster{top:89.5%;height:8.5%}
 }
+
+
+/* Alignment pass for the uploaded portrait artwork (phone viewport) */
+.art-target{left:auto;right:4.2%;width:20.5%;top:2%;height:17%}
+.art-moves{left:4.2%;right:auto;width:20.5%;top:2%;height:17%}
+.art-dragon{left:27.3%;right:auto;top:5.5%;width:21%;height:12%}
+.art-queen{left:51.7%;right:auto;top:5.5%;width:21%;height:12%}
+.art-hero img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 5px #200733aa)}
+.art-board-wrap{left:16.1%;top:35.4%;width:67.8%;height:33.2%}
+.art-board-rim{inset:0}
+#renderCanvas{inset:0;width:100%;height:100%;background:transparent!important}
+.art-message{top:20.8%;max-width:62%;font-size:clamp(8px,2.2vw,11px)}
+.art-score{top:22%;left:3%;font-size:clamp(9px,2.4vw,12px)}
+.art-booster{top:89.5%;height:8.3%;width:17%}
+.art-booster-one{left:2.5%}
+.art-booster-two{left:21.5%}
+.art-booster-three{left:40.8%}
+.art-booster-four{left:60%}
+.art-booster-five{left:79.5%}
+@media(max-height:760px){
+ .art-target,.art-moves{top:2%;height:17%}
+ .art-hero{top:5.5%;height:12%}
+ .art-board-wrap{top:35.4%;height:33.2%}
+ .art-booster{top:89.5%;height:8.3%}
+}
