@@ -107,7 +107,7 @@
     </div>
   </div>
   <script>
-(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.pause();video.currentTime=6.45;} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
+(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
   <script src="./game.js?v=swipe-60fps-1"></script>
 </body>
