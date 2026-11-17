@@ -24,7 +24,7 @@ body.map-open .game-shell{visibility:hidden!important;opacity:0!important;pointe
 @media(max-height:650px){.wm-header{padding-top:calc(7px + env(safe-area-inset-top));padding-bottom:5px}.wm-castle{min-height:140px}.wm-island{height:85px}}
 
 /* Stage route map: winding numbered path */
-.wm-world{display:block;transform:none!important;padding:10px 14px 28px}
+.wm-world{display:block;transform:none!important;zoom:var(--wm-scale,1);padding:10px 14px 28px}
 .wm-house-title{margin:4px auto 14px;max-width:360px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(145deg,#fff1d9dd,#4d267bdc);box-shadow:0 8px 22px #16082e66}
 .wm-house-title img{width:118px;height:94px;object-fit:contain;filter:drop-shadow(0 6px 8px #16082c88)}
 .wm-house-title b{font-size:17px;color:#ffe8a6}
