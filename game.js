@@ -34,6 +34,23 @@ function playSfx(kind="tap"){
   }catch(e){console.warn("Audio unavailable",e);}
 }
 const HEART_INTERVAL=30*60*1000;
+
+const LEVEL_REWARD_KEY="cmr_level_rewards_v1";
+const sessionRewardClaims=new Set();
+function claimLevelReward(level){
+  const key=String(Math.max(1,Math.floor(Number(level)||1)));
+  try{
+    const ledger=JSON.parse(localStorage.getItem(LEVEL_REWARD_KEY)||"{}");
+    if(ledger&&ledger[key])return false;
+    ledger[key]={claimedAt:Date.now()};
+    localStorage.setItem(LEVEL_REWARD_KEY,JSON.stringify(ledger));
+    return true;
+  }catch(error){
+    if(sessionRewardClaims.has(key))return false;
+    sessionRewardClaims.add(key);return true;
+  }
+}
+
 function applyHeartRegen(){
   const now=Date.now();
   if(state.lives>=5){state.lives=5;state.lastHeartAt=now;return false;}
@@ -451,8 +468,8 @@ function triggerCharacterResult(won){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);state.stars+=earnedStars;state.coins+=80;updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
-    $("resultTitle").textContent="انتصار سحري!";
+    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=claimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
+    $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent="أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم.";
     triggerCharacterResult(true);playSfx("win");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
@@ -506,7 +523,7 @@ function loadProgress(){try{
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
 function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
-  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
   if(state.won||state.busy)return;
   const it=state.grid[cell.r][cell.c];if(!it)return;
@@ -555,6 +572,7 @@ function shuffle(){
   saveProgress(false);
 }
 function nextLevel(){
+  if(!state.won||state.score<state.target)return;
   state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
   $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
