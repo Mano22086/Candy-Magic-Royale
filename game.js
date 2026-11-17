@@ -164,26 +164,24 @@ function animate(mesh,target,duration=170){
 function makeBoard(){ /* The uploaded artwork supplies the empty 7x7 board and frame. */ }
 function setupScene(){
   canvas=$("renderCanvas");
-  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
-  // Keep mobile rendering sharp while capping internal resolution at 1.5x CSS pixels.
+  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
+  // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
-  engine.setHardwareScalingLevel(Math.max(1/deviceRatio,1/1.5));
+  engine.setHardwareScalingLevel(Math.max(1/deviceRatio,1/1.25));
+  engine.enableOfflineSupport=false;
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
-  scene.imageProcessingConfiguration.toneMappingEnabled=true;
-  scene.imageProcessingConfiguration.toneMappingType=BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-  scene.imageProcessingConfiguration.exposure=1.08;
-  scene.imageProcessingConfiguration.contrast=1.12;
+  scene.imageProcessingConfiguration.toneMappingEnabled=false;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
   camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
   camera.orthoLeft=-3.7;camera.orthoRight=3.7;camera.orthoTop=3.7;camera.orthoBottom=-3.7;
   camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
-  const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
-  const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.34;
+  // Keep the scene lightweight on mobile: two lights, no full-screen glow post-process.
   makeBoard();bindInput();
-  engine.runRenderLoop(()=>scene.render());
+  engine.runRenderLoop(()=>{if(!document.hidden)scene.render();});
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&engine)engine.resize();});
   window.addEventListener("resize",()=>engine.resize());
   requestAnimationFrame(()=>engine.resize());
   $("loading").style.display="none";
