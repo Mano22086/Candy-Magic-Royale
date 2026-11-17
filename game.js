@@ -143,13 +143,14 @@ function candyMesh(r,c,type,special){
   return root;
 }
 async function loadCandyModels(){
-  await Promise.all(Object.entries(modelFiles).map(async([type,file])=>{
+  // Load one model at a time to avoid seven simultaneous downloads and GPU spikes on phones.
+  for(const [type,file] of Object.entries(modelFiles)){
     try{
       modelContainers[type]=await BABYLON.SceneLoader.LoadAssetContainerAsync(MODEL_BASE,file,scene,"",".glb");
       console.info("Loaded 3D candy:",file);
     }catch(error){console.warn("3D candy load failed; fallback active:",file,error);}
-  }));
-  say("تم تحميل "+Object.keys(modelContainers).length+" من 7 مجسمات 3D");
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  }
 }
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
@@ -545,8 +546,8 @@ function bindUI(){
 }
 async function start(){
   loadProgress();setupScene();buildGrid();bindUI();updateHud();
-  // Keep the mobile board responsive: don't launch seven large GLB downloads at once.
-  // Candy models can be enabled later through an on-demand, progressive loader.
+  // Download the candy models progressively, one at a time, while the board is playable.
+  void loadCandyModels();
   $("hammerBtn").querySelector("small").textContent=state.hammer;$("movesBtn").querySelector("small").textContent=state.extra;
   $("hammerBtn").disabled=state.hammer===0;$("movesBtn").disabled=state.extra===0;
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
