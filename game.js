@@ -167,32 +167,6 @@ function makeBoard(){
     tm.specularColor=new BABYLON.Color3(.5,.35,.7);tm.specularPower=40;tile.material=tm;tile.isPickable=false;tm.alpha=.16;
   }
 }
-function startVideoTexture(key,file){
-  const video=document.createElement("video");
-  video.muted=true;video.loop=true;video.autoplay=true;video.playsInline=true;video.preload="auto";
-  video.setAttribute("playsinline","");video.setAttribute("webkit-playsinline","");video.crossOrigin="anonymous";
-  video.src=VIDEO_BASE+encodeURIComponent(file);
-  const texture=new BABYLON.VideoTexture("royalVideo_"+key,video,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
-  const play=()=>video.play().catch(error=>console.warn("Video autoplay blocked:",key,error));
-  video.addEventListener("canplay",play,{once:true});
-  play();window.addEventListener("pointerdown",()=>video.paused&&play(),{once:true});
-  return {video,texture};
-}
-function installGameVideos(){
-  try{
-    const background=startVideoTexture("background",VIDEO_FILES.background);
-    backgroundVideoLayer=new BABYLON.Layer("royalMovingBackdrop",null,scene,true);
-    backgroundVideoLayer.texture=background.texture;
-  }catch(error){console.warn("Animated background unavailable; gradient fallback active.",error);}
-  try{
-    const board=startVideoTexture("board",VIDEO_FILES.board);
-    board.texture.uScale=1;board.texture.vScale=1;
-    boardBaseMesh.material.diffuseTexture=board.texture;boardBaseMesh.material.diffuseColor=new BABYLON.Color3(1,1,1);boardBaseMesh.material.emissiveTexture=board.texture;boardBaseMesh.material.disableLighting=true;const bp=BABYLON.MeshBuilder.CreateGround("boardVideoPlane",{width:8.35,height:8.35},scene);bp.position.y=.025;bp.isPickable=false;const bvm=new BABYLON.StandardMaterial("boardVideoMat",scene);bvm.diffuseColor=new BABYLON.Color3(0,0,0);bvm.specularColor=new BABYLON.Color3(0,0,0);bvm.emissiveTexture=board.texture;bvm.disableLighting=true;bp.material=bvm;
-    boardBaseMesh.material.diffuseColor=new BABYLON.Color3(1,1,1);
-    boardBaseMesh.material.emissiveColor=new BABYLON.Color3(.12,.08,.16);
-    boardBaseMesh.material.specularColor=new BABYLON.Color3(.75,.58,.9);
-  }catch(error){console.warn("Animated board surface unavailable; 3D board fallback active.",error);}
-}
 function setupScene(){
   canvas=$("renderCanvas");
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
@@ -213,7 +187,7 @@ function setupScene(){
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   const fill=new BABYLON.PointLight("pinkFill",new BABYLON.Vector3(4,4,-3),scene);fill.diffuse=new BABYLON.Color3(.75,.42,1);fill.intensity=.45;
   const glow=new BABYLON.GlowLayer("sugarGlow",scene);glow.intensity=.34;
-  makeBoard();installGameVideos();bindInput();
+  makeBoard();bindInput();
   engine.runRenderLoop(()=>scene.render());
   window.addEventListener("resize",()=>engine.resize());
   requestAnimationFrame(()=>engine.resize());
