@@ -83,6 +83,43 @@
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
   <script src="./game.js?v=stage16-uploaded-candy-artwork-fit-1"></script>
-  <script src="./world-map.js?v=stage6-unique-castles-1"></script>
+  <script src="./world-map.js?v=stage6-unique-castles-2"></script>
+  <script>
+  // Independent touch-safe Play bootstrap: keeps the intro usable even if game.js fails early.
+  (() => {
+    let launching = false;
+    const launch = (event) => {
+      const button = event.target && event.target.closest ? event.target.closest("#startGameBtn") : null;
+      if (!button || launching) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      launching = true;
+      button.disabled = true;
+      button.textContent = "جاري فتح المملكة...";
+      try {
+        const key = "cmr_player_identity_v1";
+        if (!localStorage.getItem(key)) {
+          const id = window.crypto && crypto.randomUUID
+            ? crypto.randomUUID()
+            : "guest-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem(key, JSON.stringify({id, provider:"guest", createdAt:new Date().toISOString()}));
+        }
+      } catch (_) {}
+      if (typeof window.CMRShowWorldMap !== "function") {
+        launching = false;
+        button.disabled = false;
+        button.textContent = "GUEST PLAY";
+        const toast = document.getElementById("toast");
+        if (toast) { toast.textContent = "الخريطة مش جاهزة. حدّث الصفحة وحاول تاني."; toast.classList.add("show"); }
+        return;
+      }
+      window.CMRShowWorldMap();
+      const screen = document.getElementById("startScreen");
+      if (screen) screen.remove();
+    };
+    document.addEventListener("pointerup", launch, true);
+    document.addEventListener("click", launch, true);
+  })();
+  </script>
 </body>
 </html>
