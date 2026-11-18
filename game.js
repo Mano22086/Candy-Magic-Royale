@@ -421,10 +421,10 @@ function findSpecialCandidate(matches){
     if(!matches.has(r+","+c))continue;
     const item=state.grid[r][c];if(!item)continue;
     let left=0,right=0,up=0,down=0;
-    for(let x=c-1;x>=0&&state.grid[r][x]?.type===item.type;x--)left++;
-    for(let x=c+1;x<COLS&&state.grid[r][x]?.type===item.type;x++)right++;
-    for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)up++;
-    for(let y=r+1;y<ROWS&&state.grid[y][c]?.type===item.type;y++)down++;
+    for(let x=c-1;x>=0&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x--)left++;
+    for(let x=c+1;x<COLS&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x++)right++;
+    for(let y=r-1;y>=0&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y--)up++;
+    for(let y=r+1;y<ROWS&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y++)down++;
     if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
   }
   let best=null;
