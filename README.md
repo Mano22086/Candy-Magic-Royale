@@ -11,7 +11,10 @@ Open the GitHub Pages site or serve this repository through a static web server.
 - Six candy artwork textures are loaded from the collected asset pack; their flat background is keyed to transparency at runtime.
 - Tap or swipe neighboring candies to swap them.
 - Match three or more, cascade gravity, refill and score.
-- Four-match striped candy and five-match rainbow candy; special candies are now awarded only for a real contiguous run, not the combined size of separate matches.
+- Four-match rocket candy, five-match rainbow candy, and T/L wrapped bomb candy; special pieces are excluded from ordinary matches so their icon/type cannot accidentally join a normal color run.
+- Bomb, rocket, and color-ball helpers can be aimed at a selected cell: 3×3 blast, row-and-column sweep, or clear every candy of the selected color. Paint helper recolors a candy to a neighboring color.
+- Special candy pieces now use dedicated lightweight 3D meshes and shockwave/particle effects; character portraits use animated SVG artwork.
+- Three portrait board themes share the same 7×8 playfield/HUD/booster anchors and rotate by level.
 - Dead boards automatically reshuffle after a move, and shuffling keeps existing special candies.
 - Hammer clears now show a burst, refill the cell, and resolve any resulting cascades.
 - End-of-level scoring now awards one, two, or three stars using score thresholds; failed levels lock input until retry.
