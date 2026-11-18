@@ -1,7 +1,7 @@
 :root{--night:#16092f;--deep:#25104c;--purple:#54239a;--pink:#ff73b9;--gold:#ffd66d;--cream:#fff5e8;--mint:#a9ffe2}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:#16092f;color:#fff;font-family:"Cairo",system-ui,sans-serif;overscroll-behavior:none}
-body{background:transparent;min-height:100dvh}
+body{background:linear-gradient(180deg,#18072f66,#16092f99),url("./assets/enchanted-garden-backdrop.svg") center center/cover fixed no-repeat;min-height:100dvh}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#d4a5ff 1px,transparent 1px);background-size:47px 47px,83px 83px;background-position:0 0,19px 31px}
 button{font:inherit;border:0;cursor:pointer;color:inherit}
 .game-shell{position:relative;z-index:1;width:min(100%,520px);min-height:100dvh;margin:auto;padding:env(safe-area-inset-top) 14px calc(12px + env(safe-area-inset-bottom));position:relative;display:flex;flex-direction:column;gap:9px;overflow:hidden}
