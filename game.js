@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,boosterSource:null,hammer:3,extra:2,paint:3,color:3,rocket:3};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -258,7 +258,7 @@ function buildGrid(){
 }
 function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width/COLS,rect.height/ROWS)*0.85;let best=null,bestD=Infinity;for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
 function tapCell(cell){
-  if(state.booster==="hammer"){useHammer(cell);return;}
+  if(state.booster){useBoardBooster(cell);return;}
   if(state.selected){
     const previous=state.selected;
     if(previous.r===cell.r&&previous.c===cell.c){clearSelection();return;}
@@ -512,7 +512,7 @@ function saveProgress(completed=false){try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,paint:state.paint,color:state.color,rocket:state.rocket,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -533,27 +533,77 @@ function loadProgress(){try{
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
+  state.paint=completed?3:Math.min(9,Math.max(0,Math.floor(Number(x.paint??3))));
+  state.color=completed?3:Math.min(9,Math.max(0,Math.floor(Number(x.color??3))));
+  state.rocket=completed?3:Math.min(9,Math.max(0,Math.floor(Number(x.rocket??3))));
   const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
-function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
+function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;cancelBooster();
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
-async function useHammer(cell){
-  if(state.won||state.busy)return;
-  const it=state.grid[cell.r][cell.c];if(!it)return;
-  state.busy=true;clearSelection();
+async function useBoardBooster(cell){
+  if(state.won||state.busy||!state.booster)return;
+  const kind=state.booster,selected=state.grid[cell.r][cell.c];
+  if(kind==="paint"&&!state.boosterSource){
+    state.boosterSource=cell;selected.mesh.scaling.setAll(1.16);
+    say("اختار الحلوى اللي عايز تغيّر لونها");return;
+  }
+  const counts={paint:state.paint,shuffle:state.extra,bomb:state.hammer,color:state.color,rocket:state.rocket};
+  if((counts[kind]||0)<=0){say("المساعدة دي خلصت!");cancelBooster();return;}
+  state.busy=true;
   try{
-    burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
-    state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
-    refreshBoosterBadges();
-    state.booster=null;$("hammerBtn").classList.remove("active");
-    const replacement={type:rand(),special:null,mesh:null};
-    replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
-    replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
-    await animate(replacement.mesh,pos(cell.r,cell.c),220);await settle();
-  }catch(error){console.error("Hammer action failed:",error);say("حصلت مشكلة في المطرقة، جرّب تاني.");}
-  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
+    const cells=new Set();
+    if(kind==="paint"){
+      const source=state.boosterSource,from=state.grid[source.r][source.c];
+      if(!from||!selected||source.r===cell.r&&source.c===cell.c){say("اختار حلوى تانية لتغيير لونها.");return;}
+      from.mesh.scaling.setAll(1);
+      selected.mesh.dispose();selected.type=from.type;selected.special=null;
+      selected.mesh=candyMesh(cell.r,cell.c,selected.type,null);
+      selected.mesh.scaling.setAll(.2);await animate(selected.mesh,pos(cell.r,cell.c),160);selected.mesh.scaling.setAll(1);
+      state.paint--;
+    }else{
+      if(kind==="bomb"){
+        for(let r=cell.r-1;r<=cell.r+1;r++)for(let c=cell.c-1;c<=cell.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
+        state.hammer--;
+      }else if(kind==="color"){
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===selected.type)cells.add(r+","+c);
+        state.color--;
+      }else if(kind==="rocket"){
+        for(let c=0;c<COLS;c++)cells.add(cell.r+","+c);
+        for(let r=0;r<ROWS;r++)cells.add(r+","+cell.c);
+        state.rocket--;
+      }
+      for(const key of cells){
+        const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
+        if(it?.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}
+      }
+    }
+    state.booster=null;state.boosterSource=null;
+    document.querySelectorAll(".art-booster").forEach(btn=>btn.classList.remove("active"));
+    refreshBoosterBadges();updateHud();await settle();
+    say(({paint:"تم تغيير لون الحلوى!",bomb:"انفجار 3×3! 💥",color:"اختفى اللون بالكامل! 🌈",rocket:"الصاروخ مسح الصف والعمود! 🚀"})[kind]||"تم استخدام المساعدة!");
+  }catch(error){console.error("Booster failed:",error);say("المساعدة ما اشتغلتش، جرّب تاني.");}
+  finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
+function cancelBooster(){
+  if(state.boosterSource){const p=state.boosterSource;state.grid[p.r]?.[p.c]?.mesh?.scaling.setAll(1);}
+  state.booster=null;state.boosterSource=null;
+  document.querySelectorAll(".art-booster").forEach(btn=>btn.classList.remove("active"));
+}
+function selectBooster(kind){
+  if(state.won||state.busy)return;
+  if(kind==="shuffle"){
+    if(state.extra<=0){say("مساعد الخلط خلص!");return;}
+    state.extra--;refreshBoosterBadges();shuffle();saveProgress(false);return;
+  }
+  const count={paint:state.paint,bomb:state.hammer,color:state.color,rocket:state.rocket}[kind]||0;
+  if(count<=0){say("المساعدة دي خلصت!");return;}
+  if(state.booster===kind){cancelBooster();say("تم إلغاء المساعدة");return;}
+  cancelBooster();state.booster=kind;
+  const names={paint:"الفرشاة: اختار حلوى من لونها ثم الحلوى المستهدفة",bomb:"القنبلة: اختار مكان التفجير",color:"عجلة الألوان: اختار اللون اللي هتمسحه",rocket:"الصاروخ: اختار الصف والعمود"};
+  $(kind+"Btn").classList.add("active");say(names[kind]);
+}
+
 function hasPossibleMove(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     for(const [dr,dc] of [[0,1],[1,0]]){
@@ -601,9 +651,8 @@ function shuffle(){
 }
 function nextLevel(){
   if(!state.won||state.score<state.target)return;
-  state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
-  $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
-  $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
+  state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;state.paint=3;state.color=3;state.rocket=3;
+  refreshBoosterBadges();
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
   $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
   for(const row of state.grid)for(const item of row)if(item?.mesh)item.mesh.dispose();
@@ -611,11 +660,7 @@ function nextLevel(){
   window.CMRShowWorldMap?.();
 }
 
-function refreshBoosterBadges(){
-  const hammer=$("hammerBtn"),moves=$("movesBtn");
-  if(hammer){hammer.querySelector("small").textContent=state.hammer;hammer.disabled=state.hammer<=0;}
-  if(moves){moves.querySelector("small").textContent=state.extra;moves.disabled=state.extra<=0;}
-}
+function refreshBoosterBadges(){const map={paintBtn:state.paint,shuffleBtn:state.extra,bombBtn:state.hammer,colorBtn:state.color,rocketBtn:state.rocket};for(const [id,count] of Object.entries(map)){const btn=$(id);if(btn){btn.querySelector("small").textContent=count;btn.disabled=count<=0;}}}
 function ensureShop(){
   if($("royalShop"))return;
   const trigger=document.createElement("button");
@@ -650,9 +695,11 @@ function bindUI(){
   $("restartBtn").addEventListener("click",restart);
   $("nextBtn").addEventListener("click",nextLevel);
   $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
-  $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
-  $("shuffleBtn").addEventListener("click",shuffle);
-  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
+  $("paintBtn").addEventListener("click",()=>selectBooster("paint"));
+  $("shuffleBtn").addEventListener("click",()=>selectBooster("shuffle"));
+  $("bombBtn").addEventListener("click",()=>selectBooster("bomb"));
+  $("colorBtn").addEventListener("click",()=>selectBooster("color"));
+  $("rocketBtn").addEventListener("click",()=>selectBooster("rocket"));
   $("plusCoins").addEventListener("click",()=>{
     const today=new Date().toISOString().slice(0,10),key="cmr_daily_reward_v1";
     let claimed="";try{claimed=localStorage.getItem(key)||"";}catch(e){}
@@ -688,7 +735,7 @@ window.CMRStartSelectedHouse=async()=>{
       await start();
       gameInitialized=true;
     }else{
-      state.won=false;state.busy=false;state.booster=null;state.savedGrid=null;
+      state.won=false;state.busy=false;cancelBooster();state.savedGrid=null;
       $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
       buildGrid();updateHud();
     }
