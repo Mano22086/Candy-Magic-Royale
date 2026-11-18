@@ -65,6 +65,40 @@ const activeAnimations=new Set();
 let animationFrame=0;
 const spriteMaterials={};
 const spriteTextures={};
+const specialSpriteMaterials={};
+const specialSpriteTextures={};
+const specialSpriteSources={
+  wrapped:"./08_bomb_skull.png",
+  color:"./13_chocolate_ball.png",
+  striped:{
+    1:"./21_rocket_crown_gold.png",
+    2:"./22_rocket_crown_rainbow.png",
+    3:"./23_rocket_diamond_blue.png",
+    4:"./24_rocket_flower_purple.png",
+    5:"./25_rocket_crown_green.png",
+    6:"./26_rocket_lollipop_red.png"
+  }
+};
+function specialSpriteMaterial(key,source){
+  if(specialSpriteMaterials[key])return specialSpriteMaterials[key];
+  const mat=new BABYLON.StandardMaterial("specialSpriteMat_"+key,scene);
+  mat.diffuseColor=new BABYLON.Color3(1,1,1);
+  mat.emissiveColor=new BABYLON.Color3(1,1,1);
+  mat.disableLighting=true;
+  mat.backFaceCulling=false;
+  mat.useAlphaFromDiffuseTexture=true;
+  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
+  const texture=new BABYLON.Texture(source,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
+    (message,error)=>console.warn("Special candy artwork unavailable; native 3D fallback remains:",source,message,error));
+  texture.hasAlpha=true;
+  texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
+  mat.diffuseTexture=texture;
+  specialSpriteTextures[key]=texture;
+  specialSpriteMaterials[key]=mat;
+  return mat;
+}
 let shineSharedMaterial=null;
 const specialRingSharedMaterials={};
 const specialMaterials={};
@@ -208,7 +242,22 @@ function candyMesh(r,c,type,special){
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:24},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=specialRingSharedMaterials[ringKind];ring.isPickable=false;
   }
-  if(special){
+  const specialSpritePath=special==="wrapped"?specialSpriteSources.wrapped:special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
+  if(specialSpritePath){
+    const spriteKey=special+"_"+type;
+    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.82,height:SPACING*.82},scene);
+    art.parent=root;
+    art.rotation.x=Math.PI/2;
+    art.position.y=1.035;
+    art.material=specialSpriteMaterial(spriteKey,specialSpritePath);
+    art.isPickable=false;
+    art.isVisible=false;
+    const texture=specialSpriteTextures[spriteKey];
+    const revealSpecial=()=>{if(!root.isDisposed?.())art.isVisible=true;};
+    if(texture?.isReady())revealSpecial();
+    else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealSpecial);
+  }
+  if(special&&!specialSpritePath){
     const mat=(key,color,emissive=color)=>{if(!specialMaterials[key]){const m=new BABYLON.StandardMaterial("specialArt_"+key,scene);m.diffuseColor=color;m.emissiveColor=emissive;m.specularColor=new BABYLON.Color3(.9,.9,.9);m.specularPower=64;specialMaterials[key]=m;}return specialMaterials[key];};
     if(special==="wrapped"){
       const bomb=BABYLON.MeshBuilder.CreateSphere("wrappedCandyBomb",{diameter:.52,segments:16},scene);bomb.parent=root;bomb.position.y=.61;bomb.material=mat("bomb",new BABYLON.Color3(.18,.07,.3),new BABYLON.Color3(.3,.08,.48));bomb.isPickable=false;
@@ -667,7 +716,7 @@ function safeClaimLevelReward(level){
 }
 function checkEnd(){
   if(state.score>=state.target&&!state.won){
-    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
+    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
     if(state.replayMode){$("nextBtn").textContent="العودة للخريطة";$("resultButton").textContent="العودة للخريطة";}
