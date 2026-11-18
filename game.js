@@ -495,7 +495,7 @@ async function settle(){
     const items=state.grid.flat().filter(Boolean);
     const original=items.map(item=>item.type);
     let stable=false;
-    for(let attempt=0;attempt<160&&!stable;attempt++){
+    for(let attempt=0;attempt<12&&!stable;attempt++){
       const values=original.slice();
       for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
       for(let i=0;i<items.length;i++)items[i].type=values[i];
@@ -505,7 +505,7 @@ async function settle(){
       // Last-resort safe board with no initial horizontal or vertical triples.
       for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
         let type=rand(),tries=0;
-        while(tries++<20&&((c>1&&state.grid[r][c-1].type===type&&state.grid[r][c-2].type===type)||(r>1&&state.grid[r-1][c].type===type&&state.grid[r-2][c].type===type)))type=rand();
+        while(tries++<12&&((c>1&&state.grid[r][c-1].type===type&&state.grid[r][c-2].type===type)||(r>1&&state.grid[r-1][c].type===type&&state.grid[r-2][c].type===type)))type=rand();
         state.grid[r][c].type=type;
       }
     }
