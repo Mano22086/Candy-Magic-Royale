@@ -473,19 +473,21 @@ async function swap(a,b){
 }
 function findMatches(){
   const found=new Set();
-  // Special candies count as their own candy type in a line, but never match
-  // with a different color. A special is eligible only as part of a 3+ run.
+  // A match must contain the exact same candy variant: same base color AND
+  // same special kind. A striped/bomb candy cannot be activated by ordinary
+  // candies of its base color touching it.
+  const sameCandy=(a,b)=>!!a&&!!b&&a.type===b.type&&(a.special||null)===(b.special||null);
   for(let r=0;r<ROWS;r++){
     let c=0;while(c<COLS){
       const item=state.grid[r][c];if(!item){c++;continue;}
-      let end=c+1;while(end<COLS&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
+      let end=c+1;while(end<COLS&&sameCandy(state.grid[r][end],item))end++;
       if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
     }
   }
   for(let c=0;c<COLS;c++){
     let r=0;while(r<ROWS){
       const item=state.grid[r][c];if(!item){r++;continue;}
-      let end=r+1;while(end<ROWS&&state.grid[end][c]&&state.grid[end][c].type===item.type)end++;
+      let end=r+1;while(end<ROWS&&sameCandy(state.grid[end][c],item))end++;
       if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
     }
   }
