@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const COLS=7, ROWS=8, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
+const COLS=7, ROWS=8, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
@@ -72,9 +72,12 @@ const candyImages={
   3:"./03_diamond_blue.png",
   4:"./04_flower_purple.png",
   5:"./05_crown_green.png",
-  6:"./06_lollipop_red.png"
+  6:"./06_lollipop_red.png",
+  7:"./07_lightning_purple.png"
 };
-const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
+const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02,7:1};
+const bombImages={1:"./14_bag_gold.png",2:"./15_bag_rainbow.png",3:"./16_bag_diamond_blue.png",4:"./17_bag_flower_purple.png",5:"./18_bag_crown_green.png",6:"./19_bag_lollipop_red.png",7:"./20_bag_lightning_purple.png"};
+const rocketImages={1:"./21_rocket_crown_gold.png",2:"./22_rocket_crown_rainbow.png",3:"./23_rocket_diamond_blue.png",4:"./24_rocket_flower_purple.png",5:"./25_rocket_crown_green.png",6:"./26_rocket_lollipop_red.png",7:"./27_rocket_lightning_purple.png"};
 
 // ---- Unified candy size -------------------------------------------------
 // Each PNG has a different amount of transparent padding. We detect the real
@@ -113,7 +116,7 @@ function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadC
 // -------------------------------------------------------------------------
 
 function candySpriteMaterial(type,sourceOverride=null){
-  const key=sourceOverride?"special-color-ball":type;
+  const key=sourceOverride?"special:"+sourceOverride:type;
   if(spriteMaterials[key])return spriteMaterials[key];
   const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+key,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
@@ -165,10 +168,11 @@ function candyMesh(r,c,type,special){
   shine.material=shineMaterial;
   shine.isPickable=false;
 
-  const artworkPath=special==="color"?"./13_chocolate_ball.png":candyImages[type];
+  const artworkPath=special==="color"?"./13_chocolate_ball.png":special==="wrapped"?bombImages[type]:special==="striped"?rocketImages[type]:candyImages[type];
   if(artworkPath){
-    const trim=special==="color"?null:candyTrim[type];
-    const ratio=special==="color"?1:(trim?trim.ratio:(candyImageRatios[type]||1));
+    const isSpecialArtwork=!!special;
+    const trim=isSpecialArtwork?null:candyTrim[type];
+    const ratio=isSpecialArtwork?1:(trim?trim.ratio:(candyImageRatios[type]||1));
     const maxSide=SPACING*CANDY_FIT;
     const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
     const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
@@ -180,15 +184,17 @@ function candyMesh(r,c,type,special){
     // Lay the candy artwork flat above the 3D body instead of edge-on.
     artwork.rotation.x=Math.PI/2;
     artwork.position=new BABYLON.Vector3(0,.39,0);
-    artwork.material=candySpriteMaterial(type,special==="color"?"./13_chocolate_ball.png":null);
+    const isBaseArtwork=artworkPath===candyImages[type];
+    artwork.material=candySpriteMaterial(type,isBaseArtwork?null:artworkPath);
     artwork.isPickable=false;
     artwork.isVisible=false;
-    const texture=spriteTextures[special==="color"?"special-color-ball":type];
+    const textureKey=isBaseArtwork?type:"special:"+artworkPath;
+    const texture=spriteTextures[textureKey];
     const revealArtwork=()=>{
       if(root.isDisposed?.())return;
       artwork.isVisible=true;
-      body.setEnabled(false);
-      shine.setEnabled(false);
+      body.dispose();
+      shine.dispose();
     };
     if(texture?.isReady())revealArtwork();
     else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealArtwork);
@@ -335,7 +341,10 @@ function findSpecialCandidate(matches){
     for(let x=c+1;x<COLS&&state.grid[r][x]?.type===item.type;x++)right++;
     for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)up++;
     for(let y=r+1;y<ROWS&&state.grid[y][c]?.type===item.type;y++)down++;
-    if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
+    if(left+right+1>=3&&up+down+1>=3){
+      const isT=(left>0&&right>0&&(up>0||down>0))||(up>0&&down>0&&(left>0||right>0));
+      return {length:Math.max(left+right+1,up+down+1)+2,type:isT?"striped":"wrapped",cell:{r,c}};
+    }
   }
   let best=null;
   const consider=(cells,type)=>{
@@ -434,8 +443,8 @@ function triggerCharacterCombo(chain){
 }
 async function settle(){
   let chain=0;
-  // A finite cascade budget prevents a long random chain from freezing mobile devices.
-  while(chain<10){
+  // A short cascade budget protects mid-range phones from long frame stalls.
+  while(chain<5){
     const matches=findMatches();
     if(matches.size===0)break;
     chain++;
@@ -463,8 +472,8 @@ async function settle(){
     updateHud();
     await wait(65);
 
-    // Screen row 0 is the lower edge of this camera view; gravity moves toward it.
-    // Existing candies compact downward, while replacement candies enter from above.
+    // Row 0 is the visual bottom and row 7 is the visual top. Existing candies
+    // fall toward row 0; replacement candies must spawn beyond the top edge on Z.
     const falling=[];
     for(let c=0;c<COLS;c++){
       let write=0;
@@ -476,17 +485,17 @@ async function settle(){
           state.grid[r][c]=null;
           it.mesh.metadata={r:write,c:c,candy:true};
           const distance=r-write;
-          falling.push(animate(it.mesh,pos(write,c),150+distance*42));
+          falling.push(animate(it.mesh,pos(write,c),105+distance*22));
         }
         write++;
       }
       for(let r=write;r<ROWS;r++){
         const type=rand();
         const mesh=candyMesh(r,c,type,null);
-        mesh.position.y=5.2+(r-write)*.32;
+        mesh.position=pos(ROWS+(r-write),c);
         state.grid[r][c]={type,special:null,mesh};
         mesh.metadata={r,c,candy:true};
-        falling.push(animate(mesh,pos(r,c),230+(r-write)*28));
+        falling.push(animate(mesh,pos(r,c),155+(r-write)*20));
       }
     }
     await Promise.all(falling);
@@ -505,7 +514,7 @@ function burstAt(position,type){
     burstMaterials[index]=material;
   }
   const material=burstMaterials[index];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<2;i++){
     const particle=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.075,segments:4},scene);
     particle.position=position.clone();
     particle.material=material;
