@@ -1,0 +1,34 @@
+name: Validate game code and art
+on:
+  push:
+    branches:
+      - feature/special-candies-backgrounds-performance
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        run: node --check game.js && node --check world-map.js
+      - name: Validate SVG art assets
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          paths = [
+              "assets/board-bg-01.svg",
+              "assets/board-bg-02.svg",
+              "assets/board-bg-03.svg",
+              "assets/queen-luma.svg",
+              "assets/dragon-prince.svg",
+          ]
+          for path in paths:
+              ET.parse(Path(path))
+              print("OK", path)
+          PY
