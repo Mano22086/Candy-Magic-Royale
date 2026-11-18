@@ -1,42 +1,56 @@
-
-/* World map — independent overlay; gameplay canvas remains untouched */
-.world-map{position:fixed;z-index:90;inset:0;display:flex;flex-direction:column;overflow:hidden;color:#fff4dc;background:#38216c url("./assets/world-map-background.svg") center center/cover;font-family:"Cairo",sans-serif}
+/* Final four-realm world map */
+.world-map{position:fixed;z-index:90;inset:0;display:flex;flex-direction:column;overflow:hidden;color:#fff4dc;background:#241044 url("./assets/royal-world-map.svg") center 43%/cover no-repeat;font-family:"Cairo",sans-serif;isolation:isolate}
 .world-map.hidden{display:none}
-.world-map:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#24104b66 0%,transparent 35%,#24104b44 100%)}
-.wm-header,.wm-footer{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:linear-gradient(180deg,#1d0d42dd,transparent)}
-.wm-header small{font:800 9px Georgia,serif;letter-spacing:2px;color:#f9d887}.wm-header h1{margin:2px 0;font-size:25px;color:#ffe5a0;text-shadow:0 3px #6a357b}.wm-header p{margin:0;font-size:11px;color:#e7d6ff}
-.wm-zoom{display:flex;gap:7px}.wm-zoom button,.wm-footer button{width:38px;height:38px;border-radius:50%;background:linear-gradient(#ffeaa6,#d99542);color:#52265e;font-size:23px;font-weight:900;box-shadow:0 3px 0 #78422c}
-.wm-scroll{position:relative;z-index:1;flex:1;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y}
-.wm-world{--wm-scale:1;min-height:100%;padding:12px 18px 28px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px;align-content:start;transform:scale(var(--wm-scale));transform-origin:top center}
-.wm-castle{position:relative;min-height:164px;padding:10px 6px 12px;border:1px solid #ffe8a9aa;border-radius:22px;background:linear-gradient(160deg,#fff7e8bb,#43246fc9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;box-shadow:inset 0 1px #fff9,0 9px 18px #0a042d66}
-.wm-island{position:relative;width:142px;height:112px;display:grid;place-items:center;background:transparent;}
-.wm-island:after{display:none}
-.wm-island i{position:absolute;top:2px;left:8px;font-size:22px;font-style:normal;z-index:1}.wm-castle-image{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 7px 8px #16092c99);z-index:1}.wm-island i{top:4px;left:8px;text-shadow:0 2px 5px #281047}.wm-island em{position:absolute;right:7px;top:5px;font-style:normal;font-size:20px;z-index:2}
-.wm-castle strong{font-size:12px;color:#ffe7a5;text-shadow:0 2px #381650}.wm-castle small{font-size:9px;color:#eee0ff}
-.wm-castle.active{border:2px solid #ffe48c;box-shadow:0 0 22px #ffdf7b66,inset 0 1px #fff8}.wm-castle.done .wm-island{filter:saturate(1.15)}.wm-castle.locked{filter:grayscale(1);opacity:.66}
-.wm-footer{padding:10px 18px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#1b0b3fee,transparent);font-size:11px;color:#ffe4a0}.wm-footer button{width:auto;height:34px;padding:0 15px;font-size:12px}.wm-footer button.hidden{display:none}
-.wm-house-title{grid-column:1/-1;text-align:center;padding:15px;border-radius:18px;background:#ffffff18;border:1px solid #ffe7a055;display:grid;gap:2px}.wm-house-title span{font-size:32px}.wm-house-title b{font-size:18px;color:#ffe4a0}.wm-house-title small{font-size:11px;color:#e8d8ff}
-.wm-houses{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:8px 2px 22px}
-.wm-house{aspect-ratio:1;border-radius:15px;border:1px solid #f8d88b66;background:linear-gradient(150deg,#69439a,#2d185a);box-shadow:inset 0 1px #fff4,0 4px 0 #160c36;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.wm-house span{font-size:16px}.wm-house b{font:900 13px Georgia,serif;color:#fff4d2}.wm-house.done{background:linear-gradient(#a9e9d0,#398c85);color:#14534e}.wm-house.current{background:linear-gradient(#fff0a9,#e69b43);border:2px solid #fff4b2;box-shadow:0 0 15px #ffdc75aa,0 4px 0 #8a4a2e;transform:scale(1.06)}.wm-house.current b{color:#60304e}.wm-house.locked{filter:grayscale(.8);opacity:.62}
+.world-map:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#17082de8 0%,#24104455 26%,#17082d66 72%,#16082fe8 100%)}
+.wm-header{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:calc(13px + env(safe-area-inset-top)) 16px 12px;background:linear-gradient(180deg,#1b0a39ed,#24104466 76%,transparent)}
+.wm-heading{min-width:0;flex:1}.wm-header small{font:900 8px Georgia,serif;letter-spacing:1.5px;color:#ffe29a}.wm-header h1{margin:3px 0 1px;font-size:clamp(20px,5vw,27px);line-height:1.35;color:#fff0b8;text-shadow:0 2px 0 #713b88,0 5px 14px #130524}.wm-header p{margin:0;font-size:10px;color:#f1dfff}
+.wm-progress{display:flex;align-items:center;gap:9px;margin-top:8px;max-width:330px;color:#ffe9b4;font-size:9px;font-weight:800}.wm-progress>i{height:7px;flex:1;overflow:hidden;border-radius:9px;background:#180b34;border:1px solid #fff4}.wm-progress>i>b{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#ff80c5,#ffe38a);box-shadow:0 0 10px #ffd879;transition:width .3s}
+.wm-tools{display:flex;align-items:center}.wm-zoom{display:flex;gap:6px}.wm-zoom button,.wm-footer button{width:36px;height:36px;border:1px solid #fff2;border-radius:50%;background:linear-gradient(180deg,#fff0b5,#d88d43);color:#51245e;font-size:22px;font-weight:900;box-shadow:0 3px 0 #79402e,0 5px 12px #12052488}
+.wm-scroll{position:relative;z-index:1;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y}
+.wm-world{--wm-scale:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 10px;align-content:start;width:100%;max-width:560px;margin:0 auto;padding:12px 13px 28px;zoom:var(--wm-scale)}
+.wm-realm{position:relative;display:flex;min-width:0;min-height:222px;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;overflow:hidden;padding:9px 7px 11px;border:1px solid #fce4ad88;border-radius:23px;background:linear-gradient(155deg,#fff5e7e8 0%,#b78bd6d9 30%,#3c1d69ee 100%);color:#fff;box-shadow:inset 0 1px 0 #fff9,0 9px 22px #10052299;backdrop-filter:blur(5px);animation:realmArrive .42s ease both}
+.wm-realm:before{content:"";position:absolute;inset:5px;border:1px solid #fff5;border-radius:18px;pointer-events:none}
+.wm-realm-art{position:relative;display:grid;place-items:center;width:100%;height:116px;margin-bottom:2px;border-radius:17px;background:radial-gradient(ellipse at 50% 75%,#ffe9aa99,transparent 68%);overflow:hidden}
+.wm-realm-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 7px 7px #16072e99);transition:transform .35s}
+.wm-realm:active .wm-realm-art img{transform:scale(1.06)}
+.wm-realm-art i{position:absolute;top:3px;left:7px;font-size:21px;font-style:normal;text-shadow:0 2px 7px #241044}
+.wm-realm-art em{position:absolute;top:4px;right:7px;font-size:20px;font-style:normal;text-shadow:0 2px 7px #241044}
+.wm-realm-kicker{font-size:8px;font-weight:900;color:#ffe9a8;letter-spacing:.2px}
+.wm-realm strong{font-size:clamp(11px,3vw,14px);line-height:1.5;text-align:center;color:#fff1bd;text-shadow:0 2px 4px #17072e}
+.wm-realm small{font-size:8px;line-height:1.5;text-align:center;color:#f4e9ff}
+.wm-realm-status{margin-top:3px;font-size:9px;font-weight:900;color:#fff}
+.wm-realm-progress{width:88%;height:6px;margin-top:2px;border:1px solid #fff5;border-radius:9px;background:#1b0a37;overflow:hidden}
+.wm-realm-progress i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#ff83c7,#ffe58d);box-shadow:0 0 9px #ffe58d}
+.wm-realm-range{font-size:8px;color:#e6d5ff}
+.wm-realm.active{border:2px solid #ffe68d;box-shadow:0 0 20px #ffe38a66,inset 0 1px #fff;animation:realmArrive .42s ease both,realmGlow 1.8s ease-in-out infinite alternate}
+.wm-realm.done{background:linear-gradient(155deg,#eaffd9e8,#55bca0dc 35%,#214c5aee 100%)}
+.wm-realm.done .wm-realm-kicker,.wm-realm.done .wm-realm-status{color:#fff6c5}
+.wm-realm.locked{filter:saturate(.58);opacity:.76}
+.wm-footer{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 15px calc(11px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#17082fee,#17082f00);font-size:9px;font-weight:800;color:#ffe7a5;text-shadow:0 2px 4px #16072e}
+.wm-footer button{width:auto;height:33px;padding:0 13px;border-radius:12px;font-size:11px}.wm-footer button.hidden{display:none}
+.wm-house-title{position:relative;display:flex;max-width:400px;min-height:150px;margin:5px auto 14px;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;padding:10px 16px;border:1px solid #ffe8adbb;border-radius:22px;background:linear-gradient(145deg,#fff0dce8,#9d68c9dd 42%,#35175eeb);box-shadow:inset 0 1px #fff9,0 9px 22px #16072e99;text-align:center}
+.wm-house-title img{width:145px;height:92px;object-fit:contain;filter:drop-shadow(0 6px 8px #16072e99)}
+.wm-house-title span{position:absolute;top:9px;right:15px;font-size:24px}
+.wm-house-title b{font-size:16px;color:#fff0b5;text-shadow:0 2px 4px #3a1659}
+.wm-house-title small{font-size:10px;color:#f3e3ff}
+.wm-houses{position:relative;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(10,64px);gap:8px 6px;width:100%;max-width:410px;margin:0 auto;padding:8px 3px 26px}
+.wm-route{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;pointer-events:none}
+.wm-route polyline{fill:none;stroke:#ffe18a;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:3 15;filter:drop-shadow(0 0 5px #ffe7a4)}
+.wm-house{position:relative;z-index:1;display:flex;width:100%;height:58px;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:0;border:1px solid #ffe5a777;border-radius:17px;background:linear-gradient(150deg,#9c70c7,#3a1c6b);color:#fff;box-shadow:inset 0 1px #fff8,0 5px 0 #170b38,0 7px 12px #12062677;animation:houseArrive .32s ease both}
+.wm-house span{font-size:15px;line-height:18px}.wm-house b{font:900 14px Georgia,serif;color:#fff4d2}
+.wm-house.current{transform:scale(1.1);z-index:2;border:2px solid #fff0a6;background:linear-gradient(150deg,#fff1a9,#e69b43);box-shadow:0 0 17px #ffdc75bb,0 5px 0 #8a4a2e;animation:houseGlow 1.7s ease-in-out infinite alternate}
+.wm-house.current b{color:#60304e}
+.wm-house.done{background:linear-gradient(150deg,#baf5d5,#318e81);border-color:#e3ffe9}
+.wm-house.done b{color:#104b50}
+.wm-house.locked{filter:grayscale(.7);opacity:.56}
+.wm-house.checkpoint{border-color:#ffe5a7;background:linear-gradient(145deg,#f6ce72,#a94c91);box-shadow:inset 0 1px #fff9,0 5px 0 #60304e,0 0 10px #ffdb7b55}
+.wm-house.checkpoint b{color:#fff7d8}
 body.map-open .game-shell{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-@media(min-width:560px){.wm-world{max-width:560px;margin:auto;width:100%}.wm-houses{gap:12px}}
-@media(max-height:650px){.wm-header{padding-top:calc(7px + env(safe-area-inset-top));padding-bottom:5px}.wm-castle{min-height:140px}.wm-island{height:85px}}
-
-/* Stage route map: winding numbered path */
-.wm-world{display:block;transform:none!important;zoom:var(--wm-scale,1);padding:10px 14px 28px}
-.wm-house-title{margin:4px auto 14px;max-width:360px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(145deg,#fff1d9dd,#4d267bdc);box-shadow:0 8px 22px #16082e66}
-.wm-house-title img{width:118px;height:94px;object-fit:contain;filter:drop-shadow(0 6px 8px #16082c88)}
-.wm-house-title b{font-size:17px;color:#ffe8a6}
-.wm-houses{position:relative;max-width:390px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(10,64px);gap:8px 6px;padding:8px 2px 24px}
-.wm-houses:before{display:none}.wm-route{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;pointer-events:none}.wm-route polyline{fill:none;stroke:#ffe18a;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:3 15;filter:drop-shadow(0 0 5px #ffe7a4)}
-.wm-house{position:relative;z-index:1;width:100%;height:58px;min-width:0;aspect-ratio:auto;border-radius:17px;background:linear-gradient(150deg,#8b61bd,#32175e);box-shadow:inset 0 1px #fff8,0 5px 0 #170b38,0 7px 12px #12062677}
-.wm-house span{font-size:15px}.wm-house b{font-size:14px}
-.wm-house.current{transform:scale(1.12);z-index:2;animation:houseGlow 1.7s ease-in-out infinite alternate}
-.wm-house.done{background:linear-gradient(150deg,#b4f4d5,#318e81)}
-.wm-house.locked{opacity:.56}
+@keyframes realmArrive{from{opacity:0;transform:translateY(9px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes realmGlow{from{box-shadow:0 0 9px #ffe58c66,inset 0 1px #fff}to{box-shadow:0 0 24px #fff0a4aa,inset 0 1px #fff}}
+@keyframes houseArrive{from{opacity:.35;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes houseGlow{from{filter:brightness(1);box-shadow:0 0 9px #ffe58c,0 5px 0 #874b28}to{filter:brightness(1.2);box-shadow:0 0 22px #fff0a4,0 5px 0 #874b28}}
-@media(max-width:380px){.wm-houses{grid-template-rows:repeat(10,56px);gap:7px 4px}.wm-house{height:51px}}
-
-.wm-house{animation:houseArrive .32s ease both}.wm-house:nth-of-type(2n){animation-delay:.025s}@keyframes houseArrive{from{opacity:.35;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(prefers-reduced-motion:reduce){.wm-house{animation:none!important}}
+@media(min-width:560px){.wm-world{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.wm-realm{min-height:245px}.wm-realm-art{height:132px}}
+@media(max-width:380px){.wm-world{gap:9px 7px;padding-inline:9px}.wm-realm{min-height:210px;padding:7px 5px 9px}.wm-realm-art{height:102px}.wm-houses{grid-template-rows:repeat(10,56px);gap:7px 4px}.wm-house{height:51px}}
+@media(max-height:650px){.wm-header{padding-top:calc(7px + env(safe-area-inset-top));padding-bottom:5px}.wm-realm{min-height:190px}.wm-realm-art{height:88px}.wm-house-title{min-height:115px}.wm-house-title img{height:65px}}
+@media(prefers-reduced-motion:reduce){.wm-realm,.wm-house{animation:none!important}}
