@@ -241,7 +241,7 @@ function setupScene(){
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
   // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
-  engine.setHardwareScalingLevel(Math.max(1/deviceRatio,1/1.25));
+  engine.setHardwareScalingLevel(1.5); // Mobile-first: render below device pixel density to reduce GPU load.
   engine.enableOfflineSupport=false;
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
@@ -254,7 +254,7 @@ function setupScene(){
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   // Keep the scene lightweight on mobile: two lights, no full-screen glow post-process.
   makeBoard();bindInput();
-  renderLoop=()=>{if(!document.hidden)scene.render();};
+  let lastRenderAt=0;renderLoop=()=>{if(document.hidden)return;const now=performance.now();if(now-lastRenderAt<1000/30)return;lastRenderAt=now;scene.render();};
   engine.runRenderLoop(renderLoop);
   window.CMRPauseGameRender=()=>{if(engine&&renderLoop)engine.stopRenderLoop(renderLoop);};
   window.CMRResumeGameRender=()=>{if(engine&&renderLoop&&!document.hidden)engine.runRenderLoop(renderLoop);};
