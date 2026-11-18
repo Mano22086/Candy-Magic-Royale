@@ -148,6 +148,27 @@ function loadCandyTrim(type){
   });
 }
 function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
+async function preloadCandyTextures(){
+  // Finish loading every custom candy PNG and its Babylon GPU texture before
+  // creating the first board. This prevents the temporary primitive candies
+  // from flashing on screen while the real artwork streams in.
+  await preloadCandyArt();
+  const jobs=Object.keys(candyImages).map(type=>{
+    const material=candySpriteMaterial(Number(type));
+    const texture=spriteTextures[type];
+    if(!texture||texture.isReady())return Promise.resolve();
+    return new Promise(resolve=>{
+      let done=false;
+      const finish=()=>{if(done)return;done=true;resolve();};
+      texture.onLoadObservable.addOnce(finish);
+      texture.onErrorObservable.addOnce(finish);
+      // A missing asset must not block the game forever; it will use its
+      // existing 3D fallback only after the loading screen timeout.
+      setTimeout(finish,8000);
+    });
+  });
+  await Promise.all(jobs);
+}
 // -------------------------------------------------------------------------
 
 function candySpriteMaterial(type){
@@ -991,11 +1012,15 @@ function setBoardBackground(level){
   art.src="./assets/board-bg-0"+index+".svg";art.dataset.background=String(index);
 }
 async function start(){
-  loadProgress();setupScene();
-  // Build the playable board immediately; PNG artwork loads progressively over the 3D fallback.
+  loadProgress();
+  const loading=$("loading");
+  if(loading){loading.style.display="grid";loading.textContent="جاري تجهيز الحلوى الملكية...";}
+  setupScene();
+  // Do not create placeholder 3D candies. Wait until the six supplied PNG
+  // textures are ready, then reveal the board with the correct artwork only.
+  await preloadCandyTextures();
   buildGrid();bindUI();updateHud();startHeartClock();startBusyWatchdog();
-  const loading=$("loading");if(loading)loading.style.display="none";
-  // Artwork textures are requested once per candy type and reveal over the fallback as they arrive.
+  if(loading)loading.style.display="none";
   refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
   checkEnd();
