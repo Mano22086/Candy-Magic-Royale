@@ -150,8 +150,7 @@ function loadCandyTrim(type){
 function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
 async function preloadCandyTextures(){
   // Load the supplied PNGs before creating the first board. Some Babylon.js
-  // CDN builds do not expose onLoadObservable on Texture, so wait safely
-  // for isReady() instead of calling addOnce on an undefined property.
+  // Poll texture readiness instead of relying on optional Babylon observables.
   await preloadCandyArt();
   await Promise.all(Object.keys(candyImages).map(async type=>{
     candySpriteMaterial(Number(type));
@@ -241,8 +240,12 @@ function candyMesh(r,c,type,special){
       body.setEnabled(false);
       shine.setEnabled(false);
     };
-    if(texture?.isReady())revealArtwork();
-    else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealArtwork);
+    const revealWhenReady=()=>{
+      if(root.isDisposed?.())return;
+      if(texture&&texture.isReady()){revealArtwork();return;}
+      if(texture)setTimeout(revealWhenReady,60);
+    };
+    revealWhenReady();
   }
 
   if(special){
@@ -268,8 +271,12 @@ function candyMesh(r,c,type,special){
     art.isVisible=false;
     const texture=specialSpriteTextures[spriteKey];
     const revealSpecial=()=>{if(root.isDisposed?.())return;art.isVisible=true;for(const child of root.getChildMeshes())if(child!==art)child.setEnabled(false);};
-    if(texture?.isReady())revealSpecial();
-    else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealSpecial);
+    const revealSpecialWhenReady=()=>{
+      if(root.isDisposed?.())return;
+      if(texture&&texture.isReady()){revealSpecial();return;}
+      if(texture)setTimeout(revealSpecialWhenReady,60);
+    };
+    revealSpecialWhenReady();
   }
   if(special&&!specialSpritePath){
     const mat=(key,color,emissive=color)=>{if(!specialMaterials[key]){const m=new BABYLON.StandardMaterial("specialArt_"+key,scene);m.diffuseColor=color;m.emissiveColor=emissive;m.specularColor=new BABYLON.Color3(.9,.9,.9);m.specularPower=64;specialMaterials[key]=m;}return specialMaterials[key];};
