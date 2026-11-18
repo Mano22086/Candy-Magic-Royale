@@ -40,7 +40,7 @@ function playSfx(kind){
     audioContext=audioContext||new AudioCtx();
     if(audioContext.state==="suspended")void audioContext.resume();
     const osc=audioContext.createOscillator(),gain=audioContext.createGain();
-    const tones={match:660,coin:880,tap:440,win:990,lose:180};
+    const tones={match:660,coin:880,tap:440,win:990,lose:180,bomb:150,rocket:760,color:1080};
     osc.type="sine";osc.frequency.value=tones[kind]||520;
     gain.gain.setValueAtTime(.0001,audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(.07,audioContext.currentTime+.012);
@@ -68,6 +68,7 @@ const spriteTextures={};
 let shineSharedMaterial=null;
 const specialRingSharedMaterials={};
 const specialMaterials={};
+let shockwaveMaterial=null;
 const burstSharedMaterials={};
 const candyImages={
   1:"./01_star_gold.png",
@@ -341,6 +342,7 @@ function useSelectedBooster(cell){
         const targetType=anchor.type;
         for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===targetType)cells.add(r+","+c);
       }
+      shockwaveAt(anchor.mesh.position,kind);playSfx(kind==="bomb"?"bomb":kind==="rocket"?"rocket":"color");
       for(const key of cells){
         const [r,c]=key.split(",").map(Number),it=state.grid[r][c];if(!it)continue;
         burstAt(it.mesh.position,it.type);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
@@ -463,6 +465,7 @@ function findSpecialCandidate(matches){
 }
 async function activateSpecial(a,b){
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
+  if(A?.special||B?.special){const kind=A?.special||B?.special;playSfx(kind==="wrapped"?"bomb":kind==="striped"?"rocket":"color");shockwaveAt((A?.special?A:B).mesh.position,kind);}
   const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
   const addCross=cell=>{for(let k=0;k<COLS;k++)cells.add(cell.r+","+k);for(let k=0;k<ROWS;k++)cells.add(k+","+cell.c);};
   if(A?.special==="color"&&B?.special==="color"){
@@ -601,6 +604,19 @@ async function settle(){
     say("تم ترتيب اللوحة تلقائيًا عشان تقدر تكمل اللعب.");
   }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   updateHud();
+}
+function shockwaveAt(position,kind){
+  const colors={wrapped:new BABYLON.Color3(1,.55,.12),striped:new BABYLON.Color3(.18,.82,1),color:new BABYLON.Color3(.85,.3,1),bomb:new BABYLON.Color3(1,.55,.12),rocket:new BABYLON.Color3(.18,.82,1)};
+  const color=colors[kind]||new BABYLON.Color3(1,.8,.3);
+  const ring=BABYLON.MeshBuilder.CreateTorus("specialShockwave",{diameter:1,thickness:.045,tessellation:32},scene);
+  ring.position=position.clone();ring.position.y+=.55;ring.rotation.x=Math.PI/2;ring.scaling.setAll(.12);ring.isPickable=false;
+  const material=new BABYLON.StandardMaterial("specialShockMaterial",scene);material.diffuseColor=color;material.emissiveColor=color;material.alpha=.9;ring.material=material;
+  const started=performance.now(),duration=360;
+  const observer=scene.onBeforeRenderObservable.add(()=>{
+    if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
+    const t=Math.min(1,(performance.now()-started)/duration);ring.scaling.setAll(.12+2.1*t);material.alpha=.9*(1-t);
+    if(t>=1){scene.onBeforeRenderObservable.remove(observer);ring.dispose();material.dispose();}
+  });
 }
 function burstAt(position,type){
   // Reuse one material per candy type and keep the particle count low on mobile.
@@ -797,6 +813,7 @@ function nextLevel(){
   state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;
   const hammerButton=$("hammerBtn")||$("bombBtn");
   if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
+  refreshBoosterBadges();
   const movesButton=$("movesBtn");
   if(movesButton){const count=movesButton.querySelector("small");if(count)count.textContent=state.extra;movesButton.disabled=false;}
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
@@ -820,7 +837,7 @@ function ensureShop(){
   trigger.setAttribute("aria-label","المتجر");trigger.textContent="🛍️";
   coinsButton.insertAdjacentElement("afterend",trigger);
   const modal=document.createElement("div");modal.id="royalShop";modal.className="royal-shop hidden";
-  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">🔨</span><div><b>مطارق إضافية</b><small>+3 مطارق · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
+  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>قنابل إضافية</b><small>+3 قنابل · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
   document.body.appendChild(modal);
   const close=()=>modal.classList.add("hidden");
   trigger.addEventListener("click",()=>{refreshShop();modal.classList.remove("hidden");});
