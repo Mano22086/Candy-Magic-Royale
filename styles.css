@@ -773,3 +773,8 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 
 /* 7x8 BOARD: canvas now covers all 8 rows of the printed checkerboard (7 columns x 8 rows) */
 .art-board-wrap{left:7.5%!important;top:32.7%!important;width:85%!important;height:49.1%!important}
+
+.art-booster .booster-icon{width:74%;height:74%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 3px #260b48)}
+.art-booster.active{outline:2px solid #ffe27c;box-shadow:0 0 16px #ffdf70aa;background:#fff2}
+.art-booster:disabled{opacity:.38;filter:grayscale(1)}
+.result-actions{display:flex;gap:10px;margin-top:10px}.result-actions button{flex:1;border:1px solid #e9caff66;border-radius:11px;padding:10px 8px;background:#63368b;color:#fff;font-weight:800}.result-actions button:disabled{opacity:.4}
