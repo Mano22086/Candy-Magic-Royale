@@ -2,7 +2,6 @@
 const KEY="cmr_reborn_v1";
 const names=["مملكة الملكة","مملكة الشوكولاتة","مملكة الفراولة","مملكة الآيس كريم","مملكة الكراميل","مملكة التوت","مملكة النجوم","مملكة الياقوت","مملكة الغيوم","مملكة السكر"];
 const themes=["👑","🍫","🍓","🍦","🍮","🫐","⭐","💎","☁️","🍬"];
-const castleArts=["queen","chocolate","strawberry","ice","caramel","berry"];
 let overlay,scale=1,currentCastle=0;
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(_){return {}}};
 const level=()=>{const x=read();return Math.max(1,Math.floor(Number(x.level)||1)+(x.completed?1:0))};
@@ -20,12 +19,12 @@ function zoom(delta){scale=Math.max(.72,Math.min(1.35,scale+delta));const world=
 function show(){ensure();overlay.classList.remove("hidden");document.body.classList.add("map-open");window.CMRPauseGameRender?.();renderHouses(castle())}
 function hide(){overlay?.classList.add("hidden");document.body.classList.remove("map-open");window.CMRResumeGameRender?.()}
 function renderWorld(){ensure();const c=castle(),w=overlay.querySelector("#wmWorld");currentCastle=-1;overlay.querySelector("#wmBack").classList.add("hidden");overlay.querySelector("#wmSubtitle").textContent="رحلتك بين القصور السحرية";w.innerHTML="";
-let next=Math.max(0,c-2);const addCard=i=>{const done=i<c,active=i===c,locked=i>c,card=document.createElement("button");card.className="wm-castle "+(done?"done":active?"active":"locked");card.style.setProperty("--island",i%4);const castleArt=castleArts[i%castleArts.length];card.innerHTML='<span class="wm-island"><img class="wm-castle-image" src="./assets/castle-'+castleArt+'.svg" alt=""><i>'+themes[i%themes.length]+'</i><em>'+(done?"✓":locked?"🔒":"✦")+'</em></span><strong>القصر '+(i+1)+' · '+label(i)+'</strong><small>'+(done?"اكتمل القصر":active?"القصر الحالي":"افتحه بعد إكمال القصر السابق")+'</small>';card.onclick=()=>{if(locked){toast("كمّل الـ 50 بيت في القصر الحالي الأول");return}renderHouses(i)};w.appendChild(card)};
+let next=Math.max(0,c-2);const addCard=i=>{const done=i<c,active=i===c,locked=i>c,card=document.createElement("button");card.className="wm-castle "+(done?"done":active?"active":"locked");card.style.setProperty("--island",i%4);const castleArt=["queen","chocolate","ice"][i%3];card.innerHTML='<span class="wm-island"><img class="wm-castle-image" src="./assets/castle-'+castleArt+'.svg" alt=""><i>'+themes[i%themes.length]+'</i><em>'+(done?"✓":locked?"🔒":"✦")+'</em></span><strong>القصر '+(i+1)+' · '+label(i)+'</strong><small>'+(done?"اكتمل القصر":active?"القصر الحالي":"افتحه بعد إكمال القصر السابق")+'</small>';card.onclick=()=>{if(locked){toast("كمّل الـ 50 بيت في القصر الحالي الأول");return}renderHouses(i)};w.appendChild(card)};
 for(;next<c+7;next++)addCard(next);
 const scroller=overlay.querySelector("#wmScroll");scroller.onscroll=()=>{if(scroller.scrollTop+scroller.clientHeight>=scroller.scrollHeight-220){for(let j=0;j<6;j++)addCard(next++);}};
 w.style.setProperty("--wm-scale",scale);
 }
-function renderHouses(c){ensure();overlay.querySelector("#wmScroll").onscroll=null;currentCastle=c;const w=overlay.querySelector("#wmWorld"),activeCastle=castle(),h=house();overlay.querySelector("#wmBack").classList.remove("hidden");overlay.querySelector("#wmSubtitle").textContent="القصر "+(c+1)+" — 50 بيت سحري";w.innerHTML='<div class="wm-house-title"><img src="./assets/castle-'+castleArts[c%castleArts.length]+'.svg" alt=""><b>'+label(c)+'</b><small>اختار البيت التالي — '+(c===activeCastle?h:50)+' من 50</small></div><div class="wm-houses" id="wmHouses"></div>';
+function renderHouses(c){ensure();overlay.querySelector("#wmScroll").onscroll=null;currentCastle=c;const w=overlay.querySelector("#wmWorld"),activeCastle=castle(),h=house();overlay.querySelector("#wmBack").classList.remove("hidden");overlay.querySelector("#wmSubtitle").textContent="القصر "+(c+1)+" — 50 بيت سحري";w.innerHTML='<div class="wm-house-title"><img src="./assets/castle-'+["queen","chocolate","ice"][c%3]+'.svg" alt=""><b>'+label(c)+'</b><small>اختار البيت التالي — '+(c===activeCastle?h:50)+' من 50</small></div><div class="wm-houses" id="wmHouses"></div>';
 const grid=w.querySelector("#wmHouses");
 const route=document.createElementNS("http://www.w3.org/2000/svg","svg");
 route.setAttribute("class","wm-route");route.setAttribute("viewBox","0 0 500 740");route.setAttribute("preserveAspectRatio","none");route.setAttribute("aria-hidden","true");
