@@ -61,6 +61,8 @@ function startHeartClock(){
 }
 let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
+const activeAnimations=new Set();
+let animationFrame=0;
 const spriteMaterials={};
 const spriteTextures={};
 let shineSharedMaterial=null;
@@ -207,14 +209,22 @@ function candyMesh(r,c,type,special){
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
 }
+function runAnimations(now){
+  animationFrame=0;
+  for(const job of activeAnimations){
+    if(!job.mesh||job.mesh.isDisposed?.()){
+      activeAnimations.delete(job);job.resolve();continue;
+    }
+    const t=Math.min(1,(now-job.begin)/job.duration),e=1-Math.pow(1-t,3);
+    job.mesh.position.copyFrom(BABYLON.Vector3.Lerp(job.start,job.target,e));
+    if(t>=1){activeAnimations.delete(job);job.resolve();}
+  }
+  if(activeAnimations.size)animationFrame=requestAnimationFrame(runAnimations);
+}
 function animate(mesh,target,duration=170){
   return new Promise(resolve=>{
-    const start=mesh.position.clone(),begin=performance.now();
-    const tick=()=>{
-      const t=Math.min(1,(performance.now()-begin)/duration),e=1-Math.pow(1-t,3);
-      mesh.position=BABYLON.Vector3.Lerp(start,target,e);
-      if(t<1)requestAnimationFrame(tick);else resolve();
-    };requestAnimationFrame(tick);
+    activeAnimations.add({mesh,start:mesh.position.clone(),target:target.clone(),duration,begin:performance.now(),resolve});
+    if(!animationFrame)animationFrame=requestAnimationFrame(runAnimations);
   });
 }
 function makeBoard(){ /* The uploaded artwork supplies the empty 7x8 board and frame. */ }
@@ -244,7 +254,6 @@ function setupScene(){
   document.addEventListener("visibilitychange",()=>{if(!document.hidden&&engine)engine.resize();});
   window.addEventListener("resize",()=>engine.resize());
   requestAnimationFrame(()=>engine.resize());
-  $("loading").style.display="none";
 }
 function randomType(r,c){
   let t=rand(),tries=0;
@@ -441,7 +450,16 @@ async function dropAndRefill(){
   for(let c=0;c<COLS;c++){
     let write=ROWS-1;
     for(let r=ROWS-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};falling.push(animate(it.mesh,pos(write,c),170));}write--;}}
-    for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};falling.push(animate(mesh,pos(r,c),230));}
+    for(let r=write;r>=0;r--){
+      const type=rand(),mesh=candyMesh(r,c,type,null);
+      // New candies always enter from above the top edge, then fall down into gaps.
+      const target=pos(r,c);
+      const rowsAbove=write-r+1;
+      mesh.position=new BABYLON.Vector3(target.x,.17,target.z-SPACING*(rowsAbove+0.8));
+      state.grid[r][c]={type:type,special:null,mesh:mesh};
+      mesh.metadata={r:r,c:c,candy:true};
+      falling.push(animate(mesh,target,Math.min(300,180+rowsAbove*24)));
+    }
   }
   await Promise.all(falling);
   await wait(80);
@@ -726,11 +744,10 @@ function bindUI(){
 }
 async function start(){
   loadProgress();setupScene();
-  // Measure the visible area of each candy image first so all candies share one size.
-  await preloadCandyArt();
+  // Build the playable board immediately; PNG artwork loads progressively over the 3D fallback.
   buildGrid();bindUI();updateHud();startHeartClock();
-  // Download the candy models progressively, one at a time, while the board is playable.
-  void // Candy artwork is loaded lazily by the board materials; no GLB models are requested.
+  const loading=$("loading");if(loading)loading.style.display="none";
+  // Artwork textures are requested once per candy type and reveal over the fallback as they arrive.
   refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
   checkEnd();
