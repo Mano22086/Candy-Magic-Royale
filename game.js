@@ -72,6 +72,43 @@ const candyImages={
   6:"./assets/models/Picsart_26-11-17_03-33-19-702.png"
 };
 const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
+
+// ---- Unified candy size -------------------------------------------------
+// Each PNG has a different amount of transparent padding. We detect the real
+// visible area of every image, crop to it, and fit it into the same square.
+const CANDY_FIT=0.88;      // candy size relative to its board cell (0.80 - 0.95)
+const candyTrim={};
+function loadCandyTrim(type){
+  return new Promise(resolve=>{
+    const src=candyImages[type];
+    if(!src){resolve();return;}
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const w=img.naturalWidth,h=img.naturalHeight;
+        const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+        const ctx=cv.getContext("2d");ctx.drawImage(img,0,0);
+        const d=ctx.getImageData(0,0,w,h).data;
+        let x0=w,y0=h,x1=-1,y1=-1;
+        for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+          if(d[(y*w+x)*4+3]>40){
+            if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
+          }
+        }
+        if(x1>=x0&&y1>=y0){
+          x1++;y1++;
+          candyTrim[type]={u0:x0/w,u1:x1/w,v0:1-y1/h,v1:1-y0/h,ratio:(x1-x0)/(y1-y0)};
+        }
+      }catch(e){console.warn("Candy trim failed",type,e);}
+      resolve();
+    };
+    img.onerror=()=>resolve();
+    img.src=src;
+  });
+}
+function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
+// -------------------------------------------------------------------------
+
 function candySpriteMaterial(type){
   if(spriteMaterials[type])return spriteMaterials[type];
   const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+type,scene);
@@ -91,12 +128,6 @@ function candySpriteMaterial(type){
   texture.hasAlpha=true;
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  // Type 3 is the tiny red curved candy: crop transparent padding so its
-  // visible artwork matches the visual footprint of the other candies.
-  if(Number(type)===3){
-    texture.uScale=1.18;texture.vScale=1.18;
-    texture.uOffset=-.09;texture.vOffset=-.09;
-  }
   mat.diffuseTexture=texture;
   spriteTextures[type]=texture;
   spriteMaterials[type]=mat;
@@ -130,11 +161,14 @@ function candyMesh(r,c,type,special){
 
   const artworkPath=candyImages[type];
   if(artworkPath){
-    const ratio=candyImageRatios[type]||1;
-    const maxSide=SPACING*.94;
+    const trim=candyTrim[type];
+    const ratio=trim?trim.ratio:(candyImageRatios[type]||1);
+    const maxSide=SPACING*CANDY_FIT;
     const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
     const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
-    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:artworkWidth,height:artworkHeight},scene);
+    const planeOpts={width:artworkWidth,height:artworkHeight};
+    if(trim)planeOpts.frontUVs=new BABYLON.Vector4(trim.u0,trim.v0,trim.u1,trim.v1);
+    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,planeOpts,scene);
     artwork.parent=root;
     // Board coordinates lie on XZ and the camera looks down from above.
     // Lay the candy artwork flat above the 3D body instead of edge-on.
@@ -632,7 +666,10 @@ function bindUI(){
   });
 }
 async function start(){
-  loadProgress();setupScene();buildGrid();bindUI();updateHud();startHeartClock();
+  loadProgress();setupScene();
+  // Measure the visible area of each candy image first so all candies share one size.
+  await preloadCandyArt();
+  buildGrid();bindUI();updateHud();startHeartClock();
   // Download the candy models progressively, one at a time, while the board is playable.
   void // Candy artwork is loaded lazily by the board materials; no GLB models are requested.
   refreshBoosterBadges();
