@@ -556,7 +556,7 @@ async function useHammer(cell){
     burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
     state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
     refreshBoosterBadges();
-    state.booster=null;$("hammerBtn").classList.remove("active");
+    state.booster=null;const hammerButton=$("hammerBtn")||$("bombBtn");if(hammerButton)hammerButton.classList.remove("active");
     const replacement={type:rand(),special:null,mesh:null};
     replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
     replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
@@ -614,8 +614,10 @@ function shuffle(){
 function nextLevel(){
   if(!state.won||state.score<state.target)return;
   state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
-  $("hammerBtn").querySelector("small").textContent=state.hammer;$("hammerBtn").disabled=false;
-  $("movesBtn").querySelector("small").textContent=state.extra;$("movesBtn").disabled=false;
+  const hammerButton=$("hammerBtn")||$("bombBtn");
+  if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
+  const movesButton=$("movesBtn");
+  if(movesButton){const count=movesButton.querySelector("small");if(count)count.textContent=state.extra;movesButton.disabled=false;}
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
   $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
   for(const row of state.grid)for(const item of row)if(item?.mesh)item.mesh.dispose();
@@ -624,9 +626,9 @@ function nextLevel(){
 }
 
 function refreshBoosterBadges(){
-  const hammer=$("hammerBtn"),moves=$("movesBtn");
-  if(hammer){hammer.querySelector("small").textContent=state.hammer;hammer.disabled=state.hammer<=0;}
-  if(moves){moves.querySelector("small").textContent=state.extra;moves.disabled=state.extra<=0;}
+  const hammer=$("hammerBtn")||$("bombBtn"),moves=$("movesBtn");
+  if(hammer){const count=hammer.querySelector("small");if(count)count.textContent=state.hammer;hammer.disabled=state.hammer<=0;}
+  if(moves){const count=moves.querySelector("small");if(count)count.textContent=state.extra;moves.disabled=state.extra<=0;}
 }
 function ensureShop(){
   if($("royalShop"))return;
@@ -659,21 +661,23 @@ function refreshShop(){const wallet=$("shopCoins");if(wallet)wallet.textContent=
 
 function bindUI(){
   ensureShop();
-  $("restartBtn").addEventListener("click",restart);
-  $("nextBtn").addEventListener("click",nextLevel);
-  $("resultButton").addEventListener("click",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
-  $("hammerBtn").addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";$("hammerBtn").classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
-  $("shuffleBtn").addEventListener("click",shuffle);
-  $("movesBtn").addEventListener("click",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
-  $("plusCoins").addEventListener("click",()=>{
+  const bind=(id,handler)=>{const el=$(id);if(el)el.addEventListener("click",handler);};
+  bind("restartBtn",restart);
+  bind("nextBtn",nextLevel);
+  bind("resultButton",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
+  const hammerButton=$("hammerBtn")||$("bombBtn");
+  if(hammerButton)hammerButton.addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";hammerButton.classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
+  bind("shuffleBtn",shuffle);
+  bind("movesBtn",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
+  bind("plusCoins",()=>{
     const today=new Date().toISOString().slice(0,10),key="cmr_daily_reward_v1";
     let claimed="";try{claimed=localStorage.getItem(key)||"";}catch(e){}
     if(claimed===today){say("استلمت مكافأة النهارده بالفعل. ارجع بكرة!");return;}
     state.coins+=100;try{localStorage.setItem(key,today);}catch(e){}
     updateHud();saveProgress(false);playSfx("coin");say("مكافأة يومية: +100 عملة ذهبية!");
   });
-  $("soundBtn").addEventListener("click",()=>{
-    soundEnabled=!soundEnabled;$("soundBtn").textContent=soundEnabled?"♫":"🔇";
+  bind("soundBtn",()=>{
+    soundEnabled=!soundEnabled;const soundButton=$("soundBtn");soundButton.textContent=soundEnabled?"♫":"🔇";
     if(soundEnabled)playSfx("tap");say(soundEnabled?"الصوت اتفتح":"الصوت اتقفل");
   });
 }
