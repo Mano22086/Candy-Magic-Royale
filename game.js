@@ -440,9 +440,9 @@ async function swap(a,b){
     await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
     state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
     A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-    if(A.special||B.special){
-      await activateSpecial(a,b);state.moves--;updateHud();await settle();
-    }else if(findMatches().size===0){
+    // Special candies are not activated by swapping or touching another candy.
+    // The swap is valid only when the resulting board contains a real 3+ same-type match.
+    if(findMatches().size===0){
       await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
       state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
       A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
@@ -452,13 +452,19 @@ async function swap(a,b){
 }
 function findMatches(){
   const found=new Set();
+  // Special candies count as their own candy type in a line, but never match
+  // with a different color. A special is eligible only as part of a 3+ run.
   for(let r=0;r<ROWS;r++){
-    let c=0;while(c<COLS){const item=state.grid[r][c];if(!item||item.special){c++;continue;}let end=c+1;while(end<COLS&&state.grid[r][end]&&!state.grid[r][end].special&&state.grid[r][end].type===item.type)end++;
+    let c=0;while(c<COLS){
+      const item=state.grid[r][c];if(!item){c++;continue;}
+      let end=c+1;while(end<COLS&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
       if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
     }
   }
   for(let c=0;c<COLS;c++){
-    let r=0;while(r<ROWS){const item=state.grid[r][c];if(!item||item.special){r++;continue;}let end=r+1;while(end<ROWS&&state.grid[end][c]&&!state.grid[end][c].special&&state.grid[end][c].type===item.type)end++;
+    let r=0;while(r<ROWS){
+      const item=state.grid[r][c];if(!item){r++;continue;}
+      let end=r+1;while(end<ROWS&&state.grid[end][c]&&state.grid[end][c].type===item.type)end++;
       if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
     }
   }
@@ -607,8 +613,28 @@ async function settle(){
     if(hasHoles())await dropAndRefill();
     const matches=findMatches();if(matches.size===0)break;
     chain++;playSfx("match");
+    // Only specials that are themselves inside a confirmed 3+ same-type match fire.
+    // Their blast expands the clear set; merely touching/swapping a special never does.
+    const matchedSpecials=[];
+    for(const key of matches){
+      const [r,c]=key.split(",").map(Number),item=state.grid[r][c];
+      if(item?.special)matchedSpecials.push({r,c,item});
+    }
+    for(const {r,c,item} of matchedSpecials){
+      if(item.special==="wrapped"){
+        for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))matches.add(y+","+x);
+        playSfx("bomb");shockwaveAt(item.mesh.position,"wrapped");
+      }else if(item.special==="striped"){
+        for(let x=0;x<COLS;x++)matches.add(r+","+x);
+        for(let y=0;y<ROWS;y++)matches.add(y+","+c);
+        playSfx("rocket");shockwaveAt(item.mesh.position,"striped");
+      }else if(item.special==="color"){
+        for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(state.grid[y][x]?.type===item.type)matches.add(y+","+x);
+        playSfx("color");shockwaveAt(item.mesh.position,"color");
+      }
+    }
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
-    const specialCandidate=chain===1?findSpecialCandidate(matches):null;
+    const specialCandidate=matchedSpecials.length===0&&chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
     const keep=specialCandidate?.cell||null;
     for(const p of remove){
