@@ -254,7 +254,7 @@ function setupScene(){
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
   // Keep the scene lightweight on mobile: two lights, no full-screen glow post-process.
   makeBoard();bindInput();
-  let lastRenderAt=0;renderLoop=()=>{if(document.hidden)return;const now=performance.now();if(now-lastRenderAt<1000/30)return;lastRenderAt=now;scene.render();};
+  let lastRenderAt=0;renderLoop=()=>{if(document.hidden)return;const now=performance.now();if(now-lastRenderAt<1000/60)return;lastRenderAt=now;scene.render();};
   engine.runRenderLoop(renderLoop);
   window.CMRPauseGameRender=()=>{if(engine&&renderLoop)engine.stopRenderLoop(renderLoop);};
   window.CMRResumeGameRender=()=>{if(engine&&renderLoop&&!document.hidden)engine.runRenderLoop(renderLoop);};
