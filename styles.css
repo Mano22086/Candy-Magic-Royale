@@ -758,3 +758,14 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 .art-booster:disabled{opacity:.38;filter:grayscale(1)}
 .result-actions{display:flex;gap:10px;margin-top:10px}.result-actions button{flex:1;border:1px solid #e9caff66;border-radius:11px;padding:10px 8px;background:#63368b;color:#fff;font-weight:800}.result-actions button:disabled{opacity:.4}
 #renderCanvas{touch-action:none;}
+
+/* Special candy selection feedback and smooth lightweight character motion */
+.art-hero img#queen,.art-hero img#dragon{transform-origin:50% 85%;backface-visibility:hidden;will-change:transform}
+.art-hero img#queen{animation:queenIdleMotion 3.8s ease-in-out infinite}
+.art-hero img#dragon{animation:dragonIdleMotion 2.8s ease-in-out infinite}
+.art-hero img#queen.combo-1,.art-hero img#dragon.combo-1,.art-hero img#queen.combo-2,.art-hero img#dragon.combo-2,.art-hero img#queen.combo-3,.art-hero img#dragon.combo-3{filter:drop-shadow(0 0 10px #ffe58d)}
+.art-hero img#queen.celebrate,.art-hero img#dragon.celebrate{filter:drop-shadow(0 0 16px #ffe58d)}
+.art-booster.active{filter:brightness(1.18) drop-shadow(0 0 8px #fff1a0);transform:translateY(-3px) scale(1.04)}
+.art-booster:disabled{opacity:.38;filter:grayscale(.55)}
+#renderCanvas{contain:strict}
+@media(prefers-reduced-motion:reduce){.art-hero img#queen,.art-hero img#dragon{animation:none!important}}
