@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -594,7 +594,10 @@ function checkEnd(){
   if(state.score>=state.target&&!state.won){
     state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
-    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;$("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
+    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
+    if(state.replayMode){$("nextBtn").textContent="العودة للخريطة";$("resultButton").textContent="العودة للخريطة";}
+    else{$("nextBtn").textContent="المرحلة التالية";$("resultButton").textContent="استمرار";}
+    $("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
     triggerCharacterResult(true);playSfx("win");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
     state.won=true;
@@ -619,7 +622,7 @@ function ensureGuestIdentity(){
     return identity;
   }catch(e){return {id:"guest-session",provider:"guest"};}
 }
-function saveProgress(completed=false){try{
+function saveProgress(completed=false){if(state.replayMode)return;try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
@@ -629,7 +632,7 @@ function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
   const completed=!!x.completed;
   const rawLevel=Number(x.level),savedLevel=Number.isFinite(rawLevel)?Math.min(1000000,Math.max(1,Math.floor(rawLevel)||1)):1;
-  state.level=savedLevel+(completed?1:0);
+  state.level=savedLevel+(completed?1:0);state.resumeLevel=state.level;state.replayMode=false;
   const rawTarget=Number(x.target),fallbackTarget=Math.round(1500*Math.pow(1.22,Math.min(savedLevel-1,1000)));
    const savedTarget=Number.isFinite(rawTarget)?Math.min(1e12,Math.max(1500,rawTarget)):(Number.isFinite(fallbackTarget)?fallbackTarget:1e12);
   state.target=completed?Math.round(savedTarget*1.22):savedTarget;
@@ -722,6 +725,13 @@ function shuffle(){
 }
 function nextLevel(){
   if(!state.won||state.score<state.target)return;
+  if(state.replayMode){
+    state.level=state.resumeLevel;state.replayMode=false;state.won=false;state.busy=false;
+    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
+    $("nextBtn").textContent="المرحلة التالية";$("resultButton").textContent="استمرار";
+    for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
+    state.grid=[];state.savedGrid=null;updateHud();window.CMRShowWorldMap?.();return;
+  }
   state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
   const hammerButton=$("hammerBtn")||$("bombBtn");
   if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
@@ -802,13 +812,15 @@ function startBusyWatchdog(){
   busyWatchdogTimer=setInterval(()=>{
     if(!state.busy){since=0;return;}
     if(!since){since=Date.now();return;}
-    if(Date.now()-since<8000)return;
-    since=0;
-    console.warn("Busy lock recovered by watchdog");
+    // Long cascades can legitimately take several seconds on slower phones.
+    // Resolve stalled animation promises, but never launch a second settle()
+    // while the original swap/settle chain is still running.
+    if(Date.now()-since<15000)return;
+    since=Date.now();
+    console.warn("Animation watchdog: releasing pending animation jobs");
     for(const job of Array.from(activeAnimations))job.resolve();
     activeAnimations.clear();
-    clearSelection();
-    settle().catch(e=>console.error(e)).finally(()=>{state.busy=false;checkEnd();saveProgress(false);});
+    if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
   },1000);
 }
 async function start(){
@@ -823,7 +835,7 @@ async function start(){
   saveProgress(state.won&&state.score>=state.target);
 }
 let gameInitialized=false;
-window.CMRStartSelectedHouse=async()=>{
+window.CMRStartSelectedHouse=async(selectedLevel)=>{
   // Reveal gameplay first; the hidden game shell was preventing the user from
   // seeing the board whenever Babylon initialization failed.
   document.body.classList.add("game-started");
@@ -832,11 +844,19 @@ window.CMRStartSelectedHouse=async()=>{
     if(!gameInitialized){
       await start();
       gameInitialized=true;
-    }else{
-      state.won=false;state.busy=false;state.booster=null;state.savedGrid=null;
-      $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
-      buildGrid();updateHud();
     }
+    const requested=Number.isFinite(Number(selectedLevel))?Math.max(1,Math.floor(Number(selectedLevel))):state.level;
+    state.resumeLevel=Math.max(state.resumeLevel||1,state.level);
+    state.replayMode=requested<state.resumeLevel;
+    state.level=requested;
+    state.target=Math.round(1500*Math.pow(1.22,Math.min(requested-1,1000)));
+    state.moves=Math.max(18,25-Math.floor(requested/4));
+    state.score=0;state.won=false;state.busy=false;state.lossHandled=false;
+    state.booster=null;state.savedGrid=null;
+    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
+    $("nextBtn").textContent=state.replayMode?"العودة للخريطة":"المرحلة التالية";
+    $("resultButton").textContent="استمرار";
+    buildGrid();updateHud();refreshBoosterBadges();saveProgress(false);
     return true;
   }catch(error){
     console.error("House game initialization failed:",error);
