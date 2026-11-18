@@ -62,11 +62,11 @@
       </div>
     </section>
     <section class="art-boosters" aria-label="المساعدات">
-      <button class="booster art-booster art-booster-one" id="hammerBtn" aria-label="مطرقة السكر"><img class="booster-icon" src="./10_paintbrush_rainbow.png" alt="Hammer"><small class="booster-badge">3</small></button>
-      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلطة سحرية"><img class="booster-icon" src="./12_arrows_cross.png" alt="Wand"><small class="booster-badge">&#8734;</small></button>
-      <button class="booster art-booster art-booster-three" id="movesBtn" aria-label="حركات إضافية"><img class="booster-icon" src="./08_bomb_skull.png" alt="Bomb"><small class="booster-badge">2</small></button>
-      <button class="art-booster art-booster-four" id="restartBtn" aria-label="إعادة المرحلة"><img class="booster-icon" src="./11_color_wheel.png" alt="Restart"></button>
-      <button class="art-booster art-booster-five" id="nextBtn" aria-label="المرحلة التالية" disabled><img class="booster-icon" src="./09_rocket_striped.png" alt="Next"></button>
+      <button class="booster art-booster art-booster-one" id="paintBtn" aria-label="فرشاة تغيير اللون"><img class="booster-icon" src="./10_paintbrush_rainbow.png" alt="Paintbrush"><small>3</small></button>
+      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلط الحلوى"><img class="booster-icon" src="./12_arrows_cross.png" alt="Shuffle"><small>2</small></button>
+      <button class="booster art-booster art-booster-three" id="bombBtn" aria-label="قنبلة"><img class="booster-icon" src="./08_bomb_skull.png" alt="Bomb"><small>3</small></button>
+      <button class="booster art-booster art-booster-four" id="colorBtn" aria-label="عجلة الألوان"><img class="booster-icon" src="./11_color_wheel.png" alt="Color wheel"><small>3</small></button>
+      <button class="booster art-booster art-booster-five" id="rocketBtn" aria-label="صاروخ"><img class="booster-icon" src="./09_rocket_striped.png" alt="Rocket"><small>3</small></button>
     </section>
   </main>
   <div class="toast" id="toast" role="status"></div>
@@ -76,7 +76,7 @@
       <h2 id="resultTitle">أحسنت!</h2>
       <p id="resultText">لقد أنقذت الحديقة السحرية.</p>
       <div class="result-stars">⭐ ⭐ ⭐</div>
-      <button id="resultButton" class="primary-button">استمرار</button>
+      <button id="resultButton" class="primary-button">استمرار</button><div class="result-actions"><button id="restartBtn" type="button">إعادة المرحلة</button><button id="nextBtn" type="button" disabled>المرحلة التالية</button></div>
     </div>
   </div>
   <script>
