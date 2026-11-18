@@ -757,3 +757,4 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 .art-booster.active{outline:2px solid #ffe27c;box-shadow:0 0 16px #ffdf70aa;background:#fff2}
 .art-booster:disabled{opacity:.38;filter:grayscale(1)}
 .result-actions{display:flex;gap:10px;margin-top:10px}.result-actions button{flex:1;border:1px solid #e9caff66;border-radius:11px;padding:10px 8px;background:#63368b;color:#fff;font-weight:800}.result-actions button:disabled{opacity:.4}
+#renderCanvas{touch-action:none;}
