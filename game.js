@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -40,7 +40,7 @@ function playSfx(kind){
     audioContext=audioContext||new AudioCtx();
     if(audioContext.state==="suspended")void audioContext.resume();
     const osc=audioContext.createOscillator(),gain=audioContext.createGain();
-    const tones={match:660,coin:880,tap:440,win:990,lose:180};
+    const tones={match:660,coin:880,tap:440,win:990,lose:180,bomb:150,rocket:760,color:1080};
     osc.type="sine";osc.frequency.value=tones[kind]||520;
     gain.gain.setValueAtTime(.0001,audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(.07,audioContext.currentTime+.012);
@@ -67,6 +67,8 @@ const spriteMaterials={};
 const spriteTextures={};
 let shineSharedMaterial=null;
 const specialRingSharedMaterials={};
+const specialMaterials={};
+let shockwaveMaterial=null;
 const burstSharedMaterials={};
 const candyImages={
   1:"./01_star_gold.png",
@@ -206,6 +208,22 @@ function candyMesh(r,c,type,special){
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:24},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=specialRingSharedMaterials[ringKind];ring.isPickable=false;
   }
+  if(special){
+    const mat=(key,color,emissive=color)=>{if(!specialMaterials[key]){const m=new BABYLON.StandardMaterial("specialArt_"+key,scene);m.diffuseColor=color;m.emissiveColor=emissive;m.specularColor=new BABYLON.Color3(.9,.9,.9);m.specularPower=64;specialMaterials[key]=m;}return specialMaterials[key];};
+    if(special==="wrapped"){
+      const bomb=BABYLON.MeshBuilder.CreateSphere("wrappedCandyBomb",{diameter:.52,segments:16},scene);bomb.parent=root;bomb.position.y=.61;bomb.material=mat("bomb",new BABYLON.Color3(.18,.07,.3),new BABYLON.Color3(.3,.08,.48));bomb.isPickable=false;
+      const fuse=BABYLON.MeshBuilder.CreateCylinder("bombFuse",{height:.18,diameter:.055,tessellation:8},scene);fuse.parent=root;fuse.position=new BABYLON.Vector3(.12,.91,-.08);fuse.rotation.z=-.5;fuse.material=mat("fuse",new BABYLON.Color3(1,.65,.12));fuse.isPickable=false;
+      const spark=BABYLON.MeshBuilder.CreateSphere("bombSpark",{diameter:.12,segments:8},scene);spark.parent=root;spark.position=new BABYLON.Vector3(.2,.99,-.13);spark.material=mat("spark",new BABYLON.Color3(1,.88,.22),new BABYLON.Color3(1,.45,.04));spark.isPickable=false;
+    }else if(special==="striped"){
+      const rocket=BABYLON.MeshBuilder.CreateCylinder("stripedCandyRocket",{height:.62,diameter:.22,tessellation:12},scene);rocket.parent=root;rocket.position.y=.59;rocket.rotation.z=Math.PI/2;rocket.material=mat("rocket",new BABYLON.Color3(.92,.12,.22),new BABYLON.Color3(.45,.04,.08));rocket.isPickable=false;
+      const nose=BABYLON.MeshBuilder.CreateCylinder("rocketNose",{height:.25,diameterTop:0,diameterBottom:.24,tessellation:12},scene);nose.parent=root;nose.position=new BABYLON.Vector3(.42,.59,0);nose.rotation.z=-Math.PI/2;nose.material=mat("rocketNose",new BABYLON.Color3(1,.72,.18));nose.isPickable=false;
+      const flame=BABYLON.MeshBuilder.CreateSphere("rocketFlame",{diameter:.2,segments:8},scene);flame.parent=root;flame.position=new BABYLON.Vector3(-.38,.55,0);flame.scaling.x=1.35;flame.material=mat("rocketFlame",new BABYLON.Color3(1,.45,.08),new BABYLON.Color3(1,.18,.02));flame.isPickable=false;
+    }else if(special==="color"){
+      const orb=BABYLON.MeshBuilder.CreateSphere("rainbowCandyBall",{diameter:.5,segments:20},scene);orb.parent=root;orb.position.y=.62;orb.material=mat("rainbowOrb",new BABYLON.Color3(.95,.9,1),new BABYLON.Color3(.5,.25,.8));orb.isPickable=false;
+      const hues=[new BABYLON.Color3(1,.12,.25),new BABYLON.Color3(1,.55,.08),new BABYLON.Color3(1,.88,.12),new BABYLON.Color3(.12,.9,.4),new BABYLON.Color3(.1,.58,1),new BABYLON.Color3(.68,.2,1)];
+      hues.forEach((color,i)=>{const dot=BABYLON.MeshBuilder.CreateSphere("rainbowOrbDot",{diameter:.12,segments:8},scene);const a=i*Math.PI/3;dot.parent=root;dot.position=new BABYLON.Vector3(Math.cos(a)*.23,.79,Math.sin(a)*.23);dot.material=mat("rainbowDot"+i,color,color.scale(.8));dot.isPickable=false;});
+    }
+  }
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
 }
@@ -218,7 +236,7 @@ function runAnimations(){
     for(const job of Array.from(activeAnimations)){
       if(!job.mesh||job.mesh.isDisposed?.()){activeAnimations.delete(job);job.resolve();continue;}
       const t=Math.max(0,Math.min(1,(now-job.begin)/job.duration)),e=1-Math.pow(1-t,3);
-      job.mesh.position.copyFrom(BABYLON.Vector3.Lerp(job.start,job.target,e));
+      BABYLON.Vector3.LerpToRef(job.start,job.target,e,job.mesh.position);
       if(t>=1){activeAnimations.delete(job);job.resolve();}
     }
   }catch(err){
@@ -256,7 +274,8 @@ function setupScene(){
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
   // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
-  engine.setHardwareScalingLevel(1.5); // Mobile-first: render below device pixel density to reduce GPU load.
+  const hardwareScale=Math.max(1,Math.min(1.6,deviceRatio/1.35));
+  engine.setHardwareScalingLevel(hardwareScale); // Adaptive mobile render resolution.
   engine.enableOfflineSupport=false;
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
@@ -297,8 +316,50 @@ function buildGrid(){
   state.savedGrid=null;
 }
 function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width/COLS,rect.height/ROWS)*0.85;let best=null,bestD=Infinity;for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){if(!canvas||typeof canvas.addEventListener!=="function")throw new Error("لوحة الرسم renderCanvas غير موجودة");let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
+async function useSelectedBooster(cell){
+  if(state.busy||state.won||!state.booster)return;
+  const kind=state.booster,counts={bomb:state.hammer,rocket:state.rockets,color:state.colors,paint:state.paints};
+  if((counts[kind]||0)<=0){say("المساعد ده خلص. اختار مساعد تاني.");state.booster=null;return;}
+  const anchor=state.grid[cell.r][cell.c];if(!anchor)return;
+  state.busy=true;clearSelection();
+  try{
+    if(kind==="paint"){
+      const neighbors=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]].filter(([r,c])=>inBounds(r,c)&&state.grid[r][c]&&!state.grid[r][c].special);
+      const target=neighbors.find(([r,c])=>state.grid[r][c].type!==anchor.type);
+      if(!target){say("اختار حلوى جنب لون مختلف.");state.busy=false;return;}
+      const newType=state.grid[target[0]][target[1]].type;
+      if(anchor.mesh&&!anchor.mesh.isDisposed?.())anchor.mesh.dispose();
+      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null);
+      state.paints--;state.score+=40;state.moves=Math.max(0,state.moves-1);say("اتغير لون الحلوى!");
+    }else{
+      const cells=new Set();
+      if(kind==="bomb"){
+        for(let r=cell.r-1;r<=cell.r+1;r++)for(let c=cell.c-1;c<=cell.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
+      }else if(kind==="rocket"){
+        for(let c=0;c<COLS;c++)cells.add(cell.r+","+c);
+        for(let r=0;r<ROWS;r++)cells.add(r+","+cell.c);
+      }else if(kind==="color"){
+        const targetType=anchor.type;
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===targetType)cells.add(r+","+c);
+      }
+      shockwaveAt(anchor.mesh.position,kind);playSfx(kind==="bomb"?"bomb":kind==="rocket"?"rocket":"color");
+      for(const key of cells){
+        const [r,c]=key.split(",").map(Number),it=state.grid[r][c];if(!it)continue;
+        burstAt(it.mesh.position,it.type);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
+        state.grid[r][c]=null;state.score+=kind==="color"?75:85;
+      }
+      if(kind==="bomb")state.hammer--;if(kind==="rocket")state.rockets--;if(kind==="color")state.colors--;
+      state.moves=Math.max(0,state.moves-1);
+      say(kind==="bomb"?"انفجار القنبلة!":kind==="rocket"?"الصاروخ مسح الصف والعمود!":"كرة الألوان مسحت نفس اللون!");
+    }
+    state.booster=null;
+    for(const id of ["paintBtn","bombBtn","colorBtn","rocketBtn"]){const button=$(id);if(button)button.classList.remove("active");}
+    refreshBoosterBadges();updateHud();await wait(90);await settle();
+  }catch(error){console.error("Booster failed:",error);say("المساعد اتعطل، جرّب تاني.");}
+  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
+}
 function tapCell(cell){
-  if(state.booster==="hammer"){useHammer(cell);return;}
+  if(state.booster){void useSelectedBooster(cell);return;}
   if(state.selected){
     const previous=state.selected;
     if(previous.r===cell.r&&previous.c===cell.c){clearSelection();return;}
@@ -343,12 +404,12 @@ async function swap(a,b){
 function findMatches(){
   const found=new Set();
   for(let r=0;r<ROWS;r++){
-    let c=0;while(c<COLS){const item=state.grid[r][c];if(!item){c++;continue;}let end=c+1;while(end<COLS&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
+    let c=0;while(c<COLS){const item=state.grid[r][c];if(!item||item.special){c++;continue;}let end=c+1;while(end<COLS&&state.grid[r][end]&&!state.grid[r][end].special&&state.grid[r][end].type===item.type)end++;
       if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
     }
   }
   for(let c=0;c<COLS;c++){
-    let r=0;while(r<ROWS){const item=state.grid[r][c];if(!item){r++;continue;}let end=r+1;while(end<ROWS&&state.grid[end][c]&&state.grid[end][c].type===item.type)end++;
+    let r=0;while(r<ROWS){const item=state.grid[r][c];if(!item||item.special){r++;continue;}let end=r+1;while(end<ROWS&&state.grid[end][c]&&!state.grid[end][c].special&&state.grid[end][c].type===item.type)end++;
       if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
     }
   }
@@ -360,10 +421,10 @@ function findSpecialCandidate(matches){
     if(!matches.has(r+","+c))continue;
     const item=state.grid[r][c];if(!item)continue;
     let left=0,right=0,up=0,down=0;
-    for(let x=c-1;x>=0&&state.grid[r][x]?.type===item.type;x--)left++;
-    for(let x=c+1;x<COLS&&state.grid[r][x]?.type===item.type;x++)right++;
-    for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)up++;
-    for(let y=r+1;y<ROWS&&state.grid[y][c]?.type===item.type;y++)down++;
+    for(let x=c-1;x>=0&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x--)left++;
+    for(let x=c+1;x<COLS&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x++)right++;
+    for(let y=r-1;y>=0&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y--)up++;
+    for(let y=r+1;y<ROWS&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y++)down++;
     if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
   }
   let best=null;
@@ -404,6 +465,7 @@ function findSpecialCandidate(matches){
 }
 async function activateSpecial(a,b){
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
+  if(A?.special||B?.special){const kind=A?.special||B?.special;playSfx(kind==="wrapped"?"bomb":kind==="striped"?"rocket":"color");shockwaveAt((A?.special?A:B).mesh.position,kind);}
   const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
   const addCross=cell=>{for(let k=0;k<COLS;k++)cells.add(cell.r+","+k);for(let k=0;k<ROWS;k++)cells.add(k+","+cell.c);};
   if(A?.special==="color"&&B?.special==="color"){
@@ -543,6 +605,19 @@ async function settle(){
   }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   updateHud();
 }
+function shockwaveAt(position,kind){
+  const colors={wrapped:new BABYLON.Color3(1,.55,.12),striped:new BABYLON.Color3(.18,.82,1),color:new BABYLON.Color3(.85,.3,1),bomb:new BABYLON.Color3(1,.55,.12),rocket:new BABYLON.Color3(.18,.82,1)};
+  const color=colors[kind]||new BABYLON.Color3(1,.8,.3);
+  const ring=BABYLON.MeshBuilder.CreateTorus("specialShockwave",{diameter:1,thickness:.045,tessellation:32},scene);
+  ring.position=position.clone();ring.position.y+=.55;ring.rotation.x=Math.PI/2;ring.scaling.setAll(.12);ring.isPickable=false;
+  const material=new BABYLON.StandardMaterial("specialShockMaterial",scene);material.diffuseColor=color;material.emissiveColor=color;material.alpha=.9;ring.material=material;
+  const started=performance.now(),duration=360;
+  const observer=scene.onBeforeRenderObservable.add(()=>{
+    if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
+    const t=Math.min(1,(performance.now()-started)/duration);ring.scaling.setAll(.12+2.1*t);material.alpha=.9*(1-t);
+    if(t>=1){scene.onBeforeRenderObservable.remove(observer);ring.dispose();material.dispose();}
+  });
+}
 function burstAt(position,type){
   // Reuse one material per candy type and keep the particle count low on mobile.
   if(!burstSharedMaterials[type]){
@@ -552,10 +627,10 @@ function burstAt(position,type){
     burstSharedMaterials[type]=material;
   }
   const material=burstSharedMaterials[type];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<5;i++){
     const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.075,segments:4},scene);
     p.position=position.clone();p.material=material;p.isPickable=false;
-    const angle=Math.PI*2*i/3,dist=.28+Math.random()*.18;
+    const angle=Math.PI*2*i/5,dist=.28+Math.random()*.18;
     const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.2+Math.random()*.25,Math.sin(angle)*dist));
     animate(p,target,190).then(()=>{if(!p.isDisposed?.())p.dispose();});
   }
@@ -626,7 +701,7 @@ function saveProgress(completed=false){if(state.replayMode)return;try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,rockets:state.rockets,colors:state.colors,paints:state.paints,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -646,10 +721,13 @@ function loadProgress(){try{
   const savedHeartTime=Number(x.lastHeartAt);state.lastHeartAt=Number.isFinite(savedHeartTime)&&savedHeartTime>0?Math.min(Date.now(),savedHeartTime):Date.now();applyHeartRegen();
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
+  state.rockets=completed?3:(Number.isFinite(Number(x.rockets))?Math.min(9,Math.max(0,Math.floor(Number(x.rockets)))):3);
+  state.colors=completed?3:(Number.isFinite(Number(x.colors))?Math.min(9,Math.max(0,Math.floor(Number(x.colors)))):3);
+  state.paints=completed?3:(Number.isFinite(Number(x.paints))?Math.min(9,Math.max(0,Math.floor(Number(x.paints)))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
-}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
+}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;state.savedGrid=null;}}
 function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
@@ -732,9 +810,10 @@ function nextLevel(){
     for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
     state.grid=[];state.savedGrid=null;updateHud();window.CMRShowWorldMap?.();return;
   }
-  state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.extra=2;
+  state.lossHandled=false;state.level++;state.target=Math.round(state.target*1.22);state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;
   const hammerButton=$("hammerBtn")||$("bombBtn");
   if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
+  refreshBoosterBadges();
   const movesButton=$("movesBtn");
   if(movesButton){const count=movesButton.querySelector("small");if(count)count.textContent=state.extra;movesButton.disabled=false;}
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
@@ -745,9 +824,9 @@ function nextLevel(){
 }
 
 function refreshBoosterBadges(){
-  const hammer=$("hammerBtn")||$("bombBtn"),moves=$("movesBtn");
-  if(hammer){const count=hammer.querySelector("small");if(count)count.textContent=state.hammer;hammer.disabled=state.hammer<=0;}
-  if(moves){const count=moves.querySelector("small");if(count)count.textContent=state.extra;moves.disabled=state.extra<=0;}
+  const set=(id,value)=>{const el=$(id);if(!el)return;const count=el.querySelector("small");if(count)count.textContent=value;el.disabled=value<=0;};
+  set("bombBtn",state.hammer);set("rocketBtn",state.rockets);set("colorBtn",state.colors);set("paintBtn",state.paints);
+  const moves=$("movesBtn");if(moves){const count=moves.querySelector("small");if(count)count.textContent=state.extra;moves.disabled=state.extra<=0;}
 }
 function ensureShop(){
   if($("royalShop"))return;
@@ -758,7 +837,7 @@ function ensureShop(){
   trigger.setAttribute("aria-label","المتجر");trigger.textContent="🛍️";
   coinsButton.insertAdjacentElement("afterend",trigger);
   const modal=document.createElement("div");modal.id="royalShop";modal.className="royal-shop hidden";
-  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">🔨</span><div><b>مطارق إضافية</b><small>+3 مطارق · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
+  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>قنابل إضافية</b><small>+3 قنابل · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
   document.body.appendChild(modal);
   const close=()=>modal.classList.add("hidden");
   trigger.addEventListener("click",()=>{refreshShop();modal.classList.remove("hidden");});
@@ -787,8 +866,16 @@ function bindUI(){
   bind("restartBtn",restart);
   bind("nextBtn",nextLevel);
   bind("resultButton",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
-  const hammerButton=$("hammerBtn")||$("bombBtn");
-  if(hammerButton)hammerButton.addEventListener("click",()=>{if(state.won||state.hammer<=0)return;state.booster=state.booster==="hammer"?null:"hammer";hammerButton.classList.toggle("active",state.booster==="hammer");say(state.booster?"اختار حلوى لإزالتها":"تم إلغاء المطرقة");});
+  const toggleBooster=(id,kind,count)=>bind(id,()=>{
+    if(state.won||count()<=0)return;
+    state.booster=state.booster===kind?null:kind;
+    const mapping={paintBtn:"paint",bombBtn:"bomb",colorBtn:"color",rocketBtn:"rocket"};
+    for(const key of Object.keys(mapping)){const el=$(key);if(el)el.classList.toggle("active",state.booster===mapping[key]);}
+    const labels={bomb:"اختار حلوى لتحديد مركز انفجار 3×3",rocket:"اختار حلوى لمسح الصف والعمود",color:"اختار لون الحلوى اللي كرة الألوان هتمسحه",paint:"اختار حلوى وغيّر لونها للون حلوى مجاورة"};
+    say(state.booster?labels[kind]:"تم إلغاء المساعد");
+  });
+  toggleBooster("bombBtn","bomb",()=>state.hammer);toggleBooster("rocketBtn","rocket",()=>state.rockets);
+  toggleBooster("colorBtn","color",()=>state.colors);toggleBooster("paintBtn","paint",()=>state.paints);
   bind("shuffleBtn",shuffle);
   bind("movesBtn",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
   bind("plusCoins",()=>{
@@ -823,6 +910,11 @@ function startBusyWatchdog(){
     if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
   },1000);
 }
+function setBoardBackground(level){
+  const art=$("royalArtboard");if(!art)return;
+  const index=((Math.max(1,Math.floor(Number(level)||1))-1)%3)+1;
+  art.src="./assets/board-bg-0"+index+".svg";art.dataset.background=String(index);
+}
 async function start(){
   loadProgress();setupScene();
   // Build the playable board immediately; PNG artwork loads progressively over the 3D fallback.
@@ -849,6 +941,7 @@ window.CMRStartSelectedHouse=async(selectedLevel)=>{
     state.resumeLevel=Math.max(state.resumeLevel||1,state.level);
     state.replayMode=requested<state.resumeLevel;
     state.level=requested;
+    setBoardBackground(requested);
     state.target=Math.round(1500*Math.pow(1.22,Math.min(requested-1,1000)));
     state.moves=Math.max(18,25-Math.floor(requested/4));
     state.score=0;state.won=false;state.busy=false;state.lossHandled=false;
