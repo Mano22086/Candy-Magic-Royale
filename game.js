@@ -423,8 +423,10 @@ async function activateSpecial(a,b){
     if(colorCandy===A&&B?.special==="striped")addCross(b);
     if(colorCandy===B&&A?.special==="striped")addCross(a);
   }else{
-    if(A?.special==="striped")addCross(b);
-    if(B?.special==="striped")addCross(a);
+    // A striped candy clears the row and column passing through its own cell,
+    // not through the ordinary candy it was swapped with.
+    if(A?.special==="striped")addCross(a);
+    if(B?.special==="striped")addCross(b);
   }
   for(const key of cells){
     const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
