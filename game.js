@@ -664,12 +664,32 @@ function selectBooster(kind){
 }
 
 function hasPossibleMove(){
+  // Existing cascades count as a move; normally settle() has already cleared them.
+  if(findMatches().size>0)return true;
+  const matchesAt=(r,c)=>{
+    const item=state.grid[r]?.[c];if(!item)return false;
+    let horizontal=1,vertical=1;
+    for(let x=c-1;x>=0&&state.grid[r][x]?.type===item.type;x--)horizontal++;
+    for(let x=c+1;x<COLS&&state.grid[r][x]?.type===item.type;x++)horizontal++;
+    if(horizontal>=3)return true;
+    for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)vertical++;
+    for(let y=r+1;y<ROWS&&state.grid[y][c]?.type===item.type;y++)vertical++;
+    return vertical>=3;
+  };
+  const affected=(r,c)=>{
+    for(let d=-2;d<=2;d++){
+      if(inBounds(r+d,c)&&matchesAt(r+d,c))return true;
+      if(inBounds(r,c+d)&&matchesAt(r,c+d))return true;
+    }
+    return false;
+  };
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     for(const [dr,dc] of [[0,1],[1,0]]){
       const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
       const a=state.grid[r][c],b=state.grid[nr][nc];
+      if(!a||!b||a.type===b.type)continue;
       state.grid[r][c]=b;state.grid[nr][nc]=a;
-      const valid=findMatches().size>0;
+      const valid=affected(r,c)||affected(nr,nc);
       state.grid[r][c]=a;state.grid[nr][nc]=b;
       if(valid)return true;
     }
@@ -681,16 +701,15 @@ function shuffle(){
   clearSelection();
   const items=state.grid.flat(),original=items.map(it=>it.type);
   let values=original.slice(),playable=false;
-  // Keep reshuffling until the board has no automatic matches and at least one legal move.
-  for(let attempt=0;attempt<300;attempt++){
+  // Keep the synchronous work bounded on mobile devices.
+  for(let attempt=0;attempt<50;attempt++){
     values=original.slice();
     for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
     for(let i=0;i<items.length;i++)items[i].type=values[i];
     if(findMatches().size===0&&hasPossibleMove()){playable=true;break;}
   }
-  // Last-resort fresh board: never leave the player with a dead board.
   if(!playable){
-    for(let attempt=0;attempt<80&&!playable;attempt++){
+    for(let attempt=0;attempt<20&&!playable;attempt++){
       const fresh=Array.from({length:ROWS},()=>Array(COLS).fill(0));
       for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
         let type=rand(),tries=0;
