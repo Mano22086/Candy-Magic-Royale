@@ -230,7 +230,14 @@ function animate(mesh,target,duration=170){
 function makeBoard(){ /* The uploaded artwork supplies the empty 7x8 board and frame. */ }
 function setupScene(){
   if(engine&&scene)return;
+  // Validate startup dependencies before Babylon registers canvas event listeners.
+  if(!window.BABYLON||typeof BABYLON.Engine!=="function"){
+    throw new Error("مكتبة Babylon.js لم يتم تحميلها");
+  }
   canvas=$("renderCanvas");
+  if(!canvas||typeof canvas.addEventListener!=="function"){
+    throw new Error("عنصر لوحة اللعب renderCanvas غير موجود في الصفحة");
+  }
   engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
   // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
