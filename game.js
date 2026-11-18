@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const SIZE=7, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
+const SIZE=8, COLS=7, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
@@ -14,7 +14,7 @@ const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,coins:5
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
-const pos=(r,c)=>new BABYLON.Vector3((c-(SIZE-1)/2)*SPACING,0,(r-(SIZE-1)/2)*SPACING);
+const pos=(r,c)=>new BABYLON.Vector3((c-(COLS-1)/2)*SPACING,0,(r-(SIZE-1)/2)*SPACING);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function makeMaterial(type){
   const index=Math.max(1,Math.min(TYPES,Number(type)||1));
@@ -91,11 +91,13 @@ function candySpriteMaterial(type){
   texture.hasAlpha=true;
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  // Type 3 is the tiny red curved candy: crop transparent padding so its
-  // visible artwork matches the visual footprint of the other candies.
+  // Crop transparent margins from the two visibly undersized PNG assets.
   if(Number(type)===3){
-    texture.uScale=1.18;texture.vScale=1.18;
-    texture.uOffset=-.09;texture.vOffset=-.09;
+    texture.uScale=1.45;texture.vScale=1.45;
+    texture.uOffset=-.225;texture.vOffset=-.225;
+  }else if(Number(type)===4){
+    texture.uScale=1.25;texture.vScale=1.25;
+    texture.uOffset=-.125;texture.vOffset=-.125;
   }
   mat.diffuseTexture=texture;
   spriteTextures[type]=texture;
@@ -130,10 +132,10 @@ function candyMesh(r,c,type,special){
 
   const artworkPath=candyImages[type];
   if(artworkPath){
-    const ratio=candyImageRatios[type]||1;
     const maxSide=SPACING*.94;
-    const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
-    const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
+    // Every candy artwork uses the same square tile footprint.
+    const artworkWidth=maxSide;
+    const artworkHeight=maxSide;
     const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:artworkWidth,height:artworkHeight},scene);
     artwork.parent=root;
     // Board coordinates lie on XZ and the camera looks down from above.
@@ -188,7 +190,7 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingEnabled=false;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
   camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=3.58;camera.orthoBottom=-3.58;
+  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=4.18;camera.orthoBottom=-4.18;
   camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
@@ -212,9 +214,9 @@ function buildGrid(){
   // Dispose the previous board before creating another one to prevent GPU memory leaks.
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
-  const canRestore=Array.isArray(saved)&&saved.length===SIZE&&saved.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  state.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(null));
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+  const canRestore=Array.isArray(saved)&&saved.length===SIZE&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
+  state.grid=Array.from({length:SIZE},()=>Array(COLS).fill(null));
+  for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
     const savedCell=canRestore?saved[r][c]:null;
     const type=savedCell?savedCell.type:randomType(r,c);
     const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped"||savedCell.special==="wrapped")?savedCell.special:null;
@@ -222,7 +224,7 @@ function buildGrid(){
   }
   state.savedGrid=null;
 }
-function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width,rect.height)/SIZE*0.85;let best=null,bestD=Infinity;for(let r=0;r<SIZE;r++){for(let c=0;c<SIZE;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<SIZE;}
+function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width/COLS,rect.height/SIZE)*0.85;let best=null,bestD=Infinity;for(let r=0;r<SIZE;r++){for(let c=0;c<COLS;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<SIZE&&c>=0&&c<COLS;}
 function tapCell(cell){
   if(state.booster==="hammer"){useHammer(cell);return;}
   if(state.selected){
@@ -269,11 +271,11 @@ async function swap(a,b){
 function findMatches(){
   const found=new Set();
   for(let r=0;r<SIZE;r++){
-    let c=0;while(c<SIZE){const item=state.grid[r][c];if(!item){c++;continue;}let end=c+1;while(end<SIZE&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
+    let c=0;while(c<COLS){const item=state.grid[r][c];if(!item){c++;continue;}let end=c+1;while(end<COLS&&state.grid[r][end]&&state.grid[r][end].type===item.type)end++;
       if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
     }
   }
-  for(let c=0;c<SIZE;c++){
+  for(let c=0;c<COLS;c++){
     let r=0;while(r<SIZE){const item=state.grid[r][c];if(!item){r++;continue;}let end=r+1;while(end<SIZE&&state.grid[end][c]&&state.grid[end][c].type===item.type)end++;
       if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
     }
@@ -282,7 +284,7 @@ function findMatches(){
 }
 function findSpecialCandidate(matches){
   // A T/L intersection of two same-type runs (3+ in each direction) creates a wrapped candy.
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+  for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
     if(!matches.has(r+","+c))continue;
     const item=state.grid[r][c];if(!item)continue;
     let left=0,right=0,up=0,down=0;
@@ -304,17 +306,17 @@ function findSpecialCandidate(matches){
   // separate horizontal runs into a false four- or five-candy special.
   for(let r=0;r<SIZE;r++){
     let c=0;
-    while(c<SIZE){
+    while(c<COLS){
       const item=state.grid[r][c];
       if(!item||!matches.has(r+","+c)){c++;continue;}
       const type=item.type;let end=c+1;
-      while(end<SIZE&&matches.has(r+","+end)&&state.grid[r][end]?.type===type)end++;
+      while(end<COLS&&matches.has(r+","+end)&&state.grid[r][end]?.type===type)end++;
       const cells=[];for(let x=c;x<end;x++)cells.push({r,c:x});
       consider(cells,cells.length>=5?"color":"striped");
       c=end;
     }
   }
-  for(let c=0;c<SIZE;c++){
+  for(let c=0;c<COLS;c++){
     let r=0;
     while(r<SIZE){
       const item=state.grid[r][c];
@@ -331,21 +333,21 @@ function findSpecialCandidate(matches){
 async function activateSpecial(a,b){
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
   const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
-  const addCross=cell=>{for(let k=0;k<SIZE;k++){cells.add(cell.r+","+k);cells.add(k+","+cell.c);}};
+  const addCross=cell=>{for(let k=0;k<COLS;k++)cells.add(cell.r+","+k);for(let k=0;k<SIZE;k++)cells.add(k+","+cell.c);};
   if(A?.special==="color"&&B?.special==="color"){
-    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)cells.add(r+","+c);
+    for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++)cells.add(r+","+c);
   }else if(A?.special==="wrapped"&&B?.special==="wrapped"){
     for(const center of [a,b])for(let r=center.r-2;r<=center.r+2;r++)for(let c=center.c-2;c<=center.c+2;c++)if(inBounds(r,c))cells.add(r+","+c);
   }else if((A?.special==="wrapped"&&B?.special==="striped")||(B?.special==="wrapped"&&A?.special==="striped")){
     const center=A.special==="wrapped"?a:b;
     for(let offset=-1;offset<=1;offset++){
-      for(let c=0;c<SIZE;c++)if(inBounds(center.r+offset,c))cells.add((center.r+offset)+","+c);
+      for(let c=0;c<COLS;c++)if(inBounds(center.r+offset,c))cells.add((center.r+offset)+","+c);
       for(let r=0;r<SIZE;r++)if(inBounds(r,center.c+offset))cells.add(r+","+(center.c+offset));
     }
   }else if((A?.special==="wrapped"&&B?.special==="color")||(B?.special==="wrapped"&&A?.special==="color")){
     const wrapped=A.special==="wrapped"?A:B,center=A.special==="wrapped"?a:b;
     const target=(wrapped===A?B:A)?.type;
-    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(state.grid[r][c]?.type===target){
+    for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===target){
       for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))cells.add(y+","+x);
     }
     for(let r=center.r-1;r<=center.r+1;r++)for(let c=center.c-1;c<=center.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
@@ -358,7 +360,7 @@ async function activateSpecial(a,b){
     const colorCandy=A.special==="color"?A:B;
     const other=A.special==="color"?B:A;
     const target=other?.type;
-    if(target)for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(target)for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
       if(state.grid[r][c]?.type===target){cells.add(r+","+c);if(other.special==="striped")addCross({r,c});}
     }
     if(colorCandy===A&&B?.special==="striped")addCross(b);
@@ -409,7 +411,7 @@ async function settle(){
     if(chain>1)state.score+=matches.size*10;
     updateHud();await wait(100);
     const falling=[];
-    for(let c=0;c<SIZE;c++){
+    for(let c=0;c<COLS;c++){
       let write=SIZE-1;
       for(let r=SIZE-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};falling.push(animate(it.mesh,pos(write,c),170));}write--;}}
       for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};falling.push(animate(mesh,pos(r,c),230));}
@@ -476,7 +478,7 @@ function ensureGuestIdentity(){
 }
 function saveProgress(completed=false){try{
   const identity=ensureGuestIdentity();
-  const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(Boolean));
+  const gridReady=Array.isArray(state.grid)&&state.grid.length===SIZE&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
   const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
   localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
 }catch(e){}}
@@ -499,7 +501,7 @@ function loadProgress(){try{
   const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
   state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
-  const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
+  const validGrid=Array.isArray(x.grid)&&x.grid.length===SIZE&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.extra=2;state.savedGrid=null;}}
 function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
@@ -521,7 +523,7 @@ async function useHammer(cell){
   finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
 function hasPossibleMove(){
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+  for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
     for(const [dr,dc] of [[0,1],[1,0]]){
       const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
       const a=state.grid[r][c],b=state.grid[nr][nc];
@@ -548,18 +550,18 @@ function shuffle(){
   // Last-resort fresh board: never leave the player with a dead board.
   if(!playable){
     for(let attempt=0;attempt<80&&!playable;attempt++){
-      const fresh=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+      const fresh=Array.from({length:SIZE},()=>Array(COLS).fill(0));
+      for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
         let type=rand(),tries=0;
         while(tries++<20&&((c>1&&fresh[r][c-1]===type&&fresh[r][c-2]===type)||(r>1&&fresh[r-1][c]===type&&fresh[r-2][c]===type)))type=rand();
         fresh[r][c]=type;
       }
-      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)state.grid[r][c].type=fresh[r][c];
+      for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++)state.grid[r][c].type=fresh[r][c];
       playable=findMatches().size===0&&hasPossibleMove();
     }
   }
   if(!playable){for(let i=0;i<items.length;i++)items[i].type=original[i];say("اللوحة فيها حركات متاحة بالفعل.");return;}
-  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+  for(let r=0;r<SIZE;r++)for(let c=0;c<COLS;c++){
     const it=state.grid[r][c];it.mesh.dispose();it.special=null;it.mesh=candyMesh(r,c,it.type,null);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
