@@ -91,6 +91,12 @@ function candySpriteMaterial(type){
   texture.hasAlpha=true;
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
+  // Type 3 is the tiny red curved candy: crop transparent padding so its
+  // visible artwork matches the visual footprint of the other candies.
+  if(Number(type)===3){
+    texture.uScale=1.18;texture.vScale=1.18;
+    texture.uOffset=-.09;texture.vOffset=-.09;
+  }
   mat.diffuseTexture=texture;
   spriteTextures[type]=texture;
   spriteMaterials[type]=mat;
@@ -125,7 +131,7 @@ function candyMesh(r,c,type,special){
   const artworkPath=candyImages[type];
   if(artworkPath){
     const ratio=candyImageRatios[type]||1;
-    const maxSide=SPACING*.88;
+    const maxSide=SPACING*.94;
     const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
     const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
     const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:artworkWidth,height:artworkHeight},scene);
