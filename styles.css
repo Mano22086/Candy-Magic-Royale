@@ -18,7 +18,7 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 .level-progress{height:7px;border-radius:8px;background:#160a31;overflow:hidden;box-shadow:inset 0 1px 3px #0008}
 .level-progress i{display:block;width:0;height:100%;border-radius:8px;background:linear-gradient(90deg,#ff72b8,#ffd86d);transition:width .35s}
 .level-stats{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;justify-content:center;gap:2px;font-size:10px;color:#ffe8a4;text-align:left;min-width:75px}.level-stats b{color:#fff;font-size:12px}
-.character-stage{height:clamp(104px,17vh,145px);position:relative;border-radius:19px;overflow:hidden;background:linear-gradient(180deg,#7445a2aa,#32165b55 70%,#16092f00);isolation:isolate}
+.character-stage{height:clamp(82px,11vh,112px);position:relative;border-radius:19px;overflow:hidden;background:linear-gradient(180deg,#7445a2aa,#32165b55 70%,#16092f00);isolation:isolate}
 .character-stage:before{content:"";position:absolute;inset:0;background:url("./assets/enchanted-garden-backdrop.svg") center 43%/cover;opacity:.5;z-index:-2}
 .stage-glow{position:absolute;width:70%;height:70%;left:15%;top:5%;border-radius:50%;background:#f4baff33;filter:blur(24px);z-index:-1}
 .castle-art{position:absolute;width:46%;height:100%;object-fit:contain;left:27%;bottom:-13%;opacity:.82;filter:drop-shadow(0 5px 10px #140522)}
@@ -35,7 +35,7 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 .mission-copy{display:flex;flex-direction:column;line-height:1.3;flex:1}.mission-copy small,.score-box small{font-size:9px;color:#d8c1f2}.mission-copy strong{font-size:12px}.mission-copy strong b{color:#ffe18a}
 .score-box{text-align:left;min-width:68px}.score-box strong{font-size:19px;color:#ffe28a;line-height:1}
 .board-wrap{position:relative;width:100%;margin:0 auto;flex:1 1 0;min-height:0;max-height:none;display:flex;align-items:center;justify-content:center;overflow:visible}
-.board-rim{box-sizing:border-box;width:min(100%,440px,42dvh);height:auto;aspect-ratio:1/1;max-height:none;flex:0 0 auto;position:relative;border-radius:23px;padding:5px;background:linear-gradient(145deg,#f5c8ff,#8652c2 22%,#32165d 55%,#e8b2ff);box-shadow:0 10px 25px #080014aa,0 0 25px #c67cff44,inset 0 2px 3px #fff8;overflow:hidden}
+.board-rim{box-sizing:border-box;width:min(100%,440px,calc(64dvh * .875));height:auto;aspect-ratio:7/8;max-height:64dvh;flex:0 0 auto;position:relative;border-radius:23px;padding:5px;background:linear-gradient(145deg,#f5c8ff,#8652c2 22%,#32165d 55%,#e8b2ff);box-shadow:0 10px 25px #080014aa,0 0 25px #c67cff44,inset 0 2px 3px #fff8;overflow:hidden}
 .board-rim:before{content:"";position:absolute;inset:5px;border-radius:19px;border:1px solid #fff6;pointer-events:none;z-index:2}
 #renderCanvas{position:absolute;inset:5px;display:block;width:calc(100% - 10px);height:calc(100% - 10px);border-radius:18px;outline:0;touch-action:none;background:linear-gradient(145deg,#47216f,#241046)}
 .board-loading{position:absolute;inset:0;display:grid;place-items:center;color:#fff1bd;font-size:13px;font-weight:800;pointer-events:none;text-shadow:0 2px 4px #1c063b}
@@ -60,7 +60,7 @@ button{font:inherit;border:0;cursor:pointer;color:inherit}
 .modal{position:fixed;z-index:30;inset:0;background:#10051dcc;display:grid;place-items:center;padding:22px}
 .modal.hidden{display:none}.modal-card{width:min(100%,330px);padding:25px 20px;border-radius:25px;text-align:center;background:linear-gradient(160deg,#65389a,#2c1453);border:2px solid #f6d58c;box-shadow:0 15px 50px #0009}
 .modal-crown{font-size:42px;color:#ffdf7a}.modal-card h2{margin:3px 0;color:#ffe5a4}.modal-card p{font-size:13px;color:#ead8ff}.result-stars{font-size:23px;margin:12px}.modal-card .primary-button{width:100%;flex:none}
-@media(max-height:760px){.game-shell{gap:6px}.topbar{height:45px}.character-stage{height:100px}.board-wrap{max-height:none;min-height:0}.board-rim{width:min(100%,440px,38dvh)}.bottom-panel{padding:6px 8px 8px}.booster{min-height:50px}}
+@media(max-height:760px){.game-shell{gap:5px}.topbar{height:42px}.character-stage{height:78px}.board-wrap{max-height:none;min-height:0}.board-rim{width:min(100%,440px,calc(62dvh * .875));max-height:62dvh;aspect-ratio:7/8}.bottom-panel{padding:6px 8px 8px}.booster{min-height:50px}}
 @media(min-width:520px){.game-shell{padding-top:14px}.board-wrap{max-height:440px}}
 
 
