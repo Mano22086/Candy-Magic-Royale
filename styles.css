@@ -668,3 +668,58 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 .start-screen .start-cinematic-video{pointer-events:none!important}
 .start-screen .start-bottom{z-index:20!important;pointer-events:auto!important}
 .start-screen .start-button,.start-screen .facebook-button{position:relative!important;z-index:21!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
+
+
+/* FINAL ASSET ALIGNMENT — consistent candy, character and booster footprints */
+.art-hero{
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.art-hero img{
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  flex:0 0 100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+}
+
+/* Keep Moves and Heart centered on their own gold-ribbon headings */
+.art-moves .art-hud-title,
+.art-target .art-hud-title{
+  top:0!important;
+  left:50%!important;
+  right:auto!important;
+  width:94%!important;
+  height:35%!important;
+  transform:translateX(-50%)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.art-moves .art-hud-title{transform:translateX(-50%) rotate(-3deg)!important}
+.art-target .art-hud-title{transform:translateX(-50%) rotate(3deg)!important}
+.ribbon-title-svg{width:100%!important;height:100%!important;overflow:visible!important}
+.ribbon-title-svg text{font-size:18px!important;letter-spacing:0!important}
+
+/* Booster artwork fills the inner gold circle evenly without crossing its rim */
+.art-booster{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+.art-booster .booster-icon{
+  display:block!important;
+  width:88%!important;
+  height:88%!important;
+  max-width:88%!important;
+  max-height:88%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  margin:0!important;
+}
+.art-booster small,.art-booster .booster-badge{z-index:2!important}
