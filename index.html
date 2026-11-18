@@ -17,7 +17,7 @@
 </head>
 <body>
   <section class="start-screen" id="startScreen" aria-label="شاشة بداية Candy Magic Royale">
-    <video class="start-cinematic-video" id="startCinematicVideo" muted playsinline preload="auto" aria-hidden="true">
+    <video class="start-cinematic-video" id="startCinematicVideo" muted playsinline preload="none" aria-hidden="true">
       <source src="./assets/1027565433_1794873190877752.mp4" type="video/mp4">
     </video>
     <div class="start-sky"></div>
@@ -80,7 +80,7 @@
     </div>
   </div>
   <script>
-(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
+(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;const beginVideo=()=>{video.load();};if(document.readyState==="complete")beginVideo();else window.addEventListener("load",beginVideo,{once:true});video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
   <script src="./game.js?v=custom-candy-preload-20261119-2"></script>
   <script src="./world-map.js?v=house-game-screen-fix-2"></script>
