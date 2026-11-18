@@ -190,7 +190,7 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingEnabled=false;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
   camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=4.18;camera.orthoBottom=-4.18;
+  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=4.12;camera.orthoBottom=-4.12;
   camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
@@ -289,7 +289,7 @@ function findSpecialCandidate(matches){
     const item=state.grid[r][c];if(!item)continue;
     let left=0,right=0,up=0,down=0;
     for(let x=c-1;x>=0&&state.grid[r][x]?.type===item.type;x--)left++;
-    for(let x=c+1;x<SIZE&&state.grid[r][x]?.type===item.type;x++)right++;
+    for(let x=c+1;x<COLS&&state.grid[r][x]?.type===item.type;x++)right++;
     for(let y=r-1;y>=0&&state.grid[y][c]?.type===item.type;y--)up++;
     for(let y=r+1;y<SIZE&&state.grid[y][c]?.type===item.type;y++)down++;
     if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
