@@ -149,25 +149,18 @@ function loadCandyTrim(type){
 }
 function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
 async function preloadCandyTextures(){
-  // Finish loading every custom candy PNG and its Babylon GPU texture before
-  // creating the first board. This prevents the temporary primitive candies
-  // from flashing on screen while the real artwork streams in.
+  // Load the supplied PNGs before creating the first board. Some Babylon.js
+  // CDN builds do not expose onLoadObservable on Texture, so wait safely
+  // for isReady() instead of calling addOnce on an undefined property.
   await preloadCandyArt();
-  const jobs=Object.keys(candyImages).map(type=>{
-    const material=candySpriteMaterial(Number(type));
+  await Promise.all(Object.keys(candyImages).map(async type=>{
+    candySpriteMaterial(Number(type));
     const texture=spriteTextures[type];
-    if(!texture||texture.isReady())return Promise.resolve();
-    return new Promise(resolve=>{
-      let done=false;
-      const finish=()=>{if(done)return;done=true;resolve();};
-      texture.onLoadObservable.addOnce(finish);
-      texture.onErrorObservable.addOnce(finish);
-      // A missing asset must not block the game forever; it will use its
-      // existing 3D fallback only after the loading screen timeout.
-      setTimeout(finish,8000);
-    });
-  });
-  await Promise.all(jobs);
+    if(!texture||texture.isReady())return;
+    const started=Date.now();
+    while(!texture.isReady()&&Date.now()-started<4500)await wait(50);
+    // If an image failed, candyMesh keeps its native 3D fallback visible.
+  }));
 }
 // -------------------------------------------------------------------------
 
