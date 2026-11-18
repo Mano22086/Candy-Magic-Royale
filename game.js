@@ -130,7 +130,10 @@ function candyMesh(r,c,type,special){
     const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
     const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,{width:artworkWidth,height:artworkHeight},scene);
     artwork.parent=root;
-    artwork.position=new BABYLON.Vector3(0,.17,-.43);
+    // Board coordinates lie on XZ and the camera looks down from above.
+    // Lay the candy artwork flat above the 3D body instead of edge-on.
+    artwork.rotation.x=-Math.PI/2;
+    artwork.position=new BABYLON.Vector3(0,.39,0);
     artwork.material=candySpriteMaterial(type);
     artwork.isPickable=false;
     artwork.isVisible=false;
