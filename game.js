@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const SIZE=7, SPACING=1.02, TYPES=7, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
+const SIZE=7, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
 const palette=[
   {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
   {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
@@ -132,7 +132,7 @@ function candyMesh(r,c,type,special){
     artwork.parent=root;
     // Board coordinates lie on XZ and the camera looks down from above.
     // Lay the candy artwork flat above the 3D body instead of edge-on.
-    artwork.rotation.x=-Math.PI/2;
+    artwork.rotation.x=Math.PI/2;
     artwork.position=new BABYLON.Vector3(0,.39,0);
     artwork.material=candySpriteMaterial(type);
     artwork.isPickable=false;
@@ -182,7 +182,7 @@ function setupScene(){
   scene.imageProcessingConfiguration.toneMappingEnabled=false;
   camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
   camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-  camera.orthoLeft=-3.7;camera.orthoRight=3.7;camera.orthoTop=3.7;camera.orthoBottom=-3.7;
+  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=3.58;camera.orthoBottom=-3.58;
   camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
   const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
   const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
@@ -532,11 +532,25 @@ function shuffle(){
   clearSelection();
   const items=state.grid.flat(),original=items.map(it=>it.type);
   let values=original.slice(),playable=false;
-  for(let attempt=0;attempt<80;attempt++){
+  // Keep reshuffling until the board has no automatic matches and at least one legal move.
+  for(let attempt=0;attempt<300;attempt++){
     values=original.slice();
     for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
     for(let i=0;i<items.length;i++)items[i].type=values[i];
     if(findMatches().size===0&&hasPossibleMove()){playable=true;break;}
+  }
+  // Last-resort fresh board: never leave the player with a dead board.
+  if(!playable){
+    for(let attempt=0;attempt<80&&!playable;attempt++){
+      const fresh=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+        let type=rand(),tries=0;
+        while(tries++<20&&((c>1&&fresh[r][c-1]===type&&fresh[r][c-2]===type)||(r>1&&fresh[r-1][c]===type&&fresh[r-2][c]===type)))type=rand();
+        fresh[r][c]=type;
+      }
+      for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)state.grid[r][c].type=fresh[r][c];
+      playable=findMatches().size===0&&hasPossibleMove();
+    }
   }
   if(!playable){for(let i=0;i<items.length;i++)items[i].type=original[i];say("اللوحة فيها حركات متاحة بالفعل.");return;}
   for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
