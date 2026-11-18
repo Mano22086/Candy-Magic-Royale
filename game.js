@@ -640,34 +640,39 @@ function hasPossibleMove(){
   return false;
 }
 function shuffle(){
-  if(state.busy||state.won)return;
-  if(state.grid.flat().some(it=>!it))return;
+  if(state.busy||state.won||state.grid.flat().some(it=>!it))return;
   clearSelection();
   const items=state.grid.flat(),original=items.map(it=>it.type);
-  let values=original.slice(),playable=false;
-  // Keep reshuffling until the board has no automatic matches and at least one legal move.
-  for(let attempt=0;attempt<300;attempt++){
-    values=original.slice();
+  let playable=false;
+  // A small bounded search prevents a dead-board recovery from freezing mobile devices.
+  for(let attempt=0;attempt<36&&!playable;attempt++){
+    const values=original.slice();
     for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
     for(let i=0;i<items.length;i++)items[i].type=values[i];
-    if(findMatches().size===0&&hasPossibleMove()){playable=true;break;}
+    playable=findMatches().size===0&&hasPossibleMove();
   }
-  // Last-resort fresh board: never leave the player with a dead board.
+  // Build a fresh match-free board if random permutations did not yield a legal move quickly.
   if(!playable){
-    for(let attempt=0;attempt<80&&!playable;attempt++){
+    for(let attempt=0;attempt<12&&!playable;attempt++){
       const fresh=Array.from({length:ROWS},()=>Array(COLS).fill(0));
       for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
         let type=rand(),tries=0;
-        while(tries++<20&&((c>1&&fresh[r][c-1]===type&&fresh[r][c-2]===type)||(r>1&&fresh[r-1][c]===type&&fresh[r-2][c]===type)))type=rand();
+        while(tries++<24&&((c>1&&fresh[r][c-1]===type&&fresh[r][c-2]===type)||(r>1&&fresh[r-1][c]===type&&fresh[r-2][c]===type)))type=rand();
         fresh[r][c]=type;
       }
       for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)state.grid[r][c].type=fresh[r][c];
       playable=findMatches().size===0&&hasPossibleMove();
     }
   }
-  if(!playable){for(let i=0;i<items.length;i++)items[i].type=original[i];say("اللوحة فيها حركات متاحة بالفعل.");return;}
+  if(!playable){
+    for(let i=0;i<items.length;i++)items[i].type=original[i];
+    say("اللوحة فيها حركات متاحة بالفعل.");
+    return;
+  }
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const it=state.grid[r][c];it.mesh.dispose();it.special=null;it.mesh=candyMesh(r,c,it.type,null);
+    const it=state.grid[r][c];
+    if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
+    it.special=null;it.mesh=candyMesh(r,c,it.type,null);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
   saveProgress(false);
@@ -693,10 +698,12 @@ function refreshBoosterBadges(){
 }
 function ensureShop(){
   if($("royalShop"))return;
+  const coinsButton=$("plusCoins");
+  if(!coinsButton)return;
   const trigger=document.createElement("button");
   trigger.id="shopOpenBtn";trigger.type="button";trigger.className="shop-open-btn";
   trigger.setAttribute("aria-label","المتجر");trigger.textContent="🛍️";
-  $("plusCoins").insertAdjacentElement("afterend",trigger);
+  coinsButton.insertAdjacentElement("afterend",trigger);
   const modal=document.createElement("div");modal.id="royalShop";modal.className="royal-shop hidden";
   modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">🔨</span><div><b>مطارق إضافية</b><small>+3 مطارق · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
   document.body.appendChild(modal);
@@ -790,7 +797,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   const launch=$("startGameBtn"),screen=$("startScreen"),facebookModal=$("facebookModal");
   let launching=false;
   const launchAsGuest=()=>{
-    if(launching)return;
+    if(launching||!launch||!screen)return;
     launching=true;
     ensureGuestIdentity();
     launch.disabled=true;launch.textContent="جاري فتح المملكة...";
@@ -804,13 +811,20 @@ window.addEventListener("DOMContentLoaded",()=>{
       }
     },520);
   };
-  // Play is bound by the independent mobile-safe bootstrap in index.html.
-  $("facebookLoginBtn").addEventListener("click",()=>{
-    facebookModal.classList.remove("hidden");
+  // Every optional screen control is bound defensively; a missing modal button
+  // must never abort the game bootstrap.
+  const bindOptional=(id,handler)=>{
+    const element=$(id);
+    if(element)element.addEventListener("click",handler);
+  };
+  bindOptional("facebookLoginBtn",()=>{
+    if(facebookModal)facebookModal.classList.remove("hidden");
   });
-  $("facebookCloseBtn").addEventListener("click",()=>facebookModal.classList.add("hidden"));
-  $("facebookGuestBtn").addEventListener("click",()=>{
-    facebookModal.classList.add("hidden");
+  bindOptional("facebookCloseBtn",()=>{
+    if(facebookModal)facebookModal.classList.add("hidden");
+  });
+  bindOptional("facebookGuestBtn",()=>{
+    if(facebookModal)facebookModal.classList.add("hidden");
     launchAsGuest();
   });
 });
