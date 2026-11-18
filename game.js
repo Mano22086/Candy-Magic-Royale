@@ -63,6 +63,9 @@ let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
 const spriteTextures={};
+const specialMaterials={};
+let shineMaterial=null;
+const burstMaterials={};
 const candyImages={
   1:"./01_star_gold.png",
   2:"./02_heart_rainbow.png",
@@ -109,17 +112,18 @@ function loadCandyTrim(type){
 function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
 // -------------------------------------------------------------------------
 
-function candySpriteMaterial(type){
-  if(spriteMaterials[type])return spriteMaterials[type];
-  const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+type,scene);
+function candySpriteMaterial(type,sourceOverride=null){
+  const key=sourceOverride?"special-color-ball":type;
+  if(spriteMaterials[key])return spriteMaterials[key];
+  const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+key,scene);
   mat.diffuseColor=new BABYLON.Color3(1,1,1);
   mat.emissiveColor=new BABYLON.Color3(1,1,1);
   mat.disableLighting=true;
   mat.backFaceCulling=false;
   mat.useAlphaFromDiffuseTexture=true;
   mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-  const source=candyImages[type];
-  if(!source){spriteMaterials[type]=mat;return mat;}
+  const source=sourceOverride||candyImages[type];
+  if(!source){spriteMaterials[key]=mat;return mat;}
   const texture=new BABYLON.Texture(
     source,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
     ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
@@ -129,8 +133,8 @@ function candySpriteMaterial(type){
   texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
   mat.diffuseTexture=texture;
-  spriteTextures[type]=texture;
-  spriteMaterials[type]=mat;
+  spriteTextures[key]=texture;
+  spriteMaterials[key]=mat;
   return mat;
 }
 function candyMesh(r,c,type,special){
@@ -152,17 +156,19 @@ function candyMesh(r,c,type,special){
   shine.parent=root;
   shine.position=new BABYLON.Vector3(-.13,.31,-.12);
   shine.scaling=new BABYLON.Vector3(1,.28,.62);
-  const shineMat=new BABYLON.StandardMaterial("candyShineMat_"+r+"_"+c,scene);
-  shineMat.diffuseColor=new BABYLON.Color3(1,1,1);
-  shineMat.emissiveColor=new BABYLON.Color3(.22,.22,.22);
-  shineMat.alpha=.72;
-  shine.material=shineMat;
+  if(!shineMaterial){
+    shineMaterial=new BABYLON.StandardMaterial("sharedCandyShineMat",scene);
+    shineMaterial.diffuseColor=new BABYLON.Color3(1,1,1);
+    shineMaterial.emissiveColor=new BABYLON.Color3(.22,.22,.22);
+    shineMaterial.alpha=.72;
+  }
+  shine.material=shineMaterial;
   shine.isPickable=false;
 
-  const artworkPath=candyImages[type];
+  const artworkPath=special==="color"?"./13_chocolate_ball.png":candyImages[type];
   if(artworkPath){
-    const trim=candyTrim[type];
-    const ratio=trim?trim.ratio:(candyImageRatios[type]||1);
+    const trim=special==="color"?null:candyTrim[type];
+    const ratio=special==="color"?1:(trim?trim.ratio:(candyImageRatios[type]||1));
     const maxSide=SPACING*CANDY_FIT;
     const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
     const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
@@ -174,10 +180,10 @@ function candyMesh(r,c,type,special){
     // Lay the candy artwork flat above the 3D body instead of edge-on.
     artwork.rotation.x=Math.PI/2;
     artwork.position=new BABYLON.Vector3(0,.39,0);
-    artwork.material=candySpriteMaterial(type);
+    artwork.material=candySpriteMaterial(type,special==="color"?"./13_chocolate_ball.png":null);
     artwork.isPickable=false;
     artwork.isVisible=false;
-    const texture=spriteTextures[type];
+    const texture=spriteTextures[special==="color"?"special-color-ball":type];
     const revealArtwork=()=>{
       if(root.isDisposed?.())return;
       artwork.isVisible=true;
@@ -189,9 +195,14 @@ function candyMesh(r,c,type,special){
   }
 
   if(special){
-    const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
-    ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
-    ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
+    const ringKey=special;
+    if(!specialMaterials[ringKey]){
+      const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+ringKey,scene);
+      ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
+      ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
+      specialMaterials[ringKey]=ringMat;
+    }
+    const ringMat=specialMaterials[ringKey];
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:32},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
   }
@@ -423,46 +434,85 @@ function triggerCharacterCombo(chain){
 }
 async function settle(){
   let chain=0;
-  // Prevent a pathological cascade from locking the board or monopolizing a mobile frame.
-  while(chain<18){
-    const matches=findMatches();if(matches.size===0)break;
-    chain++;playSfx("match");
+  // A finite cascade budget prevents a long random chain from freezing mobile devices.
+  while(chain<10){
+    const matches=findMatches();
+    if(matches.size===0)break;
+    chain++;
+    playSfx("match");
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
     const specialCandidate=chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
     const keep=specialCandidate?.cell||null;
-    for(const p of remove){
-      const r=p[0],c=p[1],it=state.grid[r][c];
+    for(const [r,c] of remove){
+      const it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
-      if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
-      state.grid[r][c]=null;state.score+=60;
+      if(it?.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
+      state.grid[r][c]=null;
+      state.score+=60;
     }
     if(keep){
-      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial);}
+      const it=state.grid[keep.r][keep.c];
+      if(it){
+        it.special=groupSpecial;
+        it.mesh.dispose();
+        it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial);
+      }
     }
     if(chain>1)state.score+=matches.size*10;
-    updateHud();await wait(100);
+    updateHud();
+    await wait(65);
+
+    // Screen row 0 is the lower edge of this camera view; gravity moves toward it.
+    // Existing candies compact downward, while replacement candies enter from above.
     const falling=[];
     for(let c=0;c<COLS;c++){
-      let write=ROWS-1;
-      for(let r=ROWS-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};falling.push(animate(it.mesh,pos(write,c),170));}write--;}}
-      for(let r=write;r>=0;r--){const type=rand(),mesh=candyMesh(r,c,type,null);mesh.position.y=5.5;state.grid[r][c]={type:type,special:null,mesh:mesh};mesh.metadata={r:r,c:c,candy:true};falling.push(animate(mesh,pos(r,c),230));}
+      let write=0;
+      for(let r=0;r<ROWS;r++){
+        const it=state.grid[r][c];
+        if(!it)continue;
+        if(write!==r){
+          state.grid[write][c]=it;
+          state.grid[r][c]=null;
+          it.mesh.metadata={r:write,c:c,candy:true};
+          const distance=r-write;
+          falling.push(animate(it.mesh,pos(write,c),150+distance*42));
+        }
+        write++;
+      }
+      for(let r=write;r<ROWS;r++){
+        const type=rand();
+        const mesh=candyMesh(r,c,type,null);
+        mesh.position.y=5.2+(r-write)*.32;
+        state.grid[r][c]={type,special:null,mesh};
+        mesh.metadata={r,c,candy:true};
+        falling.push(animate(mesh,pos(r,c),230+(r-write)*28));
+      }
     }
     await Promise.all(falling);
-    await wait(80);
+    await wait(45);
   }
   if(findMatches().size>0)say("سلسلة طويلة! كمل المطابقة بحركة جديدة.");
   else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   updateHud();
 }
 function burstAt(position,type){
-  const color=palette[type-1].color;
-  for(let i=0;i<7;i++){
-    const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.09,segments:6},scene);
-    p.position=position.clone();const m=new BABYLON.StandardMaterial("particleMat",scene);m.diffuseColor=color;m.emissiveColor=color;p.material=m;p.isPickable=false;
-    const angle=Math.PI*2*i/7,dist=.35+Math.random()*.25;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.25+Math.random()*.35,Math.sin(angle)*dist));
-    animate(p,target,250).then(()=>{p.dispose();m.dispose();});
+  const index=Math.max(1,Math.min(TYPES,Number(type)||1));
+  if(!burstMaterials[index]){
+    const material=new BABYLON.StandardMaterial("sharedBurstMat_"+index,scene);
+    material.diffuseColor=palette[index-1].color.clone();
+    material.emissiveColor=palette[index-1].color.clone();
+    burstMaterials[index]=material;
+  }
+  const material=burstMaterials[index];
+  for(let i=0;i<3;i++){
+    const particle=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.075,segments:4},scene);
+    particle.position=position.clone();
+    particle.material=material;
+    particle.isPickable=false;
+    const angle=Math.PI*2*i/3,dist=.25+Math.random()*.18;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.18+Math.random()*.22,Math.sin(angle)*dist));
+    animate(particle,target,180).then(()=>particle.dispose());
   }
 }
 function updateHud(){
