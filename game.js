@@ -14,7 +14,7 @@ const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeL
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
-const pos=(r,c)=>new BABYLON.Vector3((c-(COLS-1)/2)*SPACING,0,(r-(ROWS-1)/2)*SPACING);
+const pos=(r,c)=>new BABYLON.Vector3((c-(COLS-1)/2)*SPACING,0,((ROWS-1)/2-r)*SPACING);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function makeMaterial(type){
   const index=Math.max(1,Math.min(TYPES,Number(type)||1));
@@ -68,7 +68,7 @@ const spriteTextures={};
 const specialSpriteMaterials={};
 const specialSpriteTextures={};
 const specialSpriteSources={
-  wrapped:"./08_bomb_skull.png",
+  wrapped:"./20_bag_lightning_purple.png",
   color:"./13_chocolate_ball.png",
   striped:{
     1:"./21_rocket_crown_gold.png",
@@ -203,7 +203,7 @@ function candyMesh(r,c,type,special){
   shine.isPickable=false;
 
   const artworkPath=candyImages[type];
-  if(artworkPath){
+  if(artworkPath&&!special){
     const trim=candyTrim[type];
     const ratio=trim?trim.ratio:(candyImageRatios[type]||1);
     const maxSide=SPACING*CANDY_FIT;
@@ -248,12 +248,12 @@ function candyMesh(r,c,type,special){
     const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.82,height:SPACING*.82},scene);
     art.parent=root;
     art.rotation.x=Math.PI/2;
-    art.position.y=1.035;
+    art.position.y=.43;
     art.material=specialSpriteMaterial(spriteKey,specialSpritePath);
     art.isPickable=false;
     art.isVisible=false;
     const texture=specialSpriteTextures[spriteKey];
-    const revealSpecial=()=>{if(!root.isDisposed?.())art.isVisible=true;};
+    const revealSpecial=()=>{if(root.isDisposed?.())return;art.isVisible=true;for(const child of root.getChildMeshes())if(child!==art)child.setEnabled(false);};
     if(texture?.isReady())revealSpecial();
     else if(texture?.onLoadObservable)texture.onLoadObservable.addOnce(revealSpecial);
   }
@@ -590,7 +590,7 @@ async function dropAndRefill(){
       // New candies always enter from above the top edge, then fall down into gaps.
       const target=pos(r,c);
       const rowsAbove=write-r+1;
-      mesh.position=new BABYLON.Vector3(target.x,.17,target.z-SPACING*(rowsAbove+0.8));
+      mesh.position=new BABYLON.Vector3(target.x,.17,target.z+SPACING*(rowsAbove+0.8));
       state.grid[r][c]={type:type,special:null,mesh:mesh};
       mesh.metadata={r:r,c:c,candy:true};
       falling.push(animate(mesh,target,Math.min(300,180+rowsAbove*24)));
