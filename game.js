@@ -64,12 +64,12 @@ let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBas
 const spriteMaterials={};
 const spriteTextures={};
 const candyImages={
-  1:"./assets/models/Picsart_26-11-15_03-44-50-856.png",
-  2:"./assets/models/Picsart_26-11-15_03-45-16-342.png",
-  3:"./assets/models/Picsart_26-11-15_03-46-24-543.png",
-  4:"./assets/models/Picsart_26-11-15_03-47-28-079.png",
-  5:"./assets/models/Picsart_26-11-15_03-49-03-571.png",
-  6:"./assets/models/Picsart_26-11-17_03-33-19-702.png"
+  1:"./01_star_gold.png",
+  2:"./02_heart_rainbow.png",
+  3:"./03_diamond_blue.png",
+  4:"./04_flower_purple.png",
+  5:"./05_crown_green.png",
+  6:"./06_lollipop_red.png"
 };
 const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
 
