@@ -63,6 +63,9 @@ let soundEnabled=true,audioContext=null,heartTimer=null;
 let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
 const spriteMaterials={};
 const spriteTextures={};
+let shineSharedMaterial=null;
+const specialRingSharedMaterials={};
+const burstSharedMaterials={};
 const candyImages={
   1:"./01_star_gold.png",
   2:"./02_heart_rainbow.png",
@@ -152,11 +155,13 @@ function candyMesh(r,c,type,special){
   shine.parent=root;
   shine.position=new BABYLON.Vector3(-.13,.31,-.12);
   shine.scaling=new BABYLON.Vector3(1,.28,.62);
-  const shineMat=new BABYLON.StandardMaterial("candyShineMat_"+r+"_"+c,scene);
-  shineMat.diffuseColor=new BABYLON.Color3(1,1,1);
-  shineMat.emissiveColor=new BABYLON.Color3(.22,.22,.22);
-  shineMat.alpha=.72;
-  shine.material=shineMat;
+  if(!shineSharedMaterial){
+    shineSharedMaterial=new BABYLON.StandardMaterial("candyShineShared",scene);
+    shineSharedMaterial.diffuseColor=new BABYLON.Color3(1,1,1);
+    shineSharedMaterial.emissiveColor=new BABYLON.Color3(.22,.22,.22);
+    shineSharedMaterial.alpha=.72;
+  }
+  shine.material=shineSharedMaterial;
   shine.isPickable=false;
 
   const artworkPath=candyImages[type];
@@ -189,11 +194,15 @@ function candyMesh(r,c,type,special){
   }
 
   if(special){
-    const ringMat=new BABYLON.StandardMaterial("specialRingMat_"+r+"_"+c,scene);
-    ringMat.diffuseColor=special==="wrapped"?new BABYLON.Color3(1,.72,.18):special==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
-    ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
-    const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:32},scene);
-    ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=ringMat;ring.isPickable=false;
+    const ringKind=special==="wrapped"?"wrapped":special==="color"?"color":"striped";
+    if(!specialRingSharedMaterials[ringKind]){
+      const ringMat=new BABYLON.StandardMaterial("specialRingShared_"+ringKind,scene);
+      ringMat.diffuseColor=ringKind==="wrapped"?new BABYLON.Color3(1,.72,.18):ringKind==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
+      ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
+      specialRingSharedMaterials[ringKind]=ringMat;
+    }
+    const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:24},scene);
+    ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=specialRingSharedMaterials[ringKind];ring.isPickable=false;
   }
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
@@ -440,7 +449,8 @@ async function dropAndRefill(){
 async function settle(){
   let chain=0;
   // Prevent a pathological cascade from locking the board or monopolizing a mobile frame.
-  while(chain<18){
+  // Bound cascade work so one lucky chain cannot monopolize a mobile browser.
+  while(chain<8){
     if(hasHoles())await dropAndRefill();
     const matches=findMatches();if(matches.size===0)break;
     chain++;playSfx("match");
@@ -461,18 +471,51 @@ async function settle(){
     updateHud();await wait(100);
     await dropAndRefill();
   }
-  if(findMatches().size>0)say("سلسلة طويلة! كمل المطابقة بحركة جديدة.");
-  else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
+  if(findMatches().size>0){
+    // A pathological board can keep auto-matching; reshuffle its types in place
+    // to restore a playable stable board instead of leaving the game locked.
+    const items=state.grid.flat().filter(Boolean);
+    const original=items.map(item=>item.type);
+    let stable=false;
+    for(let attempt=0;attempt<160&&!stable;attempt++){
+      const values=original.slice();
+      for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
+      for(let i=0;i<items.length;i++)items[i].type=values[i];
+      stable=findMatches().size===0&&hasPossibleMove();
+    }
+    if(!stable){
+      // Last-resort safe board with no initial horizontal or vertical triples.
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        let type=rand(),tries=0;
+        while(tries++<20&&((c>1&&state.grid[r][c-1].type===type&&state.grid[r][c-2].type===type)||(r>1&&state.grid[r-1][c].type===type&&state.grid[r-2][c].type===type)))type=rand();
+        state.grid[r][c].type=type;
+      }
+    }
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const item=state.grid[r][c];if(item?.mesh){
+        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null);
+        item.mesh.metadata={r,c,candy:true};
+      }
+    }
+    say("تم ترتيب اللوحة تلقائيًا عشان تقدر تكمل اللعب.");
+  }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   updateHud();
 }
 function burstAt(position,type){
-  const color=palette[type-1].color;
-  for(let i=0;i<7;i++){
-    const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.09,segments:6},scene);
-    p.position=position.clone();const m=new BABYLON.StandardMaterial("particleMat",scene);m.diffuseColor=color;m.emissiveColor=color;p.material=m;p.isPickable=false;
-    const angle=Math.PI*2*i/7,dist=.35+Math.random()*.25;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.25+Math.random()*.35,Math.sin(angle)*dist));
-    animate(p,target,250).then(()=>{p.dispose();m.dispose();});
+  // Reuse one material per candy type and keep the particle count low on mobile.
+  if(!burstSharedMaterials[type]){
+    const color=palette[type-1].color;
+    const material=new BABYLON.StandardMaterial("sugarParticleShared_"+type,scene);
+    material.diffuseColor=color;material.emissiveColor=color;
+    burstSharedMaterials[type]=material;
+  }
+  const material=burstSharedMaterials[type];
+  for(let i=0;i<3;i++){
+    const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.075,segments:4},scene);
+    p.position=position.clone();p.material=material;p.isPickable=false;
+    const angle=Math.PI*2*i/3,dist=.28+Math.random()*.18;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.2+Math.random()*.25,Math.sin(angle)*dist));
+    animate(p,target,190).then(()=>{if(!p.isDisposed?.())p.dispose();});
   }
 }
 function updateHud(){
