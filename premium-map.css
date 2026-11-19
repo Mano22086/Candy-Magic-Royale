@@ -1,0 +1,94 @@
+/* Premium realm map finish — decorative layer, no progression/gameplay changes. */
+.world-map{
+  background:
+    radial-gradient(ellipse at 50% 18%,rgba(255,218,151,.24),transparent 34%),
+    radial-gradient(ellipse at 12% 78%,rgba(120,76,255,.2),transparent 38%),
+    linear-gradient(180deg,#28104f 0%,#17082f 58%,#100622 100%);
+}
+.world-map:before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.42;
+  background:radial-gradient(circle at 18% 20%,#fff2 0 1px,transparent 2px),
+    radial-gradient(circle at 78% 34%,#ffe8ad88 0 1px,transparent 2px),
+    radial-gradient(circle at 42% 72%,#d9a8ff88 0 1px,transparent 2px);
+  background-size:83px 91px,127px 113px,109px 137px;
+}
+.wm-header,.wm-footer{position:relative;z-index:2;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.wm-header{
+  background:linear-gradient(135deg,rgba(105,58,151,.94),rgba(38,14,75,.96));
+  border-bottom:1px solid rgba(255,226,165,.42);
+  box-shadow:0 8px 28px rgba(5,0,22,.35),inset 0 1px rgba(255,255,255,.2);
+}
+.wm-heading h1{
+  color:#fff0bd;
+  text-shadow:0 2px 0 #79439b,0 5px 15px rgba(8,0,30,.7);
+}
+.wm-progress{
+  border:1px solid rgba(255,229,171,.34);
+  background:linear-gradient(180deg,#16082e,#3b1a66);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.42),0 3px 10px rgba(0,0,0,.2);
+}
+.wm-progress b{
+  background:linear-gradient(90deg,#ff8bc8,#ffd76e 70%,#fff1b5);
+  box-shadow:0 0 13px rgba(255,213,111,.68);
+}
+.wm-scroll{scrollbar-color:#b57be0 #261044}
+.wm-world{padding-top:14px;padding-bottom:28px}
+.wm-realm{
+  position:relative;isolation:isolate;overflow:hidden;
+  border:1px solid rgba(255,229,175,.52)!important;
+  background:linear-gradient(155deg,rgba(129,82,177,.96),rgba(55,25,100,.98) 58%,rgba(29,12,57,.99))!important;
+  box-shadow:0 12px 26px rgba(5,0,24,.42),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(12,3,32,.32)!important;
+  transition:transform .22s ease,filter .22s ease,box-shadow .22s ease;
+}
+.wm-realm:before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,229,164,.23),transparent 52%),
+    linear-gradient(115deg,transparent 18%,rgba(255,255,255,.08) 48%,transparent 72%);
+}
+.wm-realm:active{transform:scale(.985)}
+.wm-realm.active{
+  border-color:#fff0ad!important;
+  box-shadow:0 0 0 2px rgba(255,222,132,.24),0 14px 34px rgba(5,0,24,.5),0 0 28px rgba(255,204,112,.24),inset 0 1px #fff8!important;
+}
+.wm-realm-art img{
+  filter:drop-shadow(0 10px 10px rgba(8,0,25,.55)) drop-shadow(0 0 14px rgba(255,220,160,.25));
+  transform:translateY(0);transition:transform .35s ease,filter .35s ease;
+}
+.wm-realm:hover .wm-realm-art img{transform:translateY(-4px);filter:drop-shadow(0 14px 13px rgba(8,0,25,.62)) drop-shadow(0 0 18px rgba(255,220,160,.38))}
+.wm-realm strong{color:#fff0c6;text-shadow:0 2px 5px rgba(9,0,25,.55)}
+.wm-realm-kicker{color:#f5d9ff}
+.wm-realm-status{color:#ffe6a3}
+.wm-realm-progress{background:rgba(13,4,34,.72);box-shadow:inset 0 2px 4px #0008}
+.wm-realm-progress i{background:linear-gradient(90deg,#ff82c4,#ffd66e);box-shadow:0 0 10px #ffd66e88}
+.wm-footer{
+  border-top:1px solid rgba(255,226,165,.32);
+  background:linear-gradient(180deg,rgba(57,27,94,.9),rgba(22,8,44,.98));
+}
+.wm-house-title{
+  border:1px solid rgba(255,225,166,.4);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(123,75,167,.9),rgba(40,15,75,.96));
+  box-shadow:0 12px 28px rgba(5,0,24,.38),inset 0 1px #fff3;
+}
+.wm-house-title img{filter:drop-shadow(0 12px 12px #09001f99) drop-shadow(0 0 16px #e9baff55)}
+.wm-route polyline{filter:drop-shadow(0 0 5px rgba(255,220,139,.8))}
+.wm-house{
+  border:1px solid rgba(255,235,183,.72)!important;
+  box-shadow:0 5px 0 rgba(18,5,43,.68),0 9px 15px rgba(5,0,22,.42),inset 0 2px 0 rgba(255,255,255,.5)!important;
+  transition:transform .16s ease,filter .16s ease;
+}
+.wm-house.current{
+  box-shadow:0 0 0 3px rgba(255,224,126,.25),0 6px 0 #8a4d35,0 0 22px rgba(255,211,105,.62),inset 0 2px #fff9!important;
+  animation:wmCurrentPulse 2s ease-in-out infinite;
+}
+.wm-house:active{transform:translateY(2px) scale(.97)}
+.wm-tools button,.wm-zoom button,#wmBack{
+  border:1px solid rgba(255,230,177,.55);
+  background:linear-gradient(180deg,#8253ad,#43206f);
+  box-shadow:inset 0 1px #fff5,0 4px 10px #08001866;
+}
+@keyframes wmCurrentPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+@media(prefers-reduced-motion:reduce){
+ .wm-realm,.wm-realm-art img,.wm-house{transition:none}
+ .wm-house.current{animation:none}
+}
