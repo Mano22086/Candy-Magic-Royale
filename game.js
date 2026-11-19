@@ -611,9 +611,59 @@ function findSpecialCandidate(matches){
   }
   return best;
 }
+function beamBetween(from,to,color,duration=280){
+  if(activeVfxMeshes.size>=VFX_MESH_LIMIT)return;
+  const start=from.clone();start.y+=.54;
+  const end=to.clone();end.y+=.54;
+  const beam=BABYLON.MeshBuilder.CreateTube("royalEnergyBeam",{path:[start,end],radius:.026,tessellation:6,cap:BABYLON.Mesh.CAP_ROUND},scene);
+  const mat=new BABYLON.StandardMaterial("royalEnergyBeamMaterial",scene);
+  mat.diffuseColor=color;mat.emissiveColor=color.scale(1.7);mat.specularColor=new BABYLON.Color3(1,1,1);mat.alpha=.92;
+  beam.material=mat;beam.isPickable=false;
+  const started=performance.now();
+  const observer=scene.onBeforeRenderObservable.add(()=>{
+    if(beam.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);if(!mat.isDisposed?.())mat.dispose();return;}
+    const t=Math.min(1,(performance.now()-started)/duration);
+    mat.alpha=.92*(1-t);
+    if(t>=1){scene.onBeforeRenderObservable.remove(observer);if(!mat.isDisposed?.())mat.dispose();}
+  });
+  trackVfx(beam,duration+40);
+}
+function rocketSweepAt(cell){
+  const origin=pos(cell.r,cell.c);
+  shockwaveAt(origin,"rocket");
+  const cyan=new BABYLON.Color3(.16,.82,1);
+  beamBetween(pos(cell.r,0),pos(cell.r,COLS-1),cyan,300);
+  beamBetween(pos(0,cell.c),pos(ROWS-1,cell.c),cyan,300);
+}
+function wrappedDetonationAt(cell,type){
+  const origin=pos(cell.r,cell.c);
+  shockwaveAt(origin,"wrapped");
+  burstAt(origin,type);
+}
+function colorChainAt(originCell,targetType){
+  const origin=pos(originCell.r,originCell.c);
+  shockwaveAt(origin,"color");
+  const beamColor=targetType?palette[Math.max(1,Math.min(TYPES,targetType))-1].color:new BABYLON.Color3(.84,.42,1);
+  let emitted=0;
+  for(let r=0;r<ROWS&&emitted<18;r++)for(let c=0;c<COLS&&emitted<18;c++){
+    const item=state.grid[r]?.[c];
+    if(!item||(targetType&&item.type!==targetType)||(r===originCell.r&&c===originCell.c))continue;
+    beamBetween(origin,pos(r,c),beamColor,260+emitted*4);
+    emitted++;
+  }
+}
 async function activateSpecial(a,b){
   const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
-  if(A?.special||B?.special){const kind=A?.special||B?.special;playSfx(kind==="wrapped"?"bomb":kind==="striped"?"rocket":"color");shockwaveAt((A?.special?A:B).mesh.position,kind);}
+  if(A?.special||B?.special){
+    const kind=A?.special||B?.special;
+    playSfx(kind==="wrapped"?"bomb":kind==="striped"?"rocket":"color");
+    if(A?.special==="wrapped")wrappedDetonationAt(a,A.type);
+    else if(A?.special==="striped")rocketSweepAt(a);
+    else if(A?.special==="color")colorChainAt(a,B?.type||null);
+    if(B?.special==="wrapped")wrappedDetonationAt(b,B.type);
+    else if(B?.special==="striped")rocketSweepAt(b);
+    else if(B?.special==="color")colorChainAt(b,A?.type||null);
+  }
   const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
   const addCross=cell=>{for(let k=0;k<COLS;k++)cells.add(cell.r+","+k);for(let k=0;k<ROWS;k++)cells.add(k+","+cell.c);};
   if(A?.special==="color"&&B?.special==="color"){
@@ -716,14 +766,14 @@ async function settle(){
     for(const {r,c,item} of matchedSpecials){
       if(item.special==="wrapped"){
         for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))matches.add(y+","+x);
-        playSfx("bomb");shockwaveAt(item.mesh.position,"wrapped");
+        playSfx("bomb");wrappedDetonationAt({r,c},item.type);
       }else if(item.special==="striped"){
         for(let x=0;x<COLS;x++)matches.add(r+","+x);
         for(let y=0;y<ROWS;y++)matches.add(y+","+c);
-        playSfx("rocket");shockwaveAt(item.mesh.position,"striped");
+        playSfx("rocket");rocketSweepAt({r,c});
       }else if(item.special==="color"){
         for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(state.grid[y][x]?.type===item.type)matches.add(y+","+x);
-        playSfx("color");shockwaveAt(item.mesh.position,"color");
+        playSfx("color");colorChainAt({r,c},item.type);
       }
     }
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
