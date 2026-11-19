@@ -133,26 +133,36 @@ function loadCandyTrim(type){
     const src=candyImages[type];
     if(!src){resolve();return;}
     const img=new Image();
+    let settled=false;
+    const finish=()=>{if(settled)return;settled=true;resolve();};
+    // A failed or slow image must never prevent the game board from opening.
+    const timeout=setTimeout(finish,5000);
     img.onload=()=>{
       try{
         const w=img.naturalWidth,h=img.naturalHeight;
-        const cv=document.createElement("canvas");cv.width=w;cv.height=h;
-        const ctx=cv.getContext("2d");ctx.drawImage(img,0,0);
-        const d=ctx.getImageData(0,0,w,h).data;
-        let x0=w,y0=h,x1=-1,y1=-1;
-        for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-          if(d[(y*w+x)*4+3]>40){
+        // Analyze a tiny thumbnail instead of reading millions of full-size pixels
+        // on mobile. The trim is only a layout estimate; the original art is untouched.
+        const sample=128,scale=Math.min(1,sample/Math.max(w,h));
+        const sw=Math.max(1,Math.round(w*scale)),sh=Math.max(1,Math.round(h*scale));
+        const cv=document.createElement("canvas");cv.width=sw;cv.height=sh;
+        const ctx=cv.getContext("2d",{willReadFrequently:true});
+        if(!ctx){clearTimeout(timeout);finish();return;}
+        ctx.drawImage(img,0,0,sw,sh);
+        const d=ctx.getImageData(0,0,sw,sh).data;
+        let x0=sw,y0=sh,x1=-1,y1=-1;
+        for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){
+          if(d[(y*sw+x)*4+3]>40){
             if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
           }
         }
         if(x1>=x0&&y1>=y0){
           x1++;y1++;
-          candyTrim[type]={u0:x0/w,u1:x1/w,v0:1-y1/h,v1:1-y0/h,ratio:(x1-x0)/(y1-y0)};
+          candyTrim[type]={u0:x0/sw,u1:x1/sw,v0:1-y1/sh,v1:1-y0/sh,ratio:(x1-x0)/(y1-y0)};
         }
       }catch(e){console.warn("Candy trim failed",type,e);}
-      resolve();
+      clearTimeout(timeout);finish();
     };
-    img.onerror=()=>resolve();
+    img.onerror=()=>{clearTimeout(timeout);finish();};
     img.src=src;
   });
 }
