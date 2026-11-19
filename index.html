@@ -9,7 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./styles.css?v=match-fall-mobile-fix-2">\n  <link rel="stylesheet" href="./premium-visual.css?v=royal-depth-20261119-1">
   <link rel="stylesheet" href="./world-map.css?v=four-realms-final-20261119-1">\n  <link rel="stylesheet" href="./premium-map.css?v=royal-map-20261119-1">
-  <link rel="stylesheet" href="./royal-gameplay-4k.css?v=royal-4k-environment-20261120-1">
+  <link rel="stylesheet" href="./royal-gameplay-4k.css?v=royal-4k-environment-20261120-1">\n  <link rel="stylesheet" href="./royal-character-engine.css?v=babylon-characters-20261120-1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@
   <script>
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;const beginVideo=()=>{video.load();};if(document.readyState==="complete")beginVideo();else window.addEventListener("load",beginVideo,{once:true});video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
-  <script src="./game.js?v=obstacles-difficulty-20261119-1"></script>
+  <script src="./game.js?v=obstacles-difficulty-20261119-1"></script>\n  <script src="./royal-character-engine.js?v=babylon-characters-20261120-1"></script>
   <script src="./world-map.js?v=four-realms-final-20261119-1"></script>
   <script>
   // Robust Play control: direct button binding plus coordinate hit-testing for mobile.
