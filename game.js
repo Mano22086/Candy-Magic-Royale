@@ -310,20 +310,19 @@ function candyMesh(r,c,type,special,ice=0){
     if(!iceStageMaterials[key]){
       const mat=new BABYLON.StandardMaterial("iceStageMaterial_"+key,scene);
       const texture=new BABYLON.Texture(path,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-        ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.specularColor=new BABYLON.Color3(.8,.95,1);mat.specularPower=96;},
+        ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.specularColor=new BABYLON.Color3(.88,.97,1);mat.specularPower=128;},
         (message,error)=>console.warn("Ice artwork unavailable:",path,message,error));
       texture.hasAlpha=true;texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
       mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-      mat.specularColor=new BABYLON.Color3(.8,.95,1);mat.specularPower=96;iceStageMaterials[key]=mat;iceStageTextures[key]=texture;
+      mat.specularColor=new BABYLON.Color3(.88,.97,1);mat.specularPower=128;mat.backFaceCulling=false;
+      iceStageMaterials[key]=mat;iceStageTextures[key]=texture;
     }
-    if(!iceOverlayMaterial){iceOverlayMaterial=new BABYLON.StandardMaterial("iceFallbackShared",scene);iceOverlayMaterial.diffuseColor=new BABYLON.Color3(.55,.88,1);iceOverlayMaterial.emissiveColor=new BABYLON.Color3(.18,.48,.72);iceOverlayMaterial.alpha=.34;iceOverlayMaterial.specularColor=new BABYLON.Color3(1,1,1);iceOverlayMaterial.specularPower=96;iceOverlayMaterial.backFaceCulling=false;}
-    const fallback=BABYLON.MeshBuilder.CreateSphere("iceFallback_"+r+"_"+c,{diameter:SPACING*.91,segments:16},scene);fallback.parent=root;fallback.position.y=.27;fallback.scaling.y=.56;fallback.material=iceOverlayMaterial;fallback.isPickable=false;
-    const overlay=BABYLON.MeshBuilder.CreatePlane("iceOverlay_"+stage,{width:SPACING*.98,height:SPACING*.98},scene);
-    overlay.parent=root;overlay.rotation.x=Math.PI/2;overlay.position.y=.49;overlay.material=iceStageMaterials[key];overlay.isPickable=false;overlay.renderingGroupId=2;overlay.isVisible=false;
+    // A real 3D box gives the supplied 4K ice artwork depth from every viewing angle.
+    const iceBox=BABYLON.MeshBuilder.CreateBox("iceCube3D_"+stage+"_"+r+"_"+c,{width:SPACING*.88,height:SPACING*.88,depth:SPACING*.88,segments:1},scene);
+    iceBox.parent=root;iceBox.position.y=.39;iceBox.material=iceStageMaterials[key];iceBox.isPickable=false;iceBox.renderingGroupId=2;
     const texture=iceStageTextures[key];
-    const revealIceArtwork=()=>{if(root.isDisposed?.())return;overlay.isVisible=true;fallback.setEnabled(false);};
-    const revealIceWhenReady=()=>{if(root.isDisposed?.())return;if(texture&&texture.isReady()){revealIceArtwork();return;}if(texture)setTimeout(revealIceWhenReady,60);};
-    revealIceWhenReady();
+    const revealIceWhenReady=()=>{if(root.isDisposed?.()||iceBox.isDisposed?.())return;if(texture&&texture.isReady()){iceBox.setEnabled(true);return;}if(texture)setTimeout(revealIceWhenReady,60);};
+    iceBox.setEnabled(false);revealIceWhenReady();
   }
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
@@ -404,11 +403,13 @@ function randomType(r,c){
 }
 function damageIceAt(r,c,score=25){
   const item=state.grid[r]?.[c];if(!item||item.ice<=0)return false;
+  const impactPosition=item.mesh?.position?.clone();
   item.ice=Math.max(0,item.ice-1);
   if(item.ice===0)state.iceRemaining=Math.max(0,state.iceRemaining-1);
   if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   item.mesh=candyMesh(r,c,item.type,item.special,item.ice);
   state.score+=score;
+  if(impactPosition){shockwaveAt(impactPosition,"ice");playSfx("match");}
   return true;
 }
 function buildGrid(){
@@ -707,13 +708,26 @@ async function settle(){
       }
     }
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
+    // A confirmed 3+ match also cracks ice directly beside its matched candies.
+    // Deduplicate cells so an ice block touched by two matched candies takes one hit only.
+    const iceHitCells=new Set();
+    for(const key of matches){
+      const [mr,mc]=key.split(",").map(Number);
+      const current=state.grid[mr]?.[mc];
+      if(current?.ice>0)iceHitCells.add(mr+","+mc);
+      for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+        const ir=mr+dr,ic=mc+dc;
+        if(inBounds(ir,ic)&&state.grid[ir][ic]?.ice>0)iceHitCells.add(ir+","+ic);
+      }
+    }
+    for(const key of iceHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25);}
     const specialCandidate=matchedSpecials.length===0&&chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
     const keep=specialCandidate?.cell||null;
     for(const p of remove){
       const r=p[0],c=p[1],it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
-      if(it?.ice>0){damageIceAt(r,c,25);continue;}
+      if(it?.ice>0){if(!iceHitCells.has(r+","+c))damageIceAt(r,c,25);continue;}
       if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
       state.grid[r][c]=null;state.score+=60;
     }
