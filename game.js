@@ -418,7 +418,7 @@ function buildGrid(){
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
   const iceCells=new Set();
-  if(!canRestore&&state.level>=3){const count=Math.min(12,3+Math.floor((state.level-3)/4));while(iceCells.size<count)iceCells.add(Math.floor(Math.random()*ROWS*COLS));}
+  if(!canRestore&&state.level>=1){const count=Math.min(12,3+Math.floor((state.level-1)/3));while(iceCells.size<count)iceCells.add(Math.floor(Math.random()*ROWS*COLS));}
   state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
@@ -502,7 +502,7 @@ function clearSelection(){
 async function swap(a,b){
   if(state.busy||!inBounds(a.r,a.c)||!inBounds(b.r,b.c))return;
   if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
-  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B)return;
+  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B||A.ice>0||B.ice>0){clearSelection();return;}
   state.busy=true;clearSelection();
   try{
     await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
@@ -918,7 +918,7 @@ function hasPossibleMove(){
     for(const [dr,dc] of [[0,1],[1,0]]){
       const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
       const a=state.grid[r][c],b=state.grid[nr][nc];
-      if(!a||!b)continue;
+      if(!a||!b||a.ice>0||b.ice>0)continue;
       state.grid[r][c]=b;state.grid[nr][nc]=a;
       const valid=findMatches().size>0;
       state.grid[r][c]=a;state.grid[nr][nc]=b;
