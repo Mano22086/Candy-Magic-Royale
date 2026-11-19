@@ -408,7 +408,7 @@ async function useSelectedBooster(cell){
       if(!target){say("اختار حلوى جنب لون مختلف.");state.busy=false;return;}
       const newType=state.grid[target[0]][target[1]].type;
       if(anchor.mesh&&!anchor.mesh.isDisposed?.())anchor.mesh.dispose();
-      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null);
+      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null,anchor.ice||0);
       state.paints--;state.score+=40;state.moves=Math.max(0,state.moves-1);say("اتغير لون الحلوى!");
     }else{
       const cells=new Set();
@@ -678,7 +678,7 @@ async function settle(){
       state.grid[r][c]=null;state.score+=60;
     }
     if(keep){
-      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial);}
+      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial,it.ice||0);}
     }
     if(chain>1)state.score+=matches.size*10;
     updateHud();await wait(100);
@@ -706,7 +706,7 @@ async function settle(){
     }
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const item=state.grid[r][c];if(item?.mesh){
-        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null);
+        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null,item.ice||0);
         item.mesh.metadata={r,c,candy:true};
       }
     }
@@ -906,7 +906,7 @@ function shuffle(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const it=state.grid[r][c];
     if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
-    it.special=null;it.mesh=candyMesh(r,c,it.type,null);
+    it.special=null;it.mesh=candyMesh(r,c,it.type,null,it.ice||0);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
   saveProgress(false);
