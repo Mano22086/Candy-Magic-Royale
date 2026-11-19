@@ -305,7 +305,7 @@ function candyMesh(r,c,type,special,ice=0){
   }
   if(ice>0){
     const stage=ice>=2?0:1;
-    const path=stage===0?"./ice_solid.png":"./ice_transparent.png";
+    const path=stage===0?"./ice_cube_realistic_4k.png":"./ice_cube_stylized_4k.png";
     const key=String(stage);
     if(!iceStageMaterials[key]){
       const mat=new BABYLON.StandardMaterial("iceStageMaterial_"+key,scene);
