@@ -1,0 +1,95 @@
+/* Candy Magic Royale — premium visual foundation
+   Layered UI finish only: preserves existing layout, game rules and touch targets. */
+:root{
+  --royal-ink:#170b35;
+  --royal-violet:#432078;
+  --royal-lilac:#d9a8ff;
+  --royal-gold:#ffe49a;
+  --royal-pink:#ff82c4;
+}
+html,body{background-color:var(--royal-ink)}
+body{
+  background-image:
+    radial-gradient(ellipse at 50% 14%,rgba(255,219,151,.18),transparent 32%),
+    radial-gradient(ellipse at 12% 62%,rgba(106,74,255,.2),transparent 38%),
+    linear-gradient(180deg,rgba(17,7,42,.28),rgba(17,7,42,.72)),
+    url("./assets/enchanted-garden-backdrop.svg");
+  background-attachment:fixed;
+  background-position:center,center,center,center;
+  background-size:cover;
+}
+.game-shell{filter:drop-shadow(0 18px 34px rgba(5,0,22,.28))}
+.topbar{min-height:52px}
+.icon-button,.coin-pill,.level-strip,.mission-row,.bottom-panel{
+  backdrop-filter:blur(14px) saturate(1.22);
+  -webkit-backdrop-filter:blur(14px) saturate(1.22);
+}
+.coin-pill{
+  border-color:rgba(255,232,173,.55);
+  background:linear-gradient(180deg,rgba(117,73,167,.96),rgba(48,19,91,.97));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -3px 0 rgba(20,5,48,.3),0 5px 14px rgba(9,0,30,.32);
+}
+.level-strip,.mission-row,.bottom-panel{
+  border:1px solid rgba(255,226,169,.38);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 -2px 0 rgba(18,5,44,.22),0 8px 22px rgba(7,0,24,.34);
+}
+.level-progress{height:9px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg,#16092d,#38205f)}
+.level-progress i{background:linear-gradient(90deg,#ff72c0 0%,#ffd66f 52%,#fff0ad 100%);box-shadow:0 0 12px rgba(255,211,112,.6)}
+.character-stage{
+  border:1px solid rgba(255,228,178,.35);
+  background:radial-gradient(ellipse at 50% 100%,rgba(255,214,135,.2),transparent 65%),linear-gradient(180deg,rgba(128,83,185,.48),rgba(39,15,78,.16));
+}
+.board-rim{
+  padding:7px;
+  border:1px solid rgba(255,239,194,.8);
+  background:linear-gradient(145deg,#fff0c4 0%,#f1b8ff 13%,#9a62d4 29%,#3d1b70 58%,#e6a9ff 86%,#fff0c4 100%);
+  box-shadow:
+    0 16px 34px rgba(5,0,20,.55),
+    0 0 0 2px rgba(42,15,81,.72),
+    0 0 30px rgba(198,124,255,.38),
+    inset 0 2px 3px rgba(255,255,255,.92),
+    inset 0 -5px 9px rgba(22,5,50,.48);
+}
+.board-rim:before{
+  inset:6px;border:1px solid rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 2px rgba(44,15,82,.12),0 0 12px rgba(255,255,255,.12);
+}
+#renderCanvas{
+  background:radial-gradient(ellipse at 50% 18%,#7444a8,#2b1555 70%,#1b0b3b);
+  box-shadow:inset 0 0 24px rgba(7,0,28,.45);
+}
+.board-sparkle{filter:drop-shadow(0 0 8px rgba(255,223,135,.9))}
+.booster{
+  border:1px solid rgba(255,233,190,.55);
+  background:linear-gradient(180deg,rgba(151,101,202,.98),rgba(64,29,111,.98));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(20,5,48,.28),0 5px 12px rgba(9,0,30,.28);
+}
+.booster.active{
+  outline:2px solid #fff0ad;
+  box-shadow:0 0 0 4px rgba(255,215,113,.2),0 0 22px rgba(255,213,104,.62),inset 0 2px 0 rgba(255,255,255,.48);
+}
+.primary-button,.start-button{
+  border:1px solid rgba(255,249,213,.9);
+  background:linear-gradient(180deg,#fff8c9 0%,#ffe28e 26%,#ffc65f 62%,#dc873d 100%);
+  box-shadow:0 5px 0 #995332,0 10px 20px rgba(12,2,32,.34),inset 0 2px 0 rgba(255,255,255,.9),inset 0 -2px 0 rgba(160,80,30,.2);
+}
+.start-screen{
+  background:
+    radial-gradient(ellipse at 50% 42%,rgba(255,224,159,.24),transparent 35%),
+    radial-gradient(ellipse at 50% 100%,#7042a4 0%,#32145e 52%,#16082f 100%);
+}
+.start-screen:before{opacity:.48;filter:saturate(1.35) contrast(1.05)}
+.start-castle{filter:drop-shadow(0 0 24px rgba(255,218,143,.45)) drop-shadow(0 16px 18px rgba(12,3,35,.55))}
+.start-title h1{filter:drop-shadow(0 2px 0 #784321) drop-shadow(0 6px 0 #3a174c) drop-shadow(0 11px 16px #12051f)}
+.start-queen,.start-dragon{filter:drop-shadow(0 14px 14px rgba(8,0,24,.58)) drop-shadow(0 0 18px rgba(242,199,255,.32))}
+.modal-card{
+  border-color:#ffe5a0;
+  background:linear-gradient(155deg,#8050b5 0%,#4c267f 42%,#24104a 100%);
+}
+@media(max-width:390px){
+  .board-rim{padding:6px}
+  .level-strip,.mission-row,.bottom-panel{box-shadow:inset 0 1px rgba(255,255,255,.18),0 5px 14px rgba(7,0,24,.3)}
+}
+@media(prefers-reduced-motion:reduce){
+  .start-castle,.start-queen,.start-dragon,.character{filter:none}
+}
