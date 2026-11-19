@@ -595,7 +595,7 @@ async function activateSpecial(a,b){
   }
   for(const key of cells){
     const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
-    if(it){burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}
+    if(it){if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(r,c,it.type,it.special,0);state.score+=25;}else{burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}}
   }
   updateHud();await wait(170);
 }
@@ -844,6 +844,7 @@ async function useHammer(cell){
   const it=state.grid[cell.r][cell.c];if(!it)return;
   state.busy=true;clearSelection();
   try{
+    if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(cell.r,cell.c,it.type,it.special,0);state.score+=40;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);refreshBoosterBadges();await settle();return;}
     burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
     state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
     refreshBoosterBadges();
