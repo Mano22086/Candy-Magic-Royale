@@ -473,10 +473,10 @@ async function swap(a,b){
 }
 function findMatches(){
   const found=new Set();
-  // A match must contain the exact same candy variant: same base color AND
-  // same special kind. A striped/bomb candy cannot be activated by ordinary
-  // candies of its base color touching it.
-  const sameCandy=(a,b)=>!!a&&!!b&&a.type===b.type&&(a.special||null)===(b.special||null);
+  // Match by base color, regardless of whether a candy is special.
+  // A special candy activates only when it belongs to a confirmed 3+ match;
+  // swapping/touching it without a resulting match never activates it.
+  const sameCandy=(a,b)=>!!a&&!!b&&a.type===b.type;
   for(let r=0;r<ROWS;r++){
     let c=0;while(c<COLS){
       const item=state.grid[r][c];if(!item){c++;continue;}
