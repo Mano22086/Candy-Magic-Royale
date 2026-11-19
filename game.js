@@ -401,7 +401,26 @@ function randomType(r,c){
   while(tries<12&&((c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t))){t=rand();tries++;}
   return t;
 }
-function damageIceAt(r,c,score=25,source="booster"){const item=state.grid[r]?.[c];if(!item||(item.ice<=0&&!item.obs))return false;const obs=item.obs||(item.ice>1?"double_ice":"single_ice");const def=OBSTACLE_DEFS[obs]||OBSTACLE_DEFS.single_ice;if(source==="adj"&&!def.adj)return false;if(source==="self"&&!def.self)return false;const impactPosition=item.mesh?.position?.clone();item.ice=Math.max(0,(item.ice||1)-1);if(obs==="double_ice"&&item.ice===1)item.obs="single_ice";if(obs==="chocolate")state.chocolateBrokenThisTurn=true;if(item.ice===0){item.obs=null;if(def.reward){if(Math.random()<0.5){state.moves+=2;}else{const sp=["lineH","lineV","bomb","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}}}state.iceRemaining=countObstacles();if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special,item.ice);state.score+=score;if(impactPosition){shockwaveAt(impactPosition,"ice");playSfx("match");}return true;}function _unused_damageIceAt(r,c,score=25){
+function damageIceAt(r,c,score=25,source="booster"){
+  const item=state.grid[r]?.[c];if(!item||(item.ice<=0&&!item.obs))return false;
+  const obs=item.obs||(item.ice>1?"double_ice":"single_ice"),def=OBSTACLE_DEFS[obs]||OBSTACLE_DEFS.single_ice;
+  if(source==="adj"&&!def.adj)return false;if(source==="self"&&!def.self)return false;
+  const impactPosition=item.mesh?.position?.clone();
+  item.ice=Math.max(0,(item.ice||1)-1);
+  if(obs==="double_ice"&&item.ice===1)item.obs="single_ice";
+  if(obs==="chocolate")state.chocolateBrokenThisTurn=true;
+  if(item.ice===0){
+    item.obs=null;
+    if(def.reward){if(Math.random()<.5){state.moves+=2;}else{const sp=["lineH","lineV","bomb","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}}
+  }
+  state.iceRemaining=countObstacles();
+  if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
+  item.mesh=candyMesh(r,c,item.type,item.special,item.ice);
+  state.score+=score;
+  if(impactPosition){iceImpactAt(impactPosition,item.ice);playSfx("match");}
+  return true;
+}
+function _unused_damageIceAt(r,c,score=25){
   const item=state.grid[r]?.[c];if(!item||item.ice<=0)return false;
   const impactPosition=item.mesh?.position?.clone();
   item.ice=Math.max(0,item.ice-1);
@@ -768,35 +787,88 @@ async function settle(){
   }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
   spreadChocolateIfNeeded();updateHud();
 }
-function shockwaveAt(position,kind){
-  const colors={wrapped:new BABYLON.Color3(1,.55,.12),striped:new BABYLON.Color3(.18,.82,1),color:new BABYLON.Color3(.85,.3,1),bomb:new BABYLON.Color3(1,.55,.12),rocket:new BABYLON.Color3(.18,.82,1)};
-  const color=colors[kind]||new BABYLON.Color3(1,.8,.3);
-  const ring=BABYLON.MeshBuilder.CreateTorus("specialShockwave",{diameter:1,thickness:.045,tessellation:32},scene);
-  ring.position=position.clone();ring.position.y+=.55;ring.rotation.x=Math.PI/2;ring.scaling.setAll(.12);ring.isPickable=false;
-  const material=new BABYLON.StandardMaterial("specialShockMaterial",scene);material.diffuseColor=color;material.emissiveColor=color;material.alpha=.9;ring.material=material;
-  const started=performance.now(),duration=360;
+const activeVfxMeshes=new Set();
+const VFX_MESH_LIMIT=72;
+const vfxMaterials={};
+function getVfxMaterial(key,color,alpha=1){
+  if(vfxMaterials[key])return vfxMaterials[key];
+  const mat=new BABYLON.StandardMaterial("royalVfx_"+key,scene);
+  mat.diffuseColor=color;mat.emissiveColor=color.scale(1.25);mat.specularColor=new BABYLON.Color3(.9,.95,1);
+  mat.specularPower=64;mat.alpha=alpha;mat.disableLighting=false;
+  vfxMaterials[key]=mat;return mat;
+}
+function trackVfx(mesh,duration=420){
+  if(activeVfxMeshes.size>=VFX_MESH_LIMIT){
+    const oldest=activeVfxMeshes.values().next().value;
+    if(oldest){activeVfxMeshes.delete(oldest);if(!oldest.isDisposed?.())oldest.dispose();}
+  }
+  activeVfxMeshes.add(mesh);
+  const started=performance.now();
   const observer=scene.onBeforeRenderObservable.add(()=>{
-    if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
-    const t=Math.min(1,(performance.now()-started)/duration);ring.scaling.setAll(.12+2.1*t);material.alpha=.9*(1-t);
-    if(t>=1){scene.onBeforeRenderObservable.remove(observer);ring.dispose();material.dispose();}
+    if(mesh.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);activeVfxMeshes.delete(mesh);return;}
+    const t=Math.min(1,(performance.now()-started)/duration);
+    if(t>=1){scene.onBeforeRenderObservable.remove(observer);activeVfxMeshes.delete(mesh);mesh.dispose();}
   });
+  return observer;
+}
+function shockwaveAt(position,kind){
+  const colors={wrapped:new BABYLON.Color3(1,.48,.12),striped:new BABYLON.Color3(.12,.78,1),color:new BABYLON.Color3(.8,.28,1),bomb:new BABYLON.Color3(1,.48,.12),rocket:new BABYLON.Color3(.12,.78,1),ice:new BABYLON.Color3(.48,.88,1)};
+  const color=colors[kind]||new BABYLON.Color3(1,.78,.32);
+  // Two concentric rings create a layered impact without a costly full-screen post-process.
+  for(let layer=0;layer<2;layer++){
+    const ring=BABYLON.MeshBuilder.CreateTorus("royalShockwave",{diameter:1,thickness:layer?.022:.052,tessellation:40},scene);
+    ring.position=position.clone();ring.position.y+=.5+layer*.035;ring.rotation.x=Math.PI/2;
+    ring.scaling.setAll(.1);ring.isPickable=false;ring.material=getVfxMaterial("ring_"+kind+"_"+layer,color,layer?.52:.9);
+    const started=performance.now(),duration=layer?480:360;
+    const observer=scene.onBeforeRenderObservable.add(()=>{
+      if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
+      const t=Math.min(1,(performance.now()-started)/duration),ease=1-Math.pow(1-t,2);
+      ring.scaling.setAll(.12+(layer?2.75:2.05)*ease);
+      ring.material.alpha=(layer?.52:.9)*(1-t);
+      if(t>=1)scene.onBeforeRenderObservable.remove(observer);
+    });
+    trackVfx(ring,duration+30);
+  }
 }
 function burstAt(position,type){
-  // Reuse one material per candy type and keep the particle count low on mobile.
-  if(!burstSharedMaterials[type]){
-    const color=palette[type-1].color;
-    const material=new BABYLON.StandardMaterial("sugarParticleShared_"+type,scene);
-    material.diffuseColor=color;material.emissiveColor=color;
-    burstSharedMaterials[type]=material;
+  const safeType=Math.max(1,Math.min(TYPES,Number(type)||1));
+  const material=getVfxMaterial("sugar_"+safeType,palette[safeType-1].color);
+  // Radial sugar fragments with varied height and distance; hard-capped for mobile.
+  for(let i=0;i<8;i++){
+    if(activeVfxMeshes.size>=VFX_MESH_LIMIT)break;
+    const p=BABYLON.MeshBuilder.CreatePolyhedron("sugarShard",{type:1,size:.052+Math.random()*.025},scene);
+    p.position=position.clone();p.position.y+=.16;p.material=material;p.isPickable=false;
+    const angle=Math.PI*2*i/8+(Math.random()-.5)*.18,dist=.34+Math.random()*.22;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.22+Math.random()*.36,Math.sin(angle)*dist));
+    p.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+    trackVfx(p,270);
+    animate(p,target,230).then(()=>{if(!p.isDisposed?.())p.dispose();});
   }
-  const material=burstSharedMaterials[type];
-  for(let i=0;i<5;i++){
-    const p=BABYLON.MeshBuilder.CreateSphere("sugarParticle",{diameter:.075,segments:4},scene);
-    p.position=position.clone();p.material=material;p.isPickable=false;
-    const angle=Math.PI*2*i/5,dist=.28+Math.random()*.18;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.2+Math.random()*.25,Math.sin(angle)*dist));
-    animate(p,target,190).then(()=>{if(!p.isDisposed?.())p.dispose();});
+}
+function iceImpactAt(position,remainingLayers){
+  const iceColor=new BABYLON.Color3(.48,.86,1);
+  shockwaveAt(position,"ice");
+  const shardMat=getVfxMaterial("ice_shards",iceColor,.92);
+  const count=remainingLayers>0?5:9;
+  for(let i=0;i<count;i++){
+    if(activeVfxMeshes.size>=VFX_MESH_LIMIT)break;
+    const shard=BABYLON.MeshBuilder.CreatePolyhedron("iceShard",{type:1,size:.045+Math.random()*.045},scene);
+    shard.position=position.clone();shard.position.y+=.23;shard.material=shardMat;shard.isPickable=false;
+    shard.rotation.set(Math.random()*2,Math.random()*2,Math.random()*2);
+    const angle=Math.PI*2*i/count+(Math.random()-.5)*.22,dist=.28+Math.random()*.26;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.12+Math.random()*.32,Math.sin(angle)*dist));
+    trackVfx(shard,remainingLayers>0?260:390);
+    animate(shard,target,remainingLayers>0?210:310).then(()=>{if(!shard.isDisposed?.())shard.dispose();});
   }
+  // Brief cold flash communicates the layer damage even on small phone screens.
+  const flash=BABYLON.MeshBuilder.CreateDisc("iceImpactFlash",{radius:.38,tessellation:24},scene);
+  flash.position=position.clone();flash.position.y+=.42;flash.rotation.x=Math.PI/2;flash.material=getVfxMaterial("ice_flash",new BABYLON.Color3(.72,.94,1),.5);flash.isPickable=false;
+  const started=performance.now(),observer=scene.onBeforeRenderObservable.add(()=>{
+    if(flash.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
+    const t=Math.min(1,(performance.now()-started)/190);flash.scaling.setAll(1+t*.7);flash.material.alpha=.5*(1-t);
+    if(t>=1)scene.onBeforeRenderObservable.remove(observer);
+  });
+  trackVfx(flash,220);
 }
 function updateHud(){
   applyHeartRegen();$("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
