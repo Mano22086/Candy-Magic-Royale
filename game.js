@@ -417,7 +417,7 @@ function buildGrid(){
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=cfg.target;state.moves=cfg.moves;state.chocolateBrokenThisTurn=false;for(const o of cfg.obstacles){let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}
+  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=cfg.target;state.moves=cfg.moves;state.chocolateBrokenThisTurn=false;for(let n=0;n<cfg.obstacleCount;n++){const o=cfg.obstacles[Math.floor(Math.random()*cfg.obstacles.length)];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}
   // obstacles from getLevelConfig
   state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
