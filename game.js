@@ -316,8 +316,14 @@ function candyMesh(r,c,type,special,ice=0){
       mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
       mat.specularColor=new BABYLON.Color3(.8,.95,1);mat.specularPower=96;iceStageMaterials[key]=mat;iceStageTextures[key]=texture;
     }
+    if(!iceOverlayMaterial){iceOverlayMaterial=new BABYLON.StandardMaterial("iceFallbackShared",scene);iceOverlayMaterial.diffuseColor=new BABYLON.Color3(.55,.88,1);iceOverlayMaterial.emissiveColor=new BABYLON.Color3(.18,.48,.72);iceOverlayMaterial.alpha=.34;iceOverlayMaterial.specularColor=new BABYLON.Color3(1,1,1);iceOverlayMaterial.specularPower=96;iceOverlayMaterial.backFaceCulling=false;}
+    const fallback=BABYLON.MeshBuilder.CreateSphere("iceFallback_"+r+"_"+c,{diameter:SPACING*.91,segments:16},scene);fallback.parent=root;fallback.position.y=.27;fallback.scaling.y=.56;fallback.material=iceOverlayMaterial;fallback.isPickable=false;
     const overlay=BABYLON.MeshBuilder.CreatePlane("iceOverlay_"+stage,{width:SPACING*.98,height:SPACING*.98},scene);
-    overlay.parent=root;overlay.rotation.x=Math.PI/2;overlay.position.y=.49;overlay.material=iceStageMaterials[key];overlay.isPickable=false;overlay.renderingGroupId=2;
+    overlay.parent=root;overlay.rotation.x=Math.PI/2;overlay.position.y=.49;overlay.material=iceStageMaterials[key];overlay.isPickable=false;overlay.renderingGroupId=2;overlay.isVisible=false;
+    const texture=iceStageTextures[key];
+    const revealIceArtwork=()=>{if(root.isDisposed?.())return;overlay.isVisible=true;fallback.setEnabled(false);};
+    const revealIceWhenReady=()=>{if(root.isDisposed?.())return;if(texture&&texture.isReady()){revealIceArtwork();return;}if(texture)setTimeout(revealIceWhenReady,60);};
+    revealIceWhenReady();
   }
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
