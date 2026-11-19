@@ -424,6 +424,7 @@ async function useSelectedBooster(cell){
       shockwaveAt(anchor.mesh.position,kind);playSfx(kind==="bomb"?"bomb":kind==="rocket"?"rocket":"color");
       for(const key of cells){
         const [r,c]=key.split(",").map(Number),it=state.grid[r][c];if(!it)continue;
+        if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(r,c,it.type,it.special,0);state.score+=40;continue;}
         burstAt(it.mesh.position,it.type);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
         state.grid[r][c]=null;state.score+=kind==="color"?75:85;
       }
