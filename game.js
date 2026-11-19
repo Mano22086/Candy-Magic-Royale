@@ -1215,13 +1215,20 @@ function setBoardBackground(level){
   const realm=Math.floor((current-1)/50)%4+1;
   const house=((current-1)%50)+1;
   const art=$("royalArtboard");
-  if(art){art.src="./assets/board-bg-0"+(((realm-1)%3)+1)+".svg";art.dataset.background=String(realm);art.dataset.house=String(house);}
-  // Each 50-stage realm uses its own supplied world artwork; house progress shifts the camera crop for a distinct framing.
-  const x=18+((house*17)%65),y=24+((house*23)%58),zoom=108+((house*7)%13);
-  document.documentElement.style.setProperty("--cmr-realm-render",`url("./assets/world_${realm}.jpg")`);
+  if(art){
+    art.src="./assets/board-bg-0"+(((realm-1)%3)+1)+".svg";
+    art.dataset.background=String(realm);
+    art.dataset.house=String(house);
+    art.style.filter="hue-rotate("+(((house-1)*29)%360)+"deg) saturate("+(1.04+((house%5)*.035)).toFixed(2)+")";
+  }
+  const x=12+((house*17)%77),y=12+((house*23)%76),zoom=106+((house*7)%19);
+  document.documentElement.style.setProperty("--cmr-realm-render",`url("./assets/world-render-0${realm}.svg")`);
   document.documentElement.style.setProperty("--cmr-realm-position",`${x}% ${y}%`);
-  document.documentElement.style.setProperty("--cmr-realm-zoom",`${zoom}%`);
-  document.body.dataset.realm=String(realm);document.body.dataset.house=String(house);
+  document.documentElement.style.setProperty("--cmr-realm-zoom",`${zoom}% auto`);
+  document.documentElement.style.setProperty("--cmr-house-hue",((house-1)*29)%360+"deg");
+  document.documentElement.style.setProperty("--cmr-house-light",(.96+((house%7)*.012)).toFixed(2));
+  document.body.dataset.realm=String(realm);
+  document.body.dataset.house=String(house);
 }
 async function start(){
   loadProgress();

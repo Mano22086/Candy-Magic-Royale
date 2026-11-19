@@ -1,17 +1,33 @@
-#royalCharacterCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;display:block;pointer-events:none;background:transparent;touch-action:none}
-.art-hero img{transition:opacity .25s}
-@media(prefers-reduced-motion:reduce){#royalCharacterCanvas{display:none}.art-hero img{opacity:1!important}}
-
-/* Per-realm environment artwork. The crop changes with the selected house. */
+/* Realm render plates and responsive Babylon character layer. */
 body.game-started{
+ background-color:#090d2e!important;
  background-image:
-  linear-gradient(180deg,rgba(13,8,43,.18),rgba(8,14,42,.48)),
-  var(--cmr-realm-render,url("./assets/royal-gameplay-4k.svg"))!important;
- background-size:cover,var(--cmr-realm-zoom,cover) auto!important;
+  linear-gradient(180deg,rgba(9,8,39,.12),rgba(8,11,35,.34)),
+  var(--cmr-realm-render,url("./assets/world-render-01.svg"))!important;
+ background-size:cover,var(--cmr-realm-zoom,100% auto)!important;
  background-position:center,var(--cmr-realm-position,center center)!important;
  background-repeat:no-repeat!important;
  background-attachment:scroll!important;
 }
+body.game-started:before{opacity:.2!important;mix-blend-mode:screen}
 body.game-started .game-shell{
- background:linear-gradient(180deg,rgba(22,13,60,.12),rgba(9,18,48,.2));
+ background:linear-gradient(180deg,rgba(15,12,48,.06),rgba(8,16,43,.14))!important;
+}
+#royalCharacterCanvas{
+ position:absolute;inset:0;width:100%;height:100%;z-index:1;
+ display:block;pointer-events:none;background:transparent;touch-action:none;
+}
+.art-hud{position:absolute;z-index:2}
+.art-board-wrap{z-index:3}
+.art-hero img{transition:opacity .25s}
+.royal-artboard{
+ filter:hue-rotate(var(--cmr-house-hue,0deg)) saturate(1.08) brightness(var(--cmr-house-light,1));
+ transition:filter .35s ease;
+}
+@media(prefers-reduced-motion:reduce){
+ #royalCharacterCanvas{display:none}
+ .art-hero img{opacity:1!important}
+}
+@media(max-width:420px){
+ #royalCharacterCanvas{opacity:.98}
 }
