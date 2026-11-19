@@ -1,3 +1,17 @@
 #royalCharacterCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:2;display:block;pointer-events:none;background:transparent;touch-action:none}
 .art-hero img{transition:opacity .25s}
 @media(prefers-reduced-motion:reduce){#royalCharacterCanvas{display:none}.art-hero img{opacity:1!important}}
+
+/* Per-realm environment artwork. The crop changes with the selected house. */
+body.game-started{
+ background-image:
+  linear-gradient(180deg,rgba(13,8,43,.18),rgba(8,14,42,.48)),
+  var(--cmr-realm-render,url("./assets/royal-gameplay-4k.svg"))!important;
+ background-size:cover,var(--cmr-realm-zoom,cover) auto!important;
+ background-position:center,var(--cmr-realm-position,center center)!important;
+ background-repeat:no-repeat!important;
+ background-attachment:scroll!important;
+}
+body.game-started .game-shell{
+ background:linear-gradient(180deg,rgba(22,13,60,.12),rgba(9,18,48,.2));
+}
