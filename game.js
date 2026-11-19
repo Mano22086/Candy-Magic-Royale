@@ -108,7 +108,7 @@ function specialSpriteMaterial(key,source){
 }
 let shineSharedMaterial=null,iceOverlayMaterial=null;
 const iceStageTextures={};
-const iceStageMaterials={};
+const iceStageMaterials={};const obstacleMaterials={};const OBSTACLE_DEFS={single_ice:{img:"./assets/obstacle_1.jpg",hp:1,adj:true,self:true,spread:false,reward:false},double_ice:{img:"./assets/obstacle_2.jpg",hp:2,adj:true,self:true,spread:false,reward:false},chocolate:{img:"./assets/obstacle_3.jpg",hp:1,adj:true,self:false,spread:true,reward:false},chains:{img:"./assets/obstacle_4.jpg",hp:1,adj:false,self:true,spread:false,reward:false},honey:{img:"./assets/obstacle_5.jpg",hp:2,adj:true,self:false,spread:false,reward:false},waffle:{img:"./assets/obstacle_6.jpg",hp:2,adj:true,self:true,spread:false,reward:false},cage:{img:"./assets/obstacle_7.jpg",hp:1,adj:false,self:true,spread:false,reward:false},chest:{img:"./assets/obstacle_8.jpg",hp:2,adj:true,self:false,spread:false,reward:true}};function getLevelConfig(lv){const L=Math.max(1,lv|0);const obstacleCount=Math.min(20,2+Math.round(L*0.9));const target=1200+(L-1)*350+Math.floor(L/5)*250;const moves=Math.max(16,Math.min(30,24-Math.floor((L-1)/4)+(L>=15?2:0)));let obstacles=["single_ice"],diffLabel="سهل";if(L>=3&&L<=5){obstacles=["single_ice","double_ice"];diffLabel="سهل";}else if(L>=6&&L<=9){obstacles=["single_ice","double_ice","waffle","chains"];diffLabel="متوسط";}else if(L>=10&&L<=14){obstacles=["single_ice","double_ice","waffle","chains","honey","cage"];diffLabel="صعب";}else if(L>=15&&L<=19){obstacles=["single_ice","double_ice","waffle","chains","honey","cage","chocolate"];diffLabel="صعب";}else if(L>=20){obstacles=["single_ice","double_ice","waffle","chains","honey","cage","chocolate","chest"];diffLabel="صعب جداً • ملكي";}return{level:L,obstacleCount,target,moves,obstacles,diffLabel};}function isCellLocked(c){return !!(c&&(c.obs||c.ice>0));}function countObstacles(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&(it.obs||it.ice>0))n++;}return n;}function makeObstacleMaterial(type,hp){const t=OBSTACLE_DEFS[type]?type:"single_ice";const key=t+"_"+hp;if(obstacleMaterials[key])return obstacleMaterials[key];const def=OBSTACLE_DEFS[t];const mat=new BABYLON.StandardMaterial("obsMat_"+key,scene);const dt=new BABYLON.DynamicTexture("obsTex_"+key,{width:256,height:256},scene,true);dt.hasAlpha=true;const ctx=dt.getContext();const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{ctx.clearRect(0,0,256,256);ctx.drawImage(img,0,0,256,256);const id=ctx.getImageData(0,0,256,256),d=id.data;for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2],sat=Math.max(r,g,b)-Math.min(r,g,b),lum=(r+g+b)/3;if((lum<68&&sat<28)||(lum<110&&sat<18))d[i+3]=0;else if(lum<95&&sat<26)d[i+3]=Math.round(d[i+3]*0.35);}ctx.putImageData(id,0,0);if(hp===1&&def.hp===2){ctx.strokeStyle="rgba(255,255,255,0.85)";ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(40,40);ctx.lineTo(110,120);ctx.lineTo(80,190);ctx.stroke();}dt.update();};img.src=def.img;mat.diffuseTexture=dt;mat.emissiveTexture=dt;mat.emissiveColor=new BABYLON.Color3(0.45,0.45,0.45);mat.opacityTexture=dt;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.backFaceCulling=false;mat.needDepthPrePass=true;obstacleMaterials[key]=mat;return mat;}function spreadChocolateIfNeeded(){if(state.chocolateBrokenThisTurn)return;const cands=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&it.obs==="chocolate"){for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;const nb=state.grid[nr]?.[nc];if(nb&&!nb.obs&&!nb.ice)cands.push(nb);}}}if(!cands.length)return;const pick=cands[Math.floor(Math.random()*cands.length)];pick.obs="chocolate";pick.ice=1;if(pick.mesh){pick.mesh.dispose();pick.mesh=candyMesh(pick.r,pick.c,pick.type,pick.special,pick.ice);pick.mesh.position.copyFrom(cellPos(pick.r,pick.c));}state.iceRemaining=countObstacles();}
 const specialRingSharedMaterials={};
 const specialMaterials={};
 let shockwaveMaterial=null;
@@ -303,7 +303,7 @@ function candyMesh(r,c,type,special,ice=0){
       hues.forEach((color,i)=>{const dot=BABYLON.MeshBuilder.CreateSphere("rainbowOrbDot",{diameter:.12,segments:8},scene);const a=i*Math.PI/3;dot.parent=root;dot.position=new BABYLON.Vector3(Math.cos(a)*.23,.79,Math.sin(a)*.23);dot.material=mat("rainbowDot"+i,color,color.scale(.8));dot.isPickable=false;});
     }
   }
-  if(ice>0){
+    const obs=state.grid[r]?.[c]?.obs;if(ice>0){if(obs){const obsMesh=BABYLON.MeshBuilder.CreatePlane("iceOverlay",{width:SPACING*.92,height:SPACING*.92},scene);obsMesh.parent=root;obsMesh.position.y=.48;obsMesh.rotation.x=Math.PI/2;obsMesh.material=makeObstacleMaterial(obs,ice);obsMesh.isPickable=false;obsMesh.renderingGroupId=2;}else{
     const stage=ice>=2?0:1;
     const path=stage===0?"./ice_cube_realistic_4k.png":"./ice_cube_stylized_4k.png";
     const key=String(stage);
@@ -324,7 +324,7 @@ function candyMesh(r,c,type,special,ice=0){
     const revealIceWhenReady=()=>{if(root.isDisposed?.()||iceBox.isDisposed?.())return;if(texture&&texture.isReady()){iceBox.setEnabled(true);return;}if(texture)setTimeout(revealIceWhenReady,60);};
     iceBox.setEnabled(false);revealIceWhenReady();
   }
-  root.__cmrSpriteBacked=!!artworkPath;
+  }root.__cmrSpriteBacked=!!artworkPath;
   return root;
 }
 // FIX: animations can never hang. The frame loop is wrapped in try/catch and
@@ -401,7 +401,7 @@ function randomType(r,c){
   while(tries<12&&((c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t))){t=rand();tries++;}
   return t;
 }
-function damageIceAt(r,c,score=25){
+function damageIceAt(r,c,score=25,source="booster"){const item=state.grid[r]?.[c];if(!item||(item.ice<=0&&!item.obs))return false;const obs=item.obs||(item.ice>1?"double_ice":"single_ice");const def=OBSTACLE_DEFS[obs]||OBSTACLE_DEFS.single_ice;if(source==="adj"&&!def.adj)return false;if(source==="self"&&!def.self)return false;const impactPosition=item.mesh?.position?.clone();item.ice=Math.max(0,(item.ice||1)-1);if(obs==="double_ice"&&item.ice===1)item.obs="single_ice";if(obs==="chocolate")state.chocolateBrokenThisTurn=true;if(item.ice===0){item.obs=null;if(def.reward){if(Math.random()<0.5){state.moves+=2;}else{const sp=["lineH","lineV","bomb","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}}}state.iceRemaining=countObstacles();if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special,item.ice);state.score+=score;if(impactPosition){shockwaveAt(impactPosition,"ice");playSfx("match");}return true;}function _unused_damageIceAt(r,c,score=25){
   const item=state.grid[r]?.[c];if(!item||item.ice<=0)return false;
   const impactPosition=item.mesh?.position?.clone();
   item.ice=Math.max(0,item.ice-1);
@@ -417,17 +417,17 @@ function buildGrid(){
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  const iceCells=new Set();
-  if(!canRestore&&state.level>=1){const count=Math.min(12,3+Math.floor((state.level-1)/3));while(iceCells.size<count)iceCells.add(Math.floor(Math.random()*ROWS*COLS));}
+  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=cfg.target;state.moves=cfg.moves;state.chocolateBrokenThisTurn=false;for(const o of cfg.obstacles){let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}
+  // obstacles from getLevelConfig
   state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const savedCell=canRestore?saved[r][c]:null;
     const type=savedCell?savedCell.type:randomType(r,c);
     const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped"||savedCell.special==="wrapped")?savedCell.special:null;
-    const ice=savedCell?Math.max(0,Math.min(2,Number(savedCell.ice)||0)):(iceCells.has(r*COLS+c)?2:0);
+    const obs=savedCell?(savedCell.obs||null):(obsMap.get(r*COLS+c)||null);const ice=savedCell?Math.max(0,Math.min(2,Number(savedCell.ice)||0)):(obs?(OBSTACLE_DEFS[obs]?.hp||1):0);
     if(ice)state.iceRemaining++;
-    state.grid[r][c]={type,special,ice,mesh:candyMesh(r,c,type,special,ice)};
+    state.grid[r][c]={type,special,ice,obs,mesh:null};state.grid[r][c].mesh=candyMesh(r,c,type,special,ice);
   }
   state.savedGrid=null;
 }
@@ -502,7 +502,7 @@ function clearSelection(){
 async function swap(a,b){
   if(state.busy||!inBounds(a.r,a.c)||!inBounds(b.r,b.c))return;
   if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
-  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B||A.ice>0||B.ice>0){clearSelection();return;}
+  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B||isCellLocked(A)||isCellLocked(B)){clearSelection();return;}
   state.busy=true;clearSelection();
   try{
     await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
@@ -511,14 +511,14 @@ async function swap(a,b){
     // A special candy activates only when deliberately swapped with an adjacent candy.
     // Ordinary swaps still require a confirmed 3+ match and revert when invalid.
     if(A.special||B.special){
-      state.moves--;updateHud();
+      state.moves--;state.chocolateBrokenThisTurn=false;updateHud();
       await activateSpecial(a,b);
       await settle();
     }else if(findMatches().size===0){
       await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
       state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
       A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
-    }else{state.moves--;updateHud();await settle();}
+    }else{state.moves--;state.chocolateBrokenThisTurn=false;updateHud();await settle();}
   }catch(error){console.error("Candy swap failed:",error);say("حصلت مشكلة في الحركة، جرّب تاني.");}
   finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
@@ -720,14 +720,14 @@ async function settle(){
         if(inBounds(ir,ic)&&state.grid[ir][ic]?.ice>0)iceHitCells.add(ir+","+ic);
       }
     }
-    for(const key of iceHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25);}
+    for(const key of iceHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25,matches.has(key)?"self":"adj");}
     const specialCandidate=matchedSpecials.length===0&&chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
     const keep=specialCandidate?.cell||null;
     for(const p of remove){
       const r=p[0],c=p[1],it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
-      if(it?.ice>0){if(!iceHitCells.has(r+","+c))damageIceAt(r,c,25);continue;}
+      if(it?.ice>0){if(!iceHitCells.has(r+","+c))damageIceAt(r,c,25,"self");continue;}
       if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
       state.grid[r][c]=null;state.score+=60;
     }
@@ -766,7 +766,7 @@ async function settle(){
     }
     say("تم ترتيب اللوحة تلقائيًا عشان تقدر تكمل اللعب.");
   }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
-  updateHud();
+  spreadChocolateIfNeeded();updateHud();
 }
 function shockwaveAt(position,kind){
   const colors={wrapped:new BABYLON.Color3(1,.55,.12),striped:new BABYLON.Color3(.18,.82,1),color:new BABYLON.Color3(.85,.3,1),bomb:new BABYLON.Color3(1,.55,.12),rocket:new BABYLON.Color3(.18,.82,1)};
@@ -802,7 +802,7 @@ function updateHud(){
   applyHeartRegen();$("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
   $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");const iceGoal=$("iceGoal");if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
-  $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
+  $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;state.iceRemaining=countObstacles();const ig=$("iceGoal");if(ig){ig.hidden=state.iceRemaining<=0;ig.textContent=state.iceRemaining;}const db=$("difficultyBadge");if(db){const cfg=getLevelConfig(state.level);db.textContent=cfg.diffLabel;db.hidden=!cfg.diffLabel;}
 }
 function triggerCharacterResult(won){
   for(const id of ["queen","dragon"]){
@@ -829,7 +829,7 @@ function safeClaimLevelReward(level){
   }catch(e){return true;}
 }
 function checkEnd(){
-  if(state.score>=state.target&&state.iceRemaining<=0&&!state.won){
+  state.iceRemaining=countObstacles();if(state.score>=state.target&&state.iceRemaining<=0&&!state.won){
     state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
@@ -863,7 +863,7 @@ function ensureGuestIdentity(){
 function saveProgress(completed=false){if(state.replayMode)return;try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
-  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null,ice:item.ice||0}))):null;
+  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null,ice:item.ice||0,obs:item.obs||null}))):null;
   localStorage.setItem(SAVE_KEY,JSON.stringify({iceDurabilityVersion:2,playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,rockets:state.rockets,colors:state.colors,paints:state.paints,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt,iceRemaining:state.iceRemaining}));
 }catch(e){}}
 function loadProgress(){try{
@@ -889,7 +889,7 @@ function loadProgress(){try{
   state.paints=completed?3:(Number.isFinite(Number(x.paints))?Math.min(9,Math.max(0,Math.floor(Number(x.paints)))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
-  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null,ice:Math.max(0,Math.min(2,Number(cell.ice)||0))*(Number(x.iceDurabilityVersion)>=2?1:2)}))):null;
+  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null,ice:Math.max(0,Math.min(2,Number(cell.ice)||0))*(Number(x.iceDurabilityVersion)>=2?1:2),obs:cell.obs||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;state.savedGrid=null;}}
 function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
@@ -918,7 +918,7 @@ function hasPossibleMove(){
     for(const [dr,dc] of [[0,1],[1,0]]){
       const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
       const a=state.grid[r][c],b=state.grid[nr][nc];
-      if(!a||!b||a.ice>0||b.ice>0)continue;
+      if(!a||!b||isCellLocked(a)||isCellLocked(b))continue;
       state.grid[r][c]=b;state.grid[nr][nc]=a;
       const valid=findMatches().size>0;
       state.grid[r][c]=a;state.grid[nr][nc]=b;
