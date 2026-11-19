@@ -68,7 +68,14 @@ const spriteTextures={};
 const specialSpriteMaterials={};
 const specialSpriteTextures={};
 const specialSpriteSources={
-  wrapped:"./20_bag_lightning_purple.png",
+  wrapped:{
+    1:"./14_bag_gold.png",
+    2:"./15_bag_rainbow.png",
+    3:"./16_bag_diamond_blue.png",
+    4:"./17_bag_flower_purple.png",
+    5:"./18_bag_crown_green.png",
+    6:"./19_bag_lollipop_red.png"
+  },
   color:"./13_chocolate_ball.png",
   striped:{
     1:"./21_rocket_crown_gold.png",
@@ -259,7 +266,7 @@ function candyMesh(r,c,type,special,ice=0){
     const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:24},scene);
     ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=specialRingSharedMaterials[ringKind];ring.isPickable=false;
   }
-  const specialSpritePath=special==="wrapped"?specialSpriteSources.wrapped:special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
+  const specialSpritePath=special==="wrapped"?(specialSpriteSources.wrapped[type]||specialSpriteSources.wrapped[1]):special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
   if(specialSpritePath){
     const spriteKey=special+"_"+type;
     const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.82,height:SPACING*.82},scene);
@@ -345,11 +352,11 @@ function setupScene(){
   if(!canvas||typeof canvas.addEventListener!=="function"){
     throw new Error("عنصر لوحة اللعب renderCanvas غير موجود في الصفحة");
   }
-  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
+  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
   // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
   const deviceRatio=Math.max(1,window.devicePixelRatio||1);
-  const hardwareScale=Math.max(1,Math.min(1.6,deviceRatio/1.35));
-  engine.setHardwareScalingLevel(hardwareScale); // Adaptive mobile render resolution.
+  const hardwareScale=1;
+  engine.setHardwareScalingLevel(hardwareScale); // Render at native device resolution for sharper candy artwork.
   engine.enableOfflineSupport=false;
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
