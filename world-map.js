@@ -36,6 +36,7 @@ function show(){ensure();overlay.classList.remove("hidden");document.body.classL
 function hide(){overlay?.classList.add("hidden");document.body.classList.remove("map-open");window.CMRResumeGameRender?.()}
 function renderWorld(){
  ensure();const current=worldIndex(),w=overlay.querySelector("#wmWorld"),scroll=overlay.querySelector("#wmScroll");
+ document.documentElement.style.setProperty("--cmr-map-render",'url("./assets/world-render-0'+(current%4+1)+'.svg")');
  overlay.querySelector("#wmBack").classList.add("hidden");
  overlay.querySelector("#wmSubtitle").textContent="افتح القصور بالتتابع، وكل قصر يضم 50 مرحلة";
  updateProgress();w.innerHTML="";scroll.onscroll=null;
@@ -55,6 +56,7 @@ function renderWorld(){
 }
 function renderHouses(world){
  ensure();const scroll=overlay.querySelector("#wmScroll"),w=overlay.querySelector("#wmWorld"),activeWorld=worldIndex(),currentStage=stageInWorld(),realm=realmAt(world);
+ document.documentElement.style.setProperty("--cmr-map-render",'url("./assets/world-render-0'+(world%4+1)+'.svg")');
  scroll.onscroll=null;overlay.querySelector("#wmBack").classList.remove("hidden");
  overlay.querySelector("#wmSubtitle").textContent=worldTitle(world)+" — خريطة المراحل";
  updateProgress();
