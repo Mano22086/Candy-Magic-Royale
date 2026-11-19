@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -99,7 +99,7 @@ function specialSpriteMaterial(key,source){
   specialSpriteMaterials[key]=mat;
   return mat;
 }
-let shineSharedMaterial=null;
+let shineSharedMaterial=null,iceOverlayMaterial=null;
 const specialRingSharedMaterials={};
 const specialMaterials={};
 let shockwaveMaterial=null;
@@ -187,7 +187,7 @@ function candySpriteMaterial(type){
   spriteMaterials[type]=mat;
   return mat;
 }
-function candyMesh(r,c,type,special){
+function candyMesh(r,c,type,special,ice=0){
   const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
   root.position=pos(r,c);
   root.metadata={r,c,candy:true};
@@ -270,7 +270,7 @@ function candyMesh(r,c,type,special){
     art.isPickable=false;
     art.isVisible=false;
     const texture=specialSpriteTextures[spriteKey];
-    const revealSpecial=()=>{if(root.isDisposed?.())return;art.isVisible=true;for(const child of root.getChildMeshes())if(child!==art)child.setEnabled(false);};
+    const revealSpecial=()=>{if(root.isDisposed?.())return;art.isVisible=true;for(const child of root.getChildMeshes())if(child!==art&&child.name!=="iceOverlay")child.setEnabled(false);};
     const revealSpecialWhenReady=()=>{
       if(root.isDisposed?.())return;
       if(texture&&texture.isReady()){revealSpecial();return;}
@@ -293,6 +293,10 @@ function candyMesh(r,c,type,special){
       const hues=[new BABYLON.Color3(1,.12,.25),new BABYLON.Color3(1,.55,.08),new BABYLON.Color3(1,.88,.12),new BABYLON.Color3(.12,.9,.4),new BABYLON.Color3(.1,.58,1),new BABYLON.Color3(.68,.2,1)];
       hues.forEach((color,i)=>{const dot=BABYLON.MeshBuilder.CreateSphere("rainbowOrbDot",{diameter:.12,segments:8},scene);const a=i*Math.PI/3;dot.parent=root;dot.position=new BABYLON.Vector3(Math.cos(a)*.23,.79,Math.sin(a)*.23);dot.material=mat("rainbowDot"+i,color,color.scale(.8));dot.isPickable=false;});
     }
+  }
+  if(ice>0){
+    if(!iceOverlayMaterial){iceOverlayMaterial=new BABYLON.StandardMaterial("iceOverlayShared",scene);iceOverlayMaterial.diffuseColor=new BABYLON.Color3(.55,.88,1);iceOverlayMaterial.emissiveColor=new BABYLON.Color3(.18,.48,.72);iceOverlayMaterial.alpha=.34;iceOverlayMaterial.specularColor=new BABYLON.Color3(1,1,1);iceOverlayMaterial.specularPower=96;iceOverlayMaterial.backFaceCulling=false;}
+    const shell=BABYLON.MeshBuilder.CreateSphere("iceOverlay",{diameter:SPACING*.91,segments:12},scene);shell.parent=root;shell.position.y=.27;shell.scaling.y=.56;shell.material=iceOverlayMaterial;shell.isPickable=false;
   }
   root.__cmrSpriteBacked=!!artworkPath;
   return root;
@@ -376,12 +380,17 @@ function buildGrid(){
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
+  const iceCells=new Set();
+  if(!canRestore&&state.level>=3){const count=Math.min(12,3+Math.floor((state.level-3)/4));while(iceCells.size<count)iceCells.add(Math.floor(Math.random()*ROWS*COLS));}
+  state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const savedCell=canRestore?saved[r][c]:null;
     const type=savedCell?savedCell.type:randomType(r,c);
     const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped"||savedCell.special==="wrapped")?savedCell.special:null;
-    state.grid[r][c]={type,special,mesh:candyMesh(r,c,type,special)};
+    const ice=savedCell?Math.max(0,Math.min(1,Number(savedCell.ice)||0)):(iceCells.has(r*COLS+c)?1:0);
+    if(ice)state.iceRemaining++;
+    state.grid[r][c]={type,special,ice,mesh:candyMesh(r,c,type,special,ice)};
   }
   state.savedGrid=null;
 }
@@ -399,7 +408,7 @@ async function useSelectedBooster(cell){
       if(!target){say("اختار حلوى جنب لون مختلف.");state.busy=false;return;}
       const newType=state.grid[target[0]][target[1]].type;
       if(anchor.mesh&&!anchor.mesh.isDisposed?.())anchor.mesh.dispose();
-      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null);
+      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null,anchor.ice||0);
       state.paints--;state.score+=40;state.moves=Math.max(0,state.moves-1);say("اتغير لون الحلوى!");
     }else{
       const cells=new Set();
@@ -415,6 +424,7 @@ async function useSelectedBooster(cell){
       shockwaveAt(anchor.mesh.position,kind);playSfx(kind==="bomb"?"bomb":kind==="rocket"?"rocket":"color");
       for(const key of cells){
         const [r,c]=key.split(",").map(Number),it=state.grid[r][c];if(!it)continue;
+        if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(r,c,it.type,it.special,0);state.score+=40;continue;}
         burstAt(it.mesh.position,it.type);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
         state.grid[r][c]=null;state.score+=kind==="color"?75:85;
       }
@@ -585,7 +595,7 @@ async function activateSpecial(a,b){
   }
   for(const key of cells){
     const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
-    if(it){burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}
+    if(it){if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(r,c,it.type,it.special,0);state.score+=25;}else{burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}}
   }
   updateHud();await wait(170);
 }
@@ -663,11 +673,12 @@ async function settle(){
     for(const p of remove){
       const r=p[0],c=p[1],it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
+      if(it?.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(r,c,it.type,it.special,0);state.score+=25;continue;}
       if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
       state.grid[r][c]=null;state.score+=60;
     }
     if(keep){
-      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial);}
+      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial,it.ice||0);}
     }
     if(chain>1)state.score+=matches.size*10;
     updateHud();await wait(100);
@@ -695,7 +706,7 @@ async function settle(){
     }
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
       const item=state.grid[r][c];if(item?.mesh){
-        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null);
+        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null,item.ice||0);
         item.mesh.metadata={r,c,candy:true};
       }
     }
@@ -735,7 +746,7 @@ function burstAt(position,type){
 }
 function updateHud(){
   applyHeartRegen();$("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;
-  $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");
+  $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");const iceGoal=$("iceGoal");if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
   $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;
 }
@@ -764,7 +775,7 @@ function safeClaimLevelReward(level){
   }catch(e){return true;}
 }
 function checkEnd(){
-  if(state.score>=state.target&&!state.won){
+  if(state.score>=state.target&&state.iceRemaining<=0&&!state.won){
     state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
@@ -798,8 +809,8 @@ function ensureGuestIdentity(){
 function saveProgress(completed=false){if(state.replayMode)return;try{
   const identity=ensureGuestIdentity();
   const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
-  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,rockets:state.rockets,colors:state.colors,paints:state.paints,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt}));
+  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null,ice:item.ice?1:0}))):null;
+  localStorage.setItem(SAVE_KEY,JSON.stringify({playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,hammer:state.hammer,rockets:state.rockets,colors:state.colors,paints:state.paints,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt,iceRemaining:state.iceRemaining}));
 }catch(e){}}
 function loadProgress(){try{
   const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
@@ -824,7 +835,7 @@ function loadProgress(){try{
   state.paints=completed?3:(Number.isFinite(Number(x.paints))?Math.min(9,Math.max(0,Math.floor(Number(x.paints)))):3);
   state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
   const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
-  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null}))):null;
+  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null,ice:Math.max(0,Math.min(1,Number(cell.ice)||0))}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;state.savedGrid=null;}}
 function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.won=false;state.booster=null;
   $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
@@ -833,6 +844,7 @@ async function useHammer(cell){
   const it=state.grid[cell.r][cell.c];if(!it)return;
   state.busy=true;clearSelection();
   try{
+    if(it.ice>0){it.ice=0;state.iceRemaining=Math.max(0,state.iceRemaining-1);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();it.mesh=candyMesh(cell.r,cell.c,it.type,it.special,0);state.score+=40;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);refreshBoosterBadges();await settle();return;}
     burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
     state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
     refreshBoosterBadges();
@@ -894,7 +906,7 @@ function shuffle(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const it=state.grid[r][c];
     if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
-    it.special=null;it.mesh=candyMesh(r,c,it.type,null);
+    it.special=null;it.mesh=candyMesh(r,c,it.type,null,it.ice||0);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
   saveProgress(false);
