@@ -1,0 +1,96 @@
+/* 4K-ready royal gameplay art direction — scalable vector environment + high-contrast premium HUD. */
+body{
+ background-color:#100d35;
+ background-image:
+  linear-gradient(180deg,rgba(13,8,43,.10) 0%,rgba(16,10,48,.30) 38%,rgba(8,14,42,.52) 100%),
+  url("./assets/royal-gameplay-4k.svg");
+ background-position:center center;
+ background-size:cover;
+ background-attachment:fixed;
+}
+body:before{
+ opacity:.34;
+ background-image:
+  radial-gradient(circle,rgba(255,244,203,.95) 0 1.2px,transparent 2px),
+  radial-gradient(circle,rgba(155,247,239,.8) 0 1px,transparent 2px),
+  radial-gradient(ellipse,rgba(255,153,215,.12),transparent 58%);
+ background-size:61px 67px,103px 119px,100% 100%;
+ background-position:0 0,29px 41px,center;
+}
+.game-shell{
+ background:
+  radial-gradient(ellipse at 50% 8%,rgba(255,221,163,.14),transparent 34%),
+  linear-gradient(180deg,rgba(22,13,60,.20),rgba(9,18,48,.28));
+ border-left:1px solid rgba(255,226,177,.16);
+ border-right:1px solid rgba(255,226,177,.16);
+ box-shadow:0 0 55px rgba(5,2,30,.28),inset 1px 0 rgba(255,255,255,.06),inset -1px 0 rgba(255,255,255,.06);
+}
+.art-hud,.art-boosters{
+ filter:drop-shadow(0 8px 18px rgba(4,2,24,.42));
+}
+.art-target,.art-moves,.art-score,.art-message{
+ text-shadow:0 2px 4px #14072f,0 0 16px rgba(255,213,132,.28);
+}
+.board-rim{
+ padding:9px;
+ border:2px solid rgba(255,236,185,.96);
+ border-radius:27px;
+ background:
+  linear-gradient(135deg,#fff8d7 0%,#f5bd72 9%,#9a63d5 22%,#34206e 43%,#73d6d1 61%,#5b327f 79%,#ffe4a2 100%);
+ box-shadow:
+  0 22px 48px rgba(3,2,25,.64),
+  0 0 0 3px rgba(29,14,65,.9),
+  0 0 38px rgba(125,238,225,.28),
+  0 0 70px rgba(229,142,224,.22),
+  inset 0 3px 4px rgba(255,255,255,.95),
+  inset 0 -7px 12px rgba(17,6,49,.58);
+}
+.board-rim:before{
+ inset:7px;
+ border:1px solid rgba(255,246,216,.72);
+ border-radius:19px;
+ box-shadow:inset 0 0 0 2px rgba(53,23,91,.22),0 0 18px rgba(255,240,192,.2);
+}
+.board-rim:after{
+ content:"✦";
+ position:absolute;
+ z-index:3;
+ top:-10px;
+ right:18px;
+ color:#fff4bd;
+ font-size:24px;
+ line-height:1;
+ text-shadow:0 0 8px #fff,0 0 18px #ffce72,0 3px 5px #39145f;
+ pointer-events:none;
+}
+#renderCanvas{
+ border-radius:17px;
+ background:radial-gradient(ellipse at 50% 12%,#8052b6 0%,#38216d 58%,#17103d 100%);
+ box-shadow:inset 0 0 30px rgba(5,2,25,.5),0 0 0 1px rgba(255,246,216,.35);
+}
+.booster{
+ border-color:rgba(255,239,193,.82);
+ background:linear-gradient(155deg,rgba(255,215,147,.25),transparent 30%),linear-gradient(180deg,#9362c6 0%,#5d358e 48%,#30205f 100%);
+ box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -4px 0 rgba(15,5,42,.42),0 8px 16px rgba(5,2,24,.45),0 0 18px rgba(170,125,255,.12);
+}
+.booster.active{
+ border-color:#fff3bb;
+ box-shadow:0 0 0 2px rgba(255,230,152,.55),0 0 24px rgba(255,220,112,.72),inset 0 2px 0 #fff9;
+}
+.art-message{
+ border:1px solid rgba(255,231,173,.5);
+ background:linear-gradient(100deg,rgba(46,26,91,.78),rgba(102,57,139,.75),rgba(35,25,82,.78));
+ box-shadow:0 6px 18px rgba(4,2,22,.3),inset 0 1px rgba(255,255,255,.18);
+ backdrop-filter:blur(10px);
+}
+@media(max-width:600px){
+ body{background-position:center 42%;background-size:auto 100%;background-attachment:scroll}
+ .game-shell{background:linear-gradient(180deg,rgba(16,10,48,.14),rgba(8,14,42,.2))}
+ .board-rim{padding:7px;border-radius:23px}
+ .board-rim:after{font-size:19px;right:13px;top:-8px}
+}
+@media(min-width:900px){
+ body{background-position:center 48%;background-size:cover}
+ .game-shell{box-shadow:0 0 100px rgba(4,2,24,.42),inset 1px 0 rgba(255,255,255,.06),inset -1px 0 rgba(255,255,255,.06)}
+}
+@media(prefers-reduced-motion:reduce){.board-rim:after{filter:none}}
