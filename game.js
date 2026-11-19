@@ -507,9 +507,13 @@ async function swap(a,b){
     await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
     state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
     A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-    // Special candies are not activated by swapping or touching another candy.
-    // The swap is valid only when the resulting board contains a real 3+ same-type match.
-    if(findMatches().size===0){
+    // A special candy activates only when deliberately swapped with an adjacent candy.
+    // Ordinary swaps still require a confirmed 3+ match and revert when invalid.
+    if(A.special||B.special){
+      state.moves--;updateHud();
+      await activateSpecial(a,b);
+      await settle();
+    }else if(findMatches().size===0){
       await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
       state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
       A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
