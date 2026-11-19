@@ -1211,9 +1211,17 @@ function startBusyWatchdog(){
   },1000);
 }
 function setBoardBackground(level){
-  const art=$("royalArtboard");if(!art)return;
-  const index=((Math.max(1,Math.floor(Number(level)||1))-1)%3)+1;
-  art.src="./assets/board-bg-0"+index+".svg";art.dataset.background=String(index);
+  const current=Math.max(1,Math.floor(Number(level)||1));
+  const realm=Math.floor((current-1)/50)%4+1;
+  const house=((current-1)%50)+1;
+  const art=$("royalArtboard");
+  if(art){art.src="./assets/board-bg-0"+(((realm-1)%3)+1)+".svg";art.dataset.background=String(realm);art.dataset.house=String(house);}
+  // Each 50-stage realm uses its own supplied world artwork; house progress shifts the camera crop for a distinct framing.
+  const x=18+((house*17)%65),y=24+((house*23)%58),zoom=108+((house*7)%13);
+  document.documentElement.style.setProperty("--cmr-realm-render",`url("./assets/world_${realm}.jpg")`);
+  document.documentElement.style.setProperty("--cmr-realm-position",`${x}% ${y}%`);
+  document.documentElement.style.setProperty("--cmr-realm-zoom",`${zoom}%`);
+  document.body.dataset.realm=String(realm);document.body.dataset.house=String(house);
 }
 async function start(){
   loadProgress();
