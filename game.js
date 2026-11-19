@@ -818,14 +818,16 @@ function shockwaveAt(position,kind){
   for(let layer=0;layer<2;layer++){
     const ring=BABYLON.MeshBuilder.CreateTorus("royalShockwave",{diameter:1,thickness:layer?.022:.052,tessellation:40},scene);
     ring.position=position.clone();ring.position.y+=.5+layer*.035;ring.rotation.x=Math.PI/2;
-    ring.scaling.setAll(.1);ring.isPickable=false;ring.material=getVfxMaterial("ring_"+kind+"_"+layer,color,layer?.52:.9);
+    ring.scaling.setAll(.1);ring.isPickable=false;
+    const ringMat=new BABYLON.StandardMaterial("royalShockMaterial_"+kind,scene);
+    ringMat.diffuseColor=color;ringMat.emissiveColor=color.scale(1.25);ringMat.alpha=layer?.52:.9;ringMat.specularPower=64;ring.material=ringMat;
     const started=performance.now(),duration=layer?480:360;
     const observer=scene.onBeforeRenderObservable.add(()=>{
       if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
       const t=Math.min(1,(performance.now()-started)/duration),ease=1-Math.pow(1-t,2);
       ring.scaling.setAll(.12+(layer?2.75:2.05)*ease);
       ring.material.alpha=(layer?.52:.9)*(1-t);
-      if(t>=1)scene.onBeforeRenderObservable.remove(observer);
+      if(t>=1){scene.onBeforeRenderObservable.remove(observer);ringMat.dispose();}
     });
     trackVfx(ring,duration+30);
   }
@@ -862,11 +864,13 @@ function iceImpactAt(position,remainingLayers){
   }
   // Brief cold flash communicates the layer damage even on small phone screens.
   const flash=BABYLON.MeshBuilder.CreateDisc("iceImpactFlash",{radius:.38,tessellation:24},scene);
-  flash.position=position.clone();flash.position.y+=.42;flash.rotation.x=Math.PI/2;flash.material=getVfxMaterial("ice_flash",new BABYLON.Color3(.72,.94,1),.5);flash.isPickable=false;
+  flash.position=position.clone();flash.position.y+=.42;flash.rotation.x=Math.PI/2;
+  const flashMat=new BABYLON.StandardMaterial("iceImpactFlashMaterial",scene);
+  flashMat.diffuseColor=new BABYLON.Color3(.72,.94,1);flashMat.emissiveColor=new BABYLON.Color3(.72,.94,1);flashMat.alpha=.5;flash.material=flashMat;flash.isPickable=false;
   const started=performance.now(),observer=scene.onBeforeRenderObservable.add(()=>{
     if(flash.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
     const t=Math.min(1,(performance.now()-started)/190);flash.scaling.setAll(1+t*.7);flash.material.alpha=.5*(1-t);
-    if(t>=1)scene.onBeforeRenderObservable.remove(observer);
+    if(t>=1){scene.onBeforeRenderObservable.remove(observer);flashMat.dispose();}
   });
   trackVfx(flash,220);
 }
