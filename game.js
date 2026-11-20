@@ -407,8 +407,12 @@ function setupScene(){
   requestAnimationFrame(()=>engine.resize());
 }
 function randomType(r,c){
+  const createsMatch=t=>(c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t);
   let t=rand(),tries=0;
-  while(tries<12&&((c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t))){t=rand();tries++;}
+  while(tries<12&&createsMatch(t)){t=rand();tries++;}
+  // Deterministic fallback guarantees the first board has no accidental triples,
+  // even if the random retry limit is reached on an unlucky mobile session.
+  if(createsMatch(t))for(let candidate=1;candidate<=TYPES;candidate++){if(!createsMatch(candidate)){t=candidate;break;}}
   return t;
 }
 function damageIceAt(r,c,score=25,source="booster"){
