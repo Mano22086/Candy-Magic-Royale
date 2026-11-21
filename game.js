@@ -1051,14 +1051,15 @@ async function useHammer(cell){
   finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
 }
 function hasPossibleMove(){
-  // FIX: swapping any special candy is always a valid move, so the board is never "dead".
-  // Without this, the game could wrongly shuffle the board and wipe special candies.
-  if(state.grid.some(row=>row.some(it=>it&&it.special)))return true;
+  // Specials are valid only when a player can legally swap them with an adjacent,
+  // unlocked candy. A frozen/isolated special must not keep a dead board alive.
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     for(const [dr,dc] of [[0,1],[1,0]]){
       const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
       const a=state.grid[r][c],b=state.grid[nr][nc];
       if(!a||!b||isCellLocked(a)||isCellLocked(b))continue;
+      // Swapping a special activates it by design, even without a 3+ match.
+      if(a.special||b.special)return true;
       state.grid[r][c]=b;state.grid[nr][nc]=a;
       const valid=findMatches().size>0;
       state.grid[r][c]=a;state.grid[nr][nc]=b;
@@ -1100,7 +1101,7 @@ function shuffle(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const it=state.grid[r][c];
     if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
-    it.special=null;it.mesh=candyMesh(r,c,it.type,null,it.ice||0);
+    it.mesh=candyMesh(r,c,it.type,it.special,it.ice||0);
   }
   say("اتخلطت الحلوى! تقدر تكمل اللعب.");
   saveProgress(false);
