@@ -1093,9 +1093,46 @@ function shuffle(){
       playable=findMatches().size===0&&hasPossibleMove();
     }
   }
+  // Deterministically create a legal match if random shuffles and fresh boards fail.
+  // Search all four orientations of the classic A-B-A plus adjacent-A swap pattern.
+  if(!playable){
+    const base=items.map(item=>item.type),patterns=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-2;c++){
+      const line=[[r,c],[r,c+1],[r,c+2]],middle=line[1];
+      if(r<ROWS-1)patterns.push({line,middle,neighbor:[r+1,c+1]});
+      if(r>0)patterns.push({line,middle,neighbor:[r-1,c+1]});
+    }
+    for(let c=0;c<COLS;c++)for(let r=0;r<ROWS-2;r++){
+      const line=[[r,c],[r+1,c],[r+2,c]],middle=line[1];
+      if(c<COLS-1)patterns.push({line,middle,neighbor:[r+1,c+1]});
+      if(c>0)patterns.push({line,middle,neighbor:[r+1,c-1]});
+    }
+    let forced=null;
+    outer:for(const pattern of patterns){
+      const cells=[...pattern.line,pattern.neighbor];
+      if(cells.some(([r,c])=>isCellLocked(state.grid[r][c])))continue;
+      const [r1,c1]=pattern.line[0],[rm,cm]=pattern.middle,[r3,c3]=pattern.line[2],[rn,cn]=pattern.neighbor;
+      for(let a=1;a<=TYPES;a++)for(let b=1;b<=TYPES;b++){
+        if(a===b)continue;
+        for(let i=0;i<items.length;i++)items[i].type=base[i];
+        state.grid[r1][c1].type=a;state.grid[rm][cm].type=b;state.grid[r3][c3].type=a;state.grid[rn][cn].type=a;
+        if(findMatches().size!==0)continue;
+        state.grid[rm][cm].type=a;state.grid[rn][cn].type=b;
+        const legal=findMatches().size>0;
+        state.grid[rm][cm].type=b;state.grid[rn][cn].type=a;
+        if(legal){forced={r1,c1,rm,cm,r3,c3,rn,cn,a,b};break outer;}
+      }
+    }
+    for(let i=0;i<items.length;i++)items[i].type=base[i];
+    if(forced){
+      const {r1,c1,rm,cm,r3,c3,rn,cn,a,b}=forced;
+      state.grid[r1][c1].type=a;state.grid[rm][cm].type=b;state.grid[r3][c3].type=a;state.grid[rn][cn].type=a;
+      playable=findMatches().size===0&&hasPossibleMove();
+    }
+  }
   if(!playable){
     for(let i=0;i<items.length;i++)items[i].type=original[i];
-    say("اللوحة فيها حركات متاحة بالفعل.");
+    say("تعذر إعادة ترتيب اللوحة بحركة متاحة. جرّب تاني.");
     return;
   }
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
