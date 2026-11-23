@@ -167,6 +167,7 @@
         ".soft-button{background:var(--cmr-roundButton) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important;color:#fff!important}" +
         ".modal-card{background:var(--cmr-dialog) center/100% 100% no-repeat!important;border:0!important;box-shadow:0 12px 32px #09001899!important}" +
         ".modal-card h2{font-family:'CMR Fredoka',Cairo,sans-serif!important;text-shadow:0 1px 2px #48205e}" +
+        ".royal-shop-card{background:var(--cmr-panelCloud) center/100% 100% no-repeat!important;border:0!important;box-shadow:0 12px 32px #09001899!important}" +
         ".shop-item{background:var(--cmr-slot) center/100% 100% no-repeat!important;border:0!important;border-radius:14px!important;padding:9px!important}" +
         ".shop-item button{background:var(--cmr-button) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
         ".booster{background:var(--cmr-slot) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
@@ -189,28 +190,13 @@
 
       const iconTargets = [
         [".shop-close", "close"],
-        ["#plusCoins", "coin"],
-        ["#paintBtn", "star"],
-        ["#shuffleBtn", "sprout"],
-        ["#bombBtn", "star"],
-        ["#colorBtn", "flower"],
-        ["#rocketBtn", "sun"]
+        ["#plusCoins", "coin"]
       ];
       for (const [selector, icon] of iconTargets) {
         const button = document.querySelector(selector);
-        if (!button || !zip.file(root + "icons/" + icon + ".png")) continue;
-        if (icon === "sprout" || icon === "flower" || icon === "sun") {
-          const data = await zip.file(root + "icons/" + icon + ".png").async("base64");
-          const img = document.createElement("img");
-          img.alt = "";
-          img.setAttribute("aria-hidden", "true");
-          img.src = "data:image/png;base64," + data;
-          img.style.cssText = "width:22px;height:22px;object-fit:contain;vertical-align:middle";
-          button.prepend(img);
-        } else {
-          button.dataset.cmrIcon = icon;
-          button.classList.add("cmr-pack-icon");
-        }
+        if (!button) continue;
+        button.dataset.cmrIcon = icon;
+        button.classList.add("cmr-pack-icon");
       }
       console.info("[CMR Assets] CrispCute UI artwork loaded:", Object.keys(assetPaths).length, "assets");
     } catch (error) {
