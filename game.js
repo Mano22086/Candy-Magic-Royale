@@ -964,10 +964,38 @@ function iceImpactAt(position,remainingLayers){
   trackVfx(flash,220);
 }
 function updateHud(){
-  applyHeartRegen();$("score").textContent=state.score.toLocaleString("en-US");$("moves").textContent=state.moves;$("heartCount").textContent=state.lives;const objective=$("obstacleObjective");if(objective){objective.textContent="اكسر العوائق  "+Math.min(state.obstaclesCleared,state.obstacleGoal)+"/"+state.obstacleGoal;objective.classList.toggle("objective-complete",state.obstaclesCleared>=state.obstacleGoal);}
-  $("levelLabel").textContent="المستوى "+state.level;$("targetScore").textContent=state.target.toLocaleString("en-US");const iceGoal=$("iceGoal");if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
+  applyHeartRegen();
+  $("score").textContent=state.score.toLocaleString("en-US");
+  $("moves").textContent=state.moves;
+  $("heartCount").textContent=state.lives;
+  const objective=$("obstacleObjective");
+  if(objective){
+    objective.textContent="اكسر العوائق  "+Math.min(state.obstaclesCleared,state.obstacleGoal)+"/"+state.obstacleGoal;
+    objective.classList.toggle("objective-complete",state.obstaclesCleared>=state.obstacleGoal);
+    objective.setAttribute("aria-label","هدف المرحلة: تكسير "+Math.min(state.obstaclesCleared,state.obstacleGoal)+" من "+state.obstacleGoal+" عائق");
+  }
+  $("levelLabel").textContent="المستوى "+state.level;
+  $("targetScore").textContent=state.target.toLocaleString("en-US");
+  const iceGoal=$("iceGoal");
+  if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
   $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
-  $("coinCount").textContent=state.coins;$("stars").textContent=state.stars;state.iceRemaining=countObstacles();const ig=$("iceGoal");if(ig){ig.hidden=state.iceRemaining<=0;ig.textContent=state.iceRemaining;}const db=$("difficultyBadge");if(db){const cfg=getLevelConfig(state.level);db.textContent=cfg.diffLabel;db.hidden=!cfg.diffLabel;}
+  $("coinCount").textContent=state.coins;
+  $("stars").textContent=state.stars;
+  state.iceRemaining=countObstacles();
+  const ig=$("iceGoal");
+  if(ig){ig.hidden=state.iceRemaining<=0;ig.textContent="❄️ "+state.iceRemaining;}
+  const scorePanel=document.querySelector(".art-score");
+  if(scorePanel){
+    let goal= $("scoreGoal");
+    if(!goal){goal=document.createElement("small");goal.id="scoreGoal";scorePanel.insertBefore(goal,ig||null);}
+    goal.textContent=" / "+state.target.toLocaleString("en-US");
+    let track=$("scoreProgressTrack");
+    if(!track){track=document.createElement("span");track.id="scoreProgressTrack";track.innerHTML='<i id="scoreProgressFill"></i>';scorePanel.appendChild(track);}
+    const fill=$("scoreProgressFill");
+    if(fill)fill.style.width=Math.min(100,state.score/state.target*100)+"%";
+  }
+  const db=$("difficultyBadge");
+  if(db){const cfg=getLevelConfig(state.level);db.textContent="المرحلة "+state.level+" • "+cfg.diffLabel;db.hidden=!cfg.diffLabel;}
 }
 function triggerCharacterResult(won){
   for(const id of ["queen","dragon"]){
