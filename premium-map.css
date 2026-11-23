@@ -92,3 +92,23 @@
  .wm-realm,.wm-realm-art img,.wm-house{transition:none}
  .wm-house.current{animation:none}
 }
+
+/* Map polish: clearer route nodes, touch feedback, and mobile readability */
+.wm-house{min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.wm-house:focus-visible,.wm-realm:focus-visible,.wm-zoom button:focus-visible,#wmBack:focus-visible{outline:3px solid #fff4b8;outline-offset:3px}
+.wm-house.checkpoint:after{content:"محطة";position:absolute;top:2px;right:4px;padding:1px 4px;border-radius:5px;background:#5b255e;color:#ffeeb5;font:900 7px/1.2 "Cairo",sans-serif;box-shadow:0 1px 3px #16072e88}
+.wm-house.done{filter:saturate(1.08);}
+.wm-house.locked{cursor:not-allowed}
+.wm-realm{min-height:0}
+.wm-realm-status{min-height:2.6em;display:flex;align-items:center;justify-content:center;text-align:center}
+@media(max-width:420px){
+ .wm-header{gap:7px;padding-inline:10px}
+ .wm-zoom button{width:34px;height:34px}
+ .wm-realm{border-radius:18px!important}
+ .wm-realm-art{height:100px}
+ .wm-realm strong{font-size:clamp(10px,3.2vw,13px)}
+ .wm-realm-status{font-size:8px}
+ .wm-houses{padding-inline:2px}
+ .wm-house{height:54px;border-radius:14px}
+}
+@media(prefers-reduced-motion:reduce){.wm-house.current{animation:none!important}}
