@@ -174,3 +174,7 @@ body:before{
  .art-booster:after{bottom:-15px}
 }
 @media(prefers-reduced-motion:reduce){.art-booster{transition:none}}
+
+.art-score #scoreGoal{display:inline-block;margin-inline-start:3px;color:#ffe8b3;font-size:clamp(8px,2vw,10px);font-weight:900;opacity:.9}
+#scoreProgressTrack{display:block;width:100%;height:4px;margin-top:4px;overflow:hidden;border-radius:99px;background:rgba(20,8,53,.72);border:1px solid rgba(255,226,159,.35)}
+#scoreProgressFill{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#67e6d2,#ffe17e,#ffb6dd);box-shadow:0 0 8px rgba(255,222,127,.85);transition:width .24s ease}
