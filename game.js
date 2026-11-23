@@ -429,7 +429,7 @@ function damageIceAt(r,c,score=25,source="booster"){
     else if(obs==="golden_cage"){state.coins+=50;state.score+=100;say("اتفتح القفص الذهبي! +50 عملة");}
     else if(def.reward){const sp=["striped","wrapped","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}
     if(obs==="whirlpool"){
-      const neighbours=[[-1,0],[1,0],[0,-1],[0,1]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>inBounds(nr,nc)&&state.grid[nr]?.[nc]);
+      const neighbours=[[-1,0],[1,0],[0,-1],[0,1]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>inBounds(nr,nc)&&state.grid[nr]?.[nc]&&!state.grid[nr][nc].obs&&!(state.grid[nr][nc].ice>0));
       if(neighbours.length){
         const [nr,nc]=neighbours[Math.floor(Math.random()*neighbours.length)],victim=state.grid[nr][nc];
         if(victim?.mesh&&!victim.mesh.isDisposed?.()){burstAt(victim.mesh.position,victim.type);victim.mesh.dispose();}
