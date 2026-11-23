@@ -100,3 +100,77 @@ body:before{
 .art-objective{position:absolute;left:50%;top:26.2%;transform:translateX(-50%);z-index:4;min-width:116px;max-width:68%;padding:5px 13px;border-radius:999px;border:1.5px solid rgba(255,226,145,.95);background:linear-gradient(180deg,rgba(67,35,104,.96),rgba(35,17,72,.96));color:#fff4cf;font-size:clamp(9px,2.5vw,12px);font-weight:900;letter-spacing:.1px;text-align:center;white-space:nowrap;text-shadow:0 1px 2px #16052c;box-shadow:0 3px 9px rgba(9,3,29,.48),inset 0 1px rgba(255,255,255,.22);pointer-events:none}
 .art-objective.objective-complete{border-color:#a9f2c4;background:linear-gradient(180deg,rgba(30,105,79,.97),rgba(18,66,62,.97));color:#e4ffec}
 @media(max-height:760px){.art-objective{top:26.2%}}
+
+
+/* Royal HUD pass: clearer goals, stage identity and mobile-friendly boosters. */
+.art-objective{
+  min-width:clamp(138px,42%,210px);
+  padding:7px 16px 7px 13px;
+  border-width:2px;
+  background:linear-gradient(110deg,rgba(34,15,78,.98),rgba(82,43,133,.97) 52%,rgba(28,29,91,.98));
+  box-shadow:0 5px 14px rgba(5,2,24,.55),0 0 17px rgba(255,211,112,.22),inset 0 1px rgba(255,255,255,.3);
+  font-size:clamp(10px,2.8vw,13px);
+  letter-spacing:.15px;
+}
+.art-objective:before{content:"✦";color:#ffdc82;margin-inline-end:7px;text-shadow:0 0 8px #ffcf67}
+.art-objective.objective-complete{box-shadow:0 0 18px rgba(112,255,183,.32),inset 0 1px #fff8}
+.diff-tier-badge{
+  position:absolute;left:50%;top:11.8%;transform:translateX(-50%);
+  padding:4px 12px;border:1px solid rgba(255,226,145,.72);
+  background:linear-gradient(180deg,rgba(64,34,111,.94),rgba(27,17,68,.96));
+  color:#fff0bd;font-size:clamp(9px,2.4vw,11px);font-weight:900;
+  box-shadow:0 3px 10px #10052688,inset 0 1px #fff5;
+  text-shadow:0 1px 3px #16052c;
+}
+.art-score{
+  padding:5px 9px;border:1px solid rgba(255,225,151,.5);border-radius:12px;
+  background:linear-gradient(135deg,rgba(52,25,104,.9),rgba(25,20,70,.88));
+  box-shadow:0 4px 12px #10052666,inset 0 1px #fff3;
+  font-size:clamp(10px,2.8vw,13px);font-weight:1000;
+}
+.art-score #iceGoal{padding:2px 7px;background:rgba(54,174,226,.2);border-color:#a8eaff88}
+.art-moves>strong{
+  color:#fff4ca;text-shadow:0 2px 4px #2b104f,0 0 13px rgba(255,220,132,.62);
+  -webkit-text-stroke:.45px rgba(100,48,132,.45);
+}
+.art-moves>span{
+  padding:3px 8px;border-radius:999px;border:1px solid #f5d58c88;
+  color:#fff0c4;background:linear-gradient(180deg,#70439cdd,#321d65ee);
+  box-shadow:0 2px 7px #1a073b88;
+}
+.art-booster{
+  overflow:visible;border:1.5px solid rgba(255,231,168,.78);
+  border-radius:22px;
+  background:radial-gradient(circle at 50% 20%,rgba(255,255,255,.26),transparent 48%),linear-gradient(155deg,#a875d8,#68409b 55%,#35205f);
+  box-shadow:0 5px 13px rgba(8,2,31,.5),inset 0 2px 0 rgba(255,255,255,.52),inset 0 -4px 0 rgba(22,7,52,.5);
+  transition:transform .16s ease,filter .16s ease,box-shadow .16s ease;
+}
+.art-booster:active{transform:translateY(2px) scale(.94);filter:brightness(1.18)}
+.art-booster .booster-icon{
+  width:72%;height:72%;object-fit:contain;
+  filter:drop-shadow(0 3px 3px rgba(22,5,48,.65));
+}
+.art-booster small{
+  right:-4px;bottom:-4px;min-width:20px;height:20px;padding:0 5px;
+  display:grid;place-items:center;border:1.5px solid #fff0c5;
+  border-radius:50%;background:linear-gradient(180deg,#ffdc78,#d88a24);
+  color:#42175f;font-size:10px;font-weight:1000;
+  box-shadow:0 2px 5px #17062f99;
+}
+.art-booster:after{
+  content:attr(aria-label);position:absolute;left:50%;bottom:-17px;transform:translateX(-50%);
+  color:#fff0c5;font:900 clamp(7px,1.9vw,9px)/1 Cairo,sans-serif;
+  white-space:nowrap;text-shadow:0 2px 3px #16052c,0 0 7px #180633;
+  pointer-events:none;
+}
+.art-booster:disabled{filter:grayscale(.72) brightness(.72);opacity:.68}
+.art-booster.active{
+  border-color:#fff8ca;filter:brightness(1.2);
+  box-shadow:0 0 0 2px #ffdf8a88,0 0 22px #ffd56dcc,inset 0 2px #fff9;
+}
+@media(max-width:600px){
+ .art-objective{top:26.2%;max-width:76%;padding:6px 11px}
+ .diff-tier-badge{top:12.2%}
+ .art-booster:after{bottom:-15px}
+}
+@media(prefers-reduced-motion:reduce){.art-booster{transition:none}}
