@@ -418,14 +418,24 @@ function randomType(r,c){
 function damageIceAt(r,c,score=25,source="booster"){
   const item=state.grid[r]?.[c];if(!item||(item.ice<=0&&!item.obs))return false;
   const obs=item.obs||(item.ice>1?"double_ice":"single_ice"),def=OBSTACLE_DEFS[obs]||OBSTACLE_DEFS.single_ice;
-  if(source==="adj"&&!def.adj)return false;if(source==="self"&&!def.self)return false;
+  if(source==="adj"&&!def.adj)return false;
+  if(source==="self"&&!def.self)return false;
   const impactPosition=item.mesh?.position?.clone();
-  item.ice=Math.max(0,(item.ice||1)-1);
+  item.ice=Math.max(0,(Number(item.ice)||def.hp||1)-1);
   if(obs==="double_ice"&&item.ice===1)item.obs="single_ice";
-  
   if(item.ice===0){
     item.obs=null;
-    if(def.reward){if(Math.random()<.5){state.moves+=2;}else{const sp=["lineH","lineV","bomb","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}}
+    if(obs==="vault"){state.coins+=75;state.score+=125;say("اتفتحت الخزنة الملكية! +75 عملة");}
+    else if(obs==="golden_cage"){state.coins+=50;state.score+=100;say("اتفتح القفص الذهبي! +50 عملة");}
+    else if(def.reward){const sp=["striped","wrapped","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}
+    if(obs==="whirlpool"){
+      const neighbours=[[-1,0],[1,0],[0,-1],[0,1]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>inBounds(nr,nc)&&state.grid[nr]?.[nc]);
+      if(neighbours.length){
+        const [nr,nc]=neighbours[Math.floor(Math.random()*neighbours.length)],victim=state.grid[nr][nc];
+        if(victim?.mesh&&!victim.mesh.isDisposed?.()){burstAt(victim.mesh.position,victim.type);victim.mesh.dispose();}
+        state.grid[nr][nc]=null;state.score+=80;
+      }
+    }
   }
   state.iceRemaining=countObstacles();
   if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
@@ -793,24 +803,23 @@ async function settle(){
     const remove=Array.from(matches).map(s=>s.split(",").map(Number));
     // A confirmed 3+ match also cracks ice directly beside its matched candies.
     // Deduplicate cells so an ice block touched by two matched candies takes one hit only.
-    const iceHitCells=new Set();
+    const obstacleHitCells=new Map();
     for(const key of matches){
-      const [mr,mc]=key.split(",").map(Number);
-      const current=state.grid[mr]?.[mc];
-      if(current?.ice>0)iceHitCells.add(mr+","+mc);
+      const [mr,mc]=key.split(",").map(Number),current=state.grid[mr]?.[mc];
+      if(current&&(current.obs||current.ice>0))obstacleHitCells.set(mr+","+mc,"self");
       for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
-        const ir=mr+dr,ic=mc+dc;
-        if(inBounds(ir,ic)&&state.grid[ir][ic]?.ice>0)iceHitCells.add(ir+","+ic);
+        const ir=mr+dr,ic=mc+dc,near=state.grid[ir]?.[ic];
+        if(inBounds(ir,ic)&&near&&(near.obs||near.ice>0)&&!obstacleHitCells.has(ir+","+ic))obstacleHitCells.set(ir+","+ic,"adj");
       }
     }
-    for(const key of iceHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25,matches.has(key)?"self":"adj");}
+    for(const [key,source] of obstacleHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25,source);}
     const specialCandidate=matchedSpecials.length===0&&chain===1?findSpecialCandidate(matches):null;
     const groupSpecial=specialCandidate?.type||null;
     const keep=specialCandidate?.cell||null;
     for(const p of remove){
       const r=p[0],c=p[1],it=state.grid[r][c];
       if(keep&&r===keep.r&&c===keep.c)continue;
-      if(it?.ice>0){if(!iceHitCells.has(r+","+c))damageIceAt(r,c,25,"self");continue;}
+      if(it?.ice>0||it?.obs){if(!obstacleHitCells.has(r+","+c))damageIceAt(r,c,25,"self");if(state.grid[r][c]?.ice>0||state.grid[r][c]?.obs)continue;}
       if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
       state.grid[r][c]=null;state.score+=60;
     }
