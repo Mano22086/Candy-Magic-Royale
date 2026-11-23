@@ -1,9 +1,14 @@
 /* Premium realm map finish — decorative layer, no progression/gameplay changes. */
 .world-map{
-  background:
-    radial-gradient(ellipse at 50% 18%,rgba(255,218,151,.24),transparent 34%),
-    radial-gradient(ellipse at 12% 78%,rgba(120,76,255,.2),transparent 38%),
-    linear-gradient(180deg,#28104f 0%,#17082f 58%,#100622 100%);
+  background-color:#17082f;
+  background-image:
+    radial-gradient(ellipse at 50% 18%,rgba(255,218,151,.20),transparent 34%),
+    linear-gradient(180deg,rgba(24,8,49,.62) 0%,rgba(23,8,47,.28) 42%,rgba(16,6,34,.72) 100%),
+    url("./1795443357274.gif");
+  background-position:center,center,center;
+  background-size:auto,auto,cover;
+  background-repeat:no-repeat;
+  background-attachment:scroll;
 }
 .world-map:before{
   content:"";position:absolute;inset:0;pointer-events:none;opacity:.42;
@@ -112,3 +117,11 @@
  .wm-house{height:54px;border-radius:14px}
 }
 @media(prefers-reduced-motion:reduce){.wm-house.current{animation:none!important}}
+
+
+/* Animated world-map artwork supplied in the repository root. */
+@media(prefers-reduced-motion:reduce){
+  .world-map{background-image:
+    radial-gradient(ellipse at 50% 18%,rgba(255,218,151,.20),transparent 34%),
+    linear-gradient(180deg,#28104f 0%,#17082f 58%,#100622 100%)}
+}
