@@ -907,17 +907,33 @@ function shockwaveAt(position,kind){
 }
 function burstAt(position,type){
   const safeType=Math.max(1,Math.min(TYPES,Number(type)||1));
-  const material=getVfxMaterial("sugar_"+safeType,palette[safeType-1].color);
-  // Radial sugar fragments with varied height and distance; hard-capped for mobile.
-  for(let i=0;i<8;i++){
+  const candyColor=palette[safeType-1].color;
+  const material=getVfxMaterial("sugar_"+safeType,candyColor);
+  // Compact premium pop: one expanding halo plus radial candy-glass fragments.
+  if(activeVfxMeshes.size<VFX_MESH_LIMIT-7){
+    const halo=BABYLON.MeshBuilder.CreateTorus("candyBurstHalo",{diameter:.58,thickness:.035,tessellation:32},scene);
+    halo.position=position.clone();halo.position.y+=.43;halo.rotation.x=Math.PI/2;
+    const haloMat=new BABYLON.StandardMaterial("candyBurstHaloMat_"+safeType,scene);
+    haloMat.diffuseColor=candyColor;haloMat.emissiveColor=candyColor.scale(1.35);haloMat.alpha=.82;halo.material=haloMat;halo.isPickable=false;
+    const started=performance.now(),duration=245;
+    const observer=scene.onBeforeRenderObservable.add(()=>{
+      if(halo.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);if(!haloMat.isDisposed?.())haloMat.dispose();return;}
+      const t=Math.min(1,(performance.now()-started)/duration);
+      halo.scaling.setAll(.55+t*1.35);haloMat.alpha=.82*(1-t);
+      if(t>=1){scene.onBeforeRenderObservable.remove(observer);if(!halo.isDisposed?.())halo.dispose();if(!haloMat.isDisposed?.())haloMat.dispose();}
+    });
+    trackVfx(halo,duration+40);
+  }
+  for(let i=0;i<7;i++){
     if(activeVfxMeshes.size>=VFX_MESH_LIMIT)break;
-    const p=BABYLON.MeshBuilder.CreatePolyhedron("sugarShard",{type:1,size:.052+Math.random()*.025},scene);
-    p.position=position.clone();p.position.y+=.16;p.material=material;p.isPickable=false;
-    const angle=Math.PI*2*i/8+(Math.random()-.5)*.18,dist=.34+Math.random()*.22;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.22+Math.random()*.36,Math.sin(angle)*dist));
+    const size=.045+Math.random()*.04;
+    const p=BABYLON.MeshBuilder.CreatePolyhedron("sugarShard",{type:1,size},scene);
+    p.position=position.clone();p.position.y+=.17+Math.random()*.08;p.material=material;p.isPickable=false;
+    const angle=Math.PI*2*i/7+(Math.random()-.5)*.24,dist=.38+Math.random()*.25;
+    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.18+Math.random()*.42,Math.sin(angle)*dist));
     p.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
-    trackVfx(p,270);
-    animate(p,target,230).then(()=>{if(!p.isDisposed?.())p.dispose();});
+    trackVfx(p,320);
+    animate(p,target,270).then(()=>{if(!p.isDisposed?.())p.dispose();});
   }
 }
 function iceImpactAt(position,remainingLayers){
