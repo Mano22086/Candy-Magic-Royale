@@ -104,6 +104,61 @@
     playAudio(audio);
   }
 
+  async function loadUiPack() {
+    if (!window.JSZip) return;
+    try {
+      const response = await fetch(ROOT + "CrispCute_Free_Sampler.zip");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
+      const iconNames = ["settings", "play", "pause", "close", "check", "home", "heart", "star", "coin"];
+      const css = document.createElement("style");
+      css.id = "cmr-crispcute-ui";
+      const rules = [];
+      for (const name of iconNames) {
+        const path = "CrispCute_Sampler/PNG/2x/icons/" + name + ".png";
+        const file = zip.file(path);
+        if (!file) continue;
+        const data = await file.async("base64");
+        rules.push("--cmr-icon-" + name + ':url("data:image/png;base64,' + data + '")');
+      }
+      if (!rules.length) return;
+      css.textContent = ":root{" + rules.join(";") + "}" +
+        ".icon-button.cmr-pack-icon{font-size:0!important;display:inline-grid!important;place-items:center!important}" +
+        ".icon-button.cmr-pack-icon:before{content:'';display:block;width:24px;height:24px;background-image:var(--cmr-current-icon);background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 1px 2px #17082f)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='settings']{--cmr-current-icon:var(--cmr-icon-settings)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='play']{--cmr-current-icon:var(--cmr-icon-play)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='pause']{--cmr-current-icon:var(--cmr-icon-pause)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='close']{--cmr-current-icon:var(--cmr-icon-close)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='home']{--cmr-current-icon:var(--cmr-icon-home)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='heart']{--cmr-current-icon:var(--cmr-icon-heart)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='star']{--cmr-current-icon:var(--cmr-icon-star)}" +
+        ".icon-button.cmr-pack-icon[data-cmr-icon='coin']{--cmr-current-icon:var(--cmr-icon-coin)}";
+      document.head.appendChild(css);
+
+      const patterns = [
+        ["settings", /settings|إعدادات|ضبط/i],
+        ["play", /play|start|ابدأ|لعب/i],
+        ["pause", /pause|إيقاف مؤقت/i],
+        ["close", /close|إغلاق|قفل|خروج/i],
+        ["home", /home|الرئيسية|البيت/i],
+        ["heart", /heart|life|حياة|قلب/i],
+        ["star", /star|نجمة|نجوم/i],
+        ["coin", /coin|عملة|ذهب/i]
+      ];
+      document.querySelectorAll(".icon-button").forEach(button => {
+        const label = [button.getAttribute("aria-label"), button.title, button.textContent].filter(Boolean).join(" ");
+        const match = patterns.find(([key, pattern]) => pattern.test(label));
+        if (match) {
+          button.dataset.cmrIcon = match[0];
+          button.classList.add("cmr-pack-icon");
+        }
+      });
+      console.info("[CMR Assets] CrispCute icon set integrated:", iconNames.length);
+    } catch (error) {
+      console.warn("[CMR Assets] CrispCute UI pack could not be loaded:", error);
+    }
+  }
+
   async function loadSfx() {
     if (!window.JSZip) {
       console.warn("[CMR Assets] JSZip missing; SFX skipped.");
@@ -188,7 +243,7 @@
       else playSfx("click");
     }, true);
 
-    loadSfx();
+    loadSfx();\n    loadUiPack();
   }
 
   window.CMR_ASSETS = {
