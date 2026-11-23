@@ -131,6 +131,12 @@
         starFull: root + "strawberry/star_full.png",
         heartFull: root + "strawberry/heart_full.png",
         heartEmpty: root + "strawberry/heart_empty.png",
+        windowEars: root + "strawberry/window_ears.png",
+        dialogContinue: root + "strawberry/dialog_continue.png",
+        barTrack: root + "strawberry/bar_track.png",
+        barHealth: root + "strawberry/bar_fill_health.png",
+        barHeartCap: root + "strawberry/bar_cap_heart.png",
+        hotbarSlot: root + "strawberry/hotbar_slot.png",
         settings: root + "icons/settings.png",
         play: root + "icons/play.png",
         pause: root + "icons/pause.png",
@@ -173,6 +179,12 @@
         ".booster{background:var(--cmr-slot) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
         ".booster.active{background-image:var(--cmr-slotSelected)!important}" +
         ".shop-close{background:var(--cmr-closeButton) center/contain no-repeat!important;border:0!important;font-size:0!important;min-width:36px;min-height:36px}" +
+        ".toast{background:var(--cmr-tooltip) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
+        ".art-objective{background:var(--cmr-panel) center/100% 100% no-repeat!important;padding:8px!important;border-radius:12px}" +
+        ".art-message{background:var(--cmr-panelInset) center/100% 100% no-repeat!important;padding:7px!important}" +
+        ".diff-tier-badge{background:var(--cmr-ribbon) center/100% 100% no-repeat!important;border:0!important}" +
+        ".royal-heart-3d svg{display:none!important}" +
+        ".royal-heart-3d{background:var(--cmr-heartFull) center/contain no-repeat!important}" +
         ".modal-crown{background:var(--cmr-nameTag) center/100% 100% no-repeat;padding:8px 18px}" +
         ".result-stars{color:#ffe18a;text-shadow:0 2px 4px #54245e}" +
         ".coin-pill{background:var(--cmr-coinPlate) center/100% 100% no-repeat!important;border:0!important}" +
