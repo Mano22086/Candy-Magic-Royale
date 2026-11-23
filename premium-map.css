@@ -119,9 +119,14 @@
 @media(prefers-reduced-motion:reduce){.wm-house.current{animation:none!important}}
 
 
-/* Animated world-map artwork supplied in the repository root. */
-@media(prefers-reduced-motion:reduce){
-  .world-map{background-image:
+/* Keep the requested animated map visible even when the device reduces UI motion. */
+.world-map{
+  background-color:#17082f!important;
+  background-image:
     radial-gradient(ellipse at 50% 18%,rgba(255,218,151,.20),transparent 34%),
-    linear-gradient(180deg,#28104f 0%,#17082f 58%,#100622 100%)}
+    linear-gradient(180deg,rgba(24,8,49,.38) 0%,rgba(23,8,47,.12) 42%,rgba(16,6,34,.48) 100%),
+    url("./1795443357274.gif")!important;
+  background-position:center,center,center;
+  background-size:auto,auto,cover;
+  background-repeat:no-repeat;
 }
