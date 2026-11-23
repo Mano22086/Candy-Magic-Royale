@@ -243,7 +243,8 @@
       else playSfx("click");
     }, true);
 
-    loadSfx();\n    loadUiPack();
+    loadSfx();
+    loadUiPack();
   }
 
   window.CMR_ASSETS = {
