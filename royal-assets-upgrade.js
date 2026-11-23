@@ -180,8 +180,8 @@
         ".booster.active{background-image:var(--cmr-slotSelected)!important}" +
         ".shop-close{background:var(--cmr-closeButton) center/contain no-repeat!important;border:0!important;font-size:0!important;min-width:36px;min-height:36px}" +
         ".toast{background:var(--cmr-tooltip) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
-        ".art-objective{background:var(--cmr-panel) center/100% 100% no-repeat!important;padding:8px!important;border-radius:12px}" +
-        ".art-message{background:var(--cmr-panelInset) center/100% 100% no-repeat!important;padding:7px!important}" +
+        ".art-objective{background:var(--cmr-panel) center/100% 100% no-repeat!important}" +
+        ".art-message{background:var(--cmr-panelInset) center/100% 100% no-repeat!important}" +
         ".diff-tier-badge{background:var(--cmr-ribbon) center/100% 100% no-repeat!important;border:0!important}" +
         ".royal-heart-3d svg{display:none!important}" +
         ".royal-heart-3d{background:var(--cmr-heartFull) center/contain no-repeat!important}" +
