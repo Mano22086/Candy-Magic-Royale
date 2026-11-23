@@ -127,14 +127,14 @@
         ".cmr-pack-icon:before{content:'';display:block;width:24px;height:24px;background-image:var(--cmr-current-icon);background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 1px 2px #17082f)}" +
         ".cmr-pack-icon:not(.icon-button){display:inline-flex!important;align-items:center!important;gap:6px!important}" +
         ".cmr-pack-icon:not(.icon-button):before{width:18px;height:18px;flex:0 0 18px}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='settings']{--cmr-current-icon:var(--cmr-icon-settings)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='play']{--cmr-current-icon:var(--cmr-icon-play)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='pause']{--cmr-current-icon:var(--cmr-icon-pause)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='close']{--cmr-current-icon:var(--cmr-icon-close)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='home']{--cmr-current-icon:var(--cmr-icon-home)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='heart']{--cmr-current-icon:var(--cmr-icon-heart)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='star']{--cmr-current-icon:var(--cmr-icon-star)}" +
-        ".icon-button.cmr-pack-icon[data-cmr-icon='coin']{--cmr-current-icon:var(--cmr-icon-coin)}";
+        ".cmr-pack-icon[data-cmr-icon='settings']{--cmr-current-icon:var(--cmr-icon-settings)}" +
+        ".cmr-pack-icon[data-cmr-icon='play']{--cmr-current-icon:var(--cmr-icon-play)}" +
+        ".cmr-pack-icon[data-cmr-icon='pause']{--cmr-current-icon:var(--cmr-icon-pause)}" +
+        ".cmr-pack-icon[data-cmr-icon='close']{--cmr-current-icon:var(--cmr-icon-close)}" +
+        ".cmr-pack-icon[data-cmr-icon='home']{--cmr-current-icon:var(--cmr-icon-home)}" +
+        ".cmr-pack-icon[data-cmr-icon='heart']{--cmr-current-icon:var(--cmr-icon-heart)}" +
+        ".cmr-pack-icon[data-cmr-icon='star']{--cmr-current-icon:var(--cmr-icon-star)}" +
+        ".cmr-pack-icon[data-cmr-icon='coin']{--cmr-current-icon:var(--cmr-icon-coin)}";
       document.head.appendChild(css);
 
       const patterns = [
