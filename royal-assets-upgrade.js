@@ -124,7 +124,9 @@
       if (!rules.length) return;
       css.textContent = ":root{" + rules.join(";") + "}" +
         ".icon-button.cmr-pack-icon{font-size:0!important;display:inline-grid!important;place-items:center!important}" +
-        ".icon-button.cmr-pack-icon:before{content:'';display:block;width:24px;height:24px;background-image:var(--cmr-current-icon);background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 1px 2px #17082f)}" +
+        ".cmr-pack-icon:before{content:'';display:block;width:24px;height:24px;background-image:var(--cmr-current-icon);background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 1px 2px #17082f)}" +
+        ".cmr-pack-icon:not(.icon-button){display:inline-flex!important;align-items:center!important;gap:6px!important}" +
+        ".cmr-pack-icon:not(.icon-button):before{width:18px;height:18px;flex:0 0 18px}" +
         ".icon-button.cmr-pack-icon[data-cmr-icon='settings']{--cmr-current-icon:var(--cmr-icon-settings)}" +
         ".icon-button.cmr-pack-icon[data-cmr-icon='play']{--cmr-current-icon:var(--cmr-icon-play)}" +
         ".icon-button.cmr-pack-icon[data-cmr-icon='pause']{--cmr-current-icon:var(--cmr-icon-pause)}" +
@@ -145,7 +147,7 @@
         ["star", /star|نجمة|نجوم/i],
         ["coin", /coin|عملة|ذهب/i]
       ];
-      document.querySelectorAll(".icon-button").forEach(button => {
+      document.querySelectorAll("button").forEach(button => {
         const label = [button.getAttribute("aria-label"), button.title, button.textContent].filter(Boolean).join(" ");
         const match = patterns.find(([key, pattern]) => pattern.test(label));
         if (match) {
