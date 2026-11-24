@@ -1048,7 +1048,7 @@ function checkEnd(force=false){
       if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}
       updateHud();
       const rewardBag=$("rewardBag");
-      if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}
+      if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.style.display=rewardGranted?"block":"none";rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}
       const starDisplay=modal.querySelector(".result-stars");
       if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
       title.textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
