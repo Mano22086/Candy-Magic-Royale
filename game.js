@@ -108,7 +108,7 @@ function specialSpriteMaterial(key,source){
 }
 let shineSharedMaterial=null,iceOverlayMaterial=null;
 const iceStageTextures={};
-const iceStageMaterials={};const obstacleMaterials={};const OBSTACLE_ZIP_URL="./Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs.zip";let obstacleZipPromise=null;function loadObstaclePng(img,path){if(!obstacleZipPromise){obstacleZipPromise=fetch(OBSTACLE_ZIP_URL).then(r=>{if(!r.ok)throw new Error("Obstacle pack download failed: "+r.status);return r.arrayBuffer();}).then(buf=>JSZip.loadAsync(buf));}obstacleZipPromise.then(zip=>{const file=zip.file("Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs/11_blocker/"+path+".png");if(!file)throw new Error("Missing obstacle image "+path);return file.async("blob");}).then(blob=>{img.src=URL.createObjectURL(blob);}).catch(err=>console.warn("Obstacle art unavailable; fallback remains:",path,err));}const OBSTACLE_DEFS={single_ice:{img:"1",hp:1,adj:true,self:true,spread:false,reward:false},double_ice:{img:"2",hp:2,adj:true,self:true,spread:false,reward:false},stone_wall:{img:"3",hp:2,adj:true,self:false,spread:false,reward:false},rope_net:{img:"4",hp:2,adj:true,self:false,spread:false,reward:false},vault:{img:"5",hp:3,adj:true,self:false,spread:false,reward:true},roots:{img:"6",hp:2,adj:true,self:false,spread:true,reward:false},golden_cage:{img:"7",hp:2,adj:false,self:true,spread:false,reward:true},iron_cage:{img:"8",hp:2,adj:false,self:true,spread:false,reward:false},whirlpool:{img:"9",hp:1,adj:true,self:false,spread:false,reward:true}};function getLevelConfig(lv){const L=Math.max(1,lv|0);let obstacles=["single_ice"],diffLabel="سهل";if(L<=2)obstacles=["single_ice"];else if(L<=5)obstacles=["single_ice","double_ice"];else if(L<=9){obstacles=["double_ice","stone_wall"];diffLabel="سهل";}else if(L<=13){obstacles=["single_ice","rope_net"];diffLabel="متوسط";}else if(L<=17){obstacles=["double_ice","roots"];diffLabel="متوسط";}else if(L<=21){obstacles=["stone_wall","vault"];diffLabel="متوسط";}else if(L<=25){obstacles=["rope_net","golden_cage"];diffLabel="متوسط";}else if(L<=29){obstacles=["roots","iron_cage"];diffLabel="صعب";}else if(L<=33){obstacles=["vault","whirlpool"];diffLabel="صعب";}else if(L<=40){obstacles=["single_ice","golden_cage","roots"];diffLabel="صعب";}else if(L<=50){obstacles=["stone_wall","iron_cage","whirlpool"];diffLabel="صعب جداً";}else{const cycle=[["single_ice","rope_net"],["double_ice","vault"],["stone_wall","roots"],["golden_cage","whirlpool"],["iron_cage","single_ice"]];obstacles=cycle[Math.floor((L-51)/5)%cycle.length];diffLabel="ملكي";}const obstacleCount=L<=10?2+Math.floor((L-1)/4):L<=20?3+Math.floor((L-11)/5):L<=35?5+Math.floor((L-21)/5):Math.min(9,7+Math.floor((L-36)/8));const target=1200+(L-1)*350+Math.floor(L/5)*250;const moves=Math.max(18,Math.min(30,25-Math.floor((L-1)/8)+(L>=25?1:0)));return{level:L,obstacleCount,target,moves,obstacles,diffLabel};}function isCellLocked(c){return !!(c&&(c.obs||c.ice>0));}function countObstacles(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&(it.obs||it.ice>0))n++;}return n;}function makeObstacleMaterial(type,hp){const t=OBSTACLE_DEFS[type]?type:"single_ice";const key=t+"_"+hp;if(obstacleMaterials[key])return obstacleMaterials[key];const def=OBSTACLE_DEFS[t];const mat=new BABYLON.StandardMaterial("obsMat_"+key,scene);const dt=new BABYLON.DynamicTexture("obsTex_"+key,{width:256,height:256},scene,true);dt.hasAlpha=true;const ctx=dt.getContext();const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{ctx.clearRect(0,0,256,256);ctx.drawImage(img,0,0,256,256);if(hp<def.hp){ctx.strokeStyle="rgba(255,255,255,0.9)";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(40,40);ctx.lineTo(110,120);ctx.lineTo(80,190);ctx.stroke();}dt.update();};loadObstaclePng(img,def.img);mat.diffuseTexture=dt;mat.diffuseColor=new BABYLON.Color3(.92,.96,1);mat.emissiveColor=new BABYLON.Color3(.025,.035,.055);mat.specularColor=new BABYLON.Color3(.22,.25,.3);mat.specularPower=24;mat.opacityTexture=dt;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.backFaceCulling=false;mat.needDepthPrePass=true;obstacleMaterials[key]=mat;return mat;}function spreadChocolateIfNeeded(){const cands=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&it.obs==="roots"){for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc,nb=state.grid[nr]?.[nc];if(inBounds(nr,nc)&&nb&&!nb.obs&&!nb.ice)cands.push({item:nb,r:nr,c:nc});}}}if(!cands.length)return;const pick=cands[Math.floor(Math.random()*cands.length)],item=pick.item;item.obs="roots";item.ice=1;if(item.mesh){item.mesh.dispose();item.mesh=candyMesh(pick.r,pick.c,item.type,item.special,item.ice);item.mesh.position.copyFrom(pos(pick.r,pick.c));}state.iceRemaining=countObstacles();}
+const iceStageMaterials={};const obstacleMaterials={};const OBSTACLE_ZIP_URL="./Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs.zip";let obstacleZipPromise=null;function loadObstaclePng(img,path){if(!obstacleZipPromise){obstacleZipPromise=fetch(OBSTACLE_ZIP_URL).then(r=>{if(!r.ok)throw new Error("Obstacle pack download failed: "+r.status);return r.arrayBuffer();}).then(buf=>JSZip.loadAsync(buf));}obstacleZipPromise.then(zip=>{const file=zip.file("Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs/11_blocker/"+path+".png");if(!file)throw new Error("Missing obstacle image "+path);return file.async("blob");}).then(blob=>{img.src=URL.createObjectURL(blob);}).catch(err=>console.warn("Obstacle art unavailable; fallback remains:",path,err));}const OBSTACLE_DEFS={single_ice:{img:"1",hp:1,adj:true,self:true,spread:false,reward:false},double_ice:{img:"2",hp:2,adj:true,self:true,spread:false,reward:false},stone_wall:{img:"3",hp:2,adj:true,self:false,spread:false,reward:false},rope_net:{img:"4",hp:2,adj:true,self:false,spread:false,reward:false},vault:{img:"5",hp:3,adj:true,self:false,spread:false,reward:true},roots:{img:"6",hp:2,adj:true,self:false,spread:true,reward:false},golden_cage:{img:"7",hp:2,adj:false,self:true,spread:false,reward:true},iron_cage:{img:"8",hp:2,adj:false,self:true,spread:false,reward:false},whirlpool:{img:"9",hp:1,adj:true,self:false,spread:false,reward:true}};function getLevelConfig(lv){const L=Math.max(1,lv|0);let obstacles=["single_ice"],diffLabel="سهل";if(L<=2)obstacles=["single_ice"];else if(L<=5)obstacles=["single_ice","double_ice"];else if(L<=9){obstacles=["double_ice","stone_wall"];diffLabel="سهل";}else if(L<=13){obstacles=["single_ice","rope_net"];diffLabel="متوسط";}else if(L<=17){obstacles=["double_ice","roots"];diffLabel="متوسط";}else if(L<=21){obstacles=["stone_wall","vault"];diffLabel="متوسط";}else if(L<=25){obstacles=["rope_net","golden_cage"];diffLabel="متوسط";}else if(L<=29){obstacles=["roots","iron_cage"];diffLabel="صعب";}else if(L<=33){obstacles=["vault","whirlpool"];diffLabel="صعب";}else if(L<=40){obstacles=["single_ice","golden_cage","roots"];diffLabel="صعب";}else if(L<=50){obstacles=["stone_wall","iron_cage","whirlpool"];diffLabel="صعب جداً";}else{const cycle=[["single_ice","rope_net"],["double_ice","vault"],["stone_wall","roots"],["golden_cage","whirlpool"],["iron_cage","single_ice"]];obstacles=cycle[Math.floor((L-51)/5)%cycle.length];diffLabel="ملكي";}const obstacleCount=Math.min(12,2+Math.floor((L-1)/5));const target=1200+(L-1)*350+Math.floor(L/5)*250;const moves=Math.max(18,Math.min(30,25-Math.floor((L-1)/8)+(L>=25?1:0)));return{level:L,obstacleCount,target,moves,obstacles,diffLabel};}function isCellLocked(c){return !!(c&&(c.obs||c.ice>0));}function countObstacles(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&(it.obs||it.ice>0))n++;}return n;}function makeObstacleMaterial(type,hp){const t=OBSTACLE_DEFS[type]?type:"single_ice";const key=t+"_"+hp;if(obstacleMaterials[key])return obstacleMaterials[key];const def=OBSTACLE_DEFS[t];const mat=new BABYLON.StandardMaterial("obsMat_"+key,scene);const dt=new BABYLON.DynamicTexture("obsTex_"+key,{width:256,height:256},scene,true);dt.hasAlpha=true;const ctx=dt.getContext();const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{ctx.clearRect(0,0,256,256);ctx.drawImage(img,0,0,256,256);if(hp<def.hp){ctx.strokeStyle="rgba(255,255,255,0.9)";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(40,40);ctx.lineTo(110,120);ctx.lineTo(80,190);ctx.stroke();}dt.update();};loadObstaclePng(img,def.img);mat.diffuseTexture=dt;mat.diffuseColor=new BABYLON.Color3(.92,.96,1);mat.emissiveColor=new BABYLON.Color3(.025,.035,.055);mat.specularColor=new BABYLON.Color3(.22,.25,.3);mat.specularPower=24;mat.opacityTexture=dt;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.backFaceCulling=false;mat.needDepthPrePass=true;obstacleMaterials[key]=mat;return mat;}function spreadChocolateIfNeeded(){if(Math.floor((state.level-1)/50)+1<3)return;const cands=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&it.obs==="roots"){for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc,nb=state.grid[nr]?.[nc];if(inBounds(nr,nc)&&nb&&!nb.obs&&!nb.ice)cands.push({item:nb,r:nr,c:nc});}}}if(!cands.length)return;const pick=cands[Math.floor(Math.random()*cands.length)],item=pick.item;item.obs="roots";item.ice=1;state.obstacleGoal++;if(item.mesh){item.mesh.dispose();item.mesh=candyMesh(pick.r,pick.c,item.type,item.special,item.ice);item.mesh.position.copyFrom(pos(pick.r,pick.c));}state.iceRemaining=countObstacles();}
 const specialRingSharedMaterials={};
 const specialMaterials={};
 let shockwaveMaterial=null;
@@ -460,7 +460,7 @@ function buildGrid(){
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=cfg.target;state.moves=cfg.moves;state.obstacleGoal=Math.min(cfg.obstacleCount,Math.max(1,Math.ceil(cfg.obstacleCount*.7)));state.obstaclesCleared=0;state.chocolateBrokenThisTurn=false;const obstacleDeck=Array.from({length:cfg.obstacleCount},(_,i)=>cfg.obstacles[i%cfg.obstacles.length]);for(let i=obstacleDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[obstacleDeck[i],obstacleDeck[j]]=[obstacleDeck[j],obstacleDeck[i]];}for(let n=0;n<cfg.obstacleCount;n++){const o=obstacleDeck[n];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}else{state.obstacleGoal=Math.max(1,Number(state.obstacleGoal)||1);state.obstaclesCleared=Math.max(0,Number(state.obstaclesCleared)||0);}
+  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=cfg.target;state.moves=cfg.moves;state.obstacleGoal=cfg.obstacleCount;state.obstaclesCleared=0;state.chocolateBrokenThisTurn=false;const obstacleDeck=Array.from({length:cfg.obstacleCount},(_,i)=>cfg.obstacles[i%cfg.obstacles.length]);for(let i=obstacleDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[obstacleDeck[i],obstacleDeck[j]]=[obstacleDeck[j],obstacleDeck[i]];}for(let n=0;n<cfg.obstacleCount;n++){const o=obstacleDeck[n];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}else{state.obstacleGoal=Math.max(1,Number(state.obstacleGoal)||1);state.obstaclesCleared=Math.max(0,Number(state.obstaclesCleared)||0);}
   // obstacles from getLevelConfig
   state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
@@ -516,7 +516,7 @@ async function useSelectedBooster(cell){
     for(const id of ["paintBtn","bombBtn","colorBtn","rocketBtn"]){const button=$(id);if(button)button.classList.remove("active");}
     refreshBoosterBadges();updateHud();await wait(90);await settle();
   }catch(error){console.error("Booster failed:",error);say("المساعد اتعطل، جرّب تاني.");}
-  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
+  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
 }
 function tapCell(cell){
   if(state.booster){void useSelectedBooster(cell);return;}
@@ -563,7 +563,7 @@ async function swap(a,b){
       A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
     }else{state.moves--;state.chocolateBrokenThisTurn=false;updateHud();await settle();}
   }catch(error){console.error("Candy swap failed:",error);say("حصلت مشكلة في الحركة، جرّب تاني.");}
-  finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
+  finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
 }
 function findMatches(){
   const found=new Set();
@@ -975,24 +975,24 @@ function updateHud(){
     objective.setAttribute("aria-label","هدف المرحلة: تكسير "+Math.min(state.obstaclesCleared,state.obstacleGoal)+" من "+state.obstacleGoal+" عائق");
   }
   $("levelLabel").textContent="المستوى "+state.level;
-  $("targetScore").textContent=state.target.toLocaleString("en-US");
+  $("targetScore").hidden=true;
   const iceGoal=$("iceGoal");
   if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
-  $("levelProgress").style.width=Math.min(100,state.score/state.target*100)+"%";
+  $("levelProgress").style.width="0%";
   $("coinCount").textContent=state.coins;
   $("stars").textContent=state.stars;
   state.iceRemaining=countObstacles();
   const ig=$("iceGoal");
-  if(ig){ig.hidden=state.iceRemaining<=0;ig.textContent="❄️ "+state.iceRemaining;}
+  if(ig){ig.hidden=true;ig.textContent="❄️ "+state.iceRemaining;}
   const scorePanel=document.querySelector(".art-score");
   if(scorePanel){
     let goal= $("scoreGoal");
     if(!goal){goal=document.createElement("small");goal.id="scoreGoal";scorePanel.insertBefore(goal,ig||null);}
-    goal.textContent=" / "+state.target.toLocaleString("en-US");
+    goal.hidden=true;
     let track=$("scoreProgressTrack");
     if(!track){track=document.createElement("span");track.id="scoreProgressTrack";track.innerHTML='<i id="scoreProgressFill"></i>';scorePanel.appendChild(track);}
     const fill=$("scoreProgressFill");
-    if(fill)fill.style.width=Math.min(100,state.score/state.target*100)+"%";
+    if(fill)fill.style.width="0%";
   }
   const db=$("difficultyBadge");
   if(db){const cfg=getLevelConfig(state.level);db.textContent="المرحلة "+state.level+" • "+cfg.diffLabel;db.hidden=!cfg.diffLabel;}
@@ -1022,8 +1022,8 @@ function safeClaimLevelReward(level){
   }catch(e){return true;}
 }
 function checkEnd(){
-  state.iceRemaining=countObstacles();if(state.score>=state.target&&state.obstaclesCleared>=state.obstacleGoal&&!state.won){
-    state.lossHandled=false;state.won=true;const earnedStars=state.score>=state.target*2?3:(state.score>=state.target*1.5?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
+  state.iceRemaining=countObstacles();if(state.obstaclesCleared>=state.obstacleGoal&&state.obstacleGoal>0&&!state.won){
+    state.lossHandled=false;state.won=true;const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
     if(state.replayMode){$("nextBtn").textContent="العودة للخريطة";$("resultButton").textContent="العودة للخريطة";}
@@ -1066,7 +1066,7 @@ function loadProgress(){try{
   state.level=savedLevel+(completed?1:0);state.resumeLevel=state.level;state.replayMode=false;
   const rawTarget=Number(x.target),fallbackTarget=Math.round(1500*Math.pow(1.22,Math.min(savedLevel-1,1000)));
    const savedTarget=Number.isFinite(rawTarget)?Math.min(1e12,Math.max(1500,rawTarget)):(Number.isFinite(fallbackTarget)?fallbackTarget:1e12);
-  state.target=completed?Math.round(savedTarget*1.22):savedTarget;
+  state.target=0;
   const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
   state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
   state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
@@ -1101,7 +1101,7 @@ async function useHammer(cell){
     replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
     await animate(replacement.mesh,pos(cell.r,cell.c),220);await settle();
   }catch(error){console.error("Hammer action failed:",error);say("حصلت مشكلة في المطرقة، جرّب تاني.");}
-  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won&&state.score>=state.target);}
+  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
 }
 function hasPossibleMove(){
   // Specials are valid only when a player can legally swap them with an adjacent,
@@ -1197,7 +1197,7 @@ function shuffle(){
   saveProgress(false);
 }
 function nextLevel(){
-  if(!state.won||state.score<state.target)return;
+  if(!state.won)return;
   if(state.replayMode){
     state.level=state.resumeLevel;state.replayMode=false;state.won=false;state.busy=false;
     $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
@@ -1260,7 +1260,7 @@ function bindUI(){
   const bind=(id,handler)=>{const el=$(id);if(el)el.addEventListener("click",handler);};
   bind("restartBtn",restart);
   bind("nextBtn",nextLevel);
-  bind("resultButton",()=>{if(state.moves<=0&&state.score<state.target)restart();else nextLevel();});
+  bind("resultButton",()=>{if(!state.won&&state.moves<=0)restart();else nextLevel();});
   const toggleBooster=(id,kind,count)=>bind(id,()=>{
     if(state.won||count()<=0)return;
     state.booster=state.booster===kind?null:kind;
@@ -1338,7 +1338,7 @@ async function start(){
   refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
   checkEnd();
-  saveProgress(state.won&&state.score>=state.target);
+  saveProgress(state.won);
 }
 let gameInitialized=false;
 window.CMRStartSelectedHouse=async(selectedLevel)=>{
@@ -1356,7 +1356,7 @@ window.CMRStartSelectedHouse=async(selectedLevel)=>{
     state.replayMode=requested<state.resumeLevel;
     state.level=requested;
     setBoardBackground(requested);
-    state.target=Math.round(1500*Math.pow(1.22,Math.min(requested-1,1000)));
+    state.target=0;
     state.moves=Math.max(18,25-Math.floor(requested/4));
     state.score=0;state.won=false;state.busy=false;state.lossHandled=false;
     state.booster=null;state.savedGrid=null;
