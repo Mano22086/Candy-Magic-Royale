@@ -1310,6 +1310,25 @@ function startBusyWatchdog(){
     if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
   },1000);
 }
+function ensureBoardArtLayer(){
+  const frame=document.querySelector(".art-board-rim");
+  if(!frame)return null;
+  let img=frame.querySelector("#cmrFiftyBoardArt");
+  if(!img){
+    img=document.createElement("img");
+    img.id="cmrFiftyBoardArt";
+    img.alt="خلفية المرحلة";
+    img.decoding="async";
+    img.loading="eager";
+    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;pointer-events:none;user-select:none;";
+    frame.insertBefore(img,frame.firstChild);
+  }
+  const art=$("royalArtboard");
+  if(art)art.style.display="none";
+  const canvas=$("renderCanvas");
+  if(canvas){canvas.style.zIndex="1";canvas.style.background="transparent";}
+  return img;
+}
 async function loadFiftyBoardArt(level){
  try{
   const img=ensureBoardArtLayer();if(!img)return;
@@ -1325,12 +1344,9 @@ function setBoardBackground(level){
   const realm=Math.floor((current-1)/50)%4+1;
   const house=((current-1)%50)+1;
   const art=$("royalArtboard");
-  if(art){
-    art.src="./assets/board-bg-0"+(((realm-1)%3)+1)+".svg";
-    art.dataset.background=String(realm);
-    art.dataset.house=String(house);
-    art.style.filter="hue-rotate("+(((house-1)*29)%360)+"deg) saturate("+(1.04+((house%5)*.035)).toFixed(2)+")";
-  }
+  if(art){art.style.display="none";art.removeAttribute("src");}
+  const shell=document.querySelector(".game-shell");
+  if(shell)shell.style.background="linear-gradient(145deg,#35124f,#180b35 58%,#3b164e)";
   const x=12+((house*17)%77),y=12+((house*23)%76),zoom=106+((house*7)%19);
   document.documentElement.style.setProperty("--cmr-realm-render",`url("./assets/world-render-0${realm}.svg")`);
   document.documentElement.style.setProperty("--cmr-realm-position",`${x}% ${y}%`);
