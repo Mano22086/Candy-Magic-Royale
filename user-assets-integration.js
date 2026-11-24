@@ -12,22 +12,22 @@ function loader(){let s=document.getElementById("cmrLoadScreen");if(s){s.hidden=
 async function getZip(name,index){const r=await fetch(root+encodeURIComponent(name),{cache:"force-cache"});if(!r.ok)throw Error("فشل تحميل "+name);const b=await r.arrayBuffer();progress(8+index*24,"تحميل "+name+"...");return JSZip.loadAsync(b);}
 function file(zip,names){for(const n of names){const f=zip.file(n);if(f)return f;}const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&names.includes(p.split("/").pop()));return p?zip.file(p):null;}
 async function img(zip,names){const f=file(zip,names);if(!f)return null;const u=URL.createObjectURL(await f.async("blob"));urls.push(u);const im=new Image();im.src=u;try{await im.decode();}catch(e){}return u;}
-async function snd(zip,pattern){const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&pattern.test(p.split("/").pop()));if(!p)return;const u=URL.createObjectURL(await zip.file(p).async("blob"));urls.push(u);const a=new Audio(u);a.preload="auto";a.volume=.55;sounds[pattern.source]=a;}
+async function snd(zip,key,pattern){const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&pattern.test(p.split("/").pop()));if(!p)return;const u=URL.createObjectURL(await zip.file(p).async("blob"));urls.push(u);const a=new Audio(u);a.preload="auto";a.volume=.55;sounds[key]=a;}
 async function prepare(){
  if(packs)return packs;if(!window.JSZip)throw Error("JSZip غير جاهز");
  const [bz,sz,iz]=await Promise.all([getZip("ازرار كاندي.zip",0),getZip("اصوات كاندي.zip",1),getZip("صور كاندي.zip",2)]);
  progress(66,"تجهيز الأزرار والصور...");
  const b={start:await img(bz,["btn_start.png","btn_play.png"]),menu:await img(bz,["btn_menu.png","btn_options.png"]),next:await img(bz,["btn_next.png","btn_continue.png"]),back:await img(bz,["btn_back.png","btn_quit.png"])};
  const i={wide:await img(iz,["btn_wide_lime_normal.png"]),round:await img(iz,["btn_round_orange_normal.png"]),panel:await img(iz,["inner_panel.png"]),title:await img(iz,["title_plate.png"]),coin:await img(iz,["currency_coin.png","coin.png"]),heart:await img(iz,["heart.png"]),gem:await img(iz,["currency_gem.png","gem_blue.png"]),crown:await img(iz,["crown.png"]),star:await img(iz,["gold_star.png"]),chest:await img(iz,["chest_gold.png"])};
- await snd(sz,/UI_Click_Bubble_Pop_V06\.(wav|mp3|ogg)$/i);
- await snd(sz,/UI_Confirm_Bubble_Double_Pop_V01\.(wav|mp3|ogg)$/i);
- await snd(sz,/UI_Cancel_Back_V02\.(wav|mp3|ogg)$/i);
- await snd(sz,/UI_Reward_Coin_Pickup_V03\.(wav|mp3|ogg)$/i);
- await snd(sz,/UI_Level_Complete_V02\.(wav|mp3|ogg)$/i);
- await snd(sz,/UI_Achievement_Unlocked_V01\.(wav|mp3|ogg)$/i);
+ await snd(sz,"click",/UI_Click_Bubble_Pop_V06\.(wav|mp3|ogg)$/i);
+ await snd(sz,"confirm",/UI_Confirm_Bubble_Double_Pop_V01\.(wav|mp3|ogg)$/i);
+ await snd(sz,"cancel",/UI_Cancel_Back_V02\.(wav|mp3|ogg)$/i);
+ await snd(sz,"reward",/UI_Reward_Coin_Pickup_V03\.(wav|mp3|ogg)$/i);
+ await snd(sz,"win",/UI_Level_Complete_V02\.(wav|mp3|ogg)$/i);
+ await snd(sz,"achievement",/UI_Achievement_Unlocked_V01\.(wav|mp3|ogg)$/i);
  const vars=[];if(b.start)vars.push("--cmr-user-start:url('"+b.start+"')");if(b.menu)vars.push("--cmr-user-menu:url('"+b.menu+"')");if(b.next)vars.push("--cmr-user-next:url('"+b.next+"')");if(b.back)vars.push("--cmr-user-back:url('"+b.back+"')");document.documentElement.style.cssText+=";"+vars.join(";");
  const s=document.getElementById("startGameBtn"),m=document.getElementById("facebookLoginBtn");if(s&&b.start)s.classList.add("cmr-pack-button");if(m&&b.menu)m.classList.add("cmr-pack-button");document.querySelectorAll(".primary-button").forEach(x=>{if(b.next)x.classList.add("cmr-pack-button")});document.querySelectorAll(".soft-button").forEach(x=>{if(b.back)x.classList.add("cmr-pack-button")});
- window.CMR_USER_ART=i;window.CMR_USER_SOUNDS={play(name){const a=sounds[name]||sounds["/UI_Click_Bubble_Pop_V06\\.(wav|mp3|ogg)$/i"];if(a){try{a.currentTime=0;const p=a.play();if(p)p.catch(()=>{});}catch(e){}}}};
+ window.CMR_USER_ART=i;window.CMR_USER_SOUNDS={play(name){const a=sounds[name]||sounds.click;if(a){try{a.currentTime=0;const p=a.play();if(p)p.catch(()=>{});}catch(e){}}}};
  document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("button,[role=button],.wm-house,.wm-realm");if(!t||t.disabled)return;const id=(t.id+" "+t.className).toLowerCase();const k=/next|resultbutton/.test(id)?"win":/retry|back|close|cancel/.test(id)?"cancel":/coin|chest|shop|house|realm/.test(id)?"reward":"click";window.CMR_USER_SOUNDS.play(k);},true);
  packs={buttons:b,images:i,sounds:Object.keys(sounds)};progress(88,"الأزرار والصور والأصوات جاهزة");return packs;
 }
