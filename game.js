@@ -126,7 +126,7 @@ const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
 // ---- Unified candy size -------------------------------------------------
 // Each PNG has a different amount of transparent padding. We detect the real
 // visible area of every image, crop to it, and fit it into the same square.
-const CANDY_FIT=0.98;      // candy size relative to its board cell (0.80 - 0.95)
+const CANDY_FIT=1.12;      // enlarged artwork fills the uploaded cell art
 const candyTrim={};
 function loadCandyTrim(type){
   return new Promise(resolve=>{
@@ -213,7 +213,7 @@ function candyMesh(r,c,type,special,ice=0){
   root.isPickable=false;
 
   // Native 3D candy remains visible until its PNG artwork has loaded successfully.
-  const body=BABYLON.MeshBuilder.CreateSphere("candy3D_"+r+"_"+c,{diameter:SPACING*.76,segments:20},scene);
+  const body=BABYLON.MeshBuilder.CreateSphere("candy3D_"+r+"_"+c,{diameter:SPACING*.90,segments:20},scene);
   body.parent=root;
   body.position.y=.17;
   body.scaling.y=.48;
@@ -281,7 +281,7 @@ function candyMesh(r,c,type,special,ice=0){
   const specialSpritePath=special==="wrapped"?(specialSpriteSources.wrapped[type]||specialSpriteSources.wrapped[1]):special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
   if(specialSpritePath){
     const spriteKey=special+"_"+type;
-    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.96,height:SPACING*.96},scene);
+    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*1.10,height:SPACING*1.10},scene);
     art.parent=root;
     art.rotation.x=Math.PI/2;
     art.position.y=.43;
@@ -858,6 +858,9 @@ async function settle(){
     }
     say("تم ترتيب اللوحة تلقائيًا عشان تقدر تكمل اللعب.");
   }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
+  updateHud();
+  // Check the completed objective before new palace obstacles can spawn.
+  if(checkEnd(true))return;
   spreadChocolateIfNeeded();updateHud();
 }
 const activeVfxMeshes=new Set();
