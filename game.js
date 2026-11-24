@@ -1410,38 +1410,10 @@ window.CMRStartSelectedHouse=async(selectedLevel)=>{
   }
 };
 window.addEventListener("DOMContentLoaded",()=>{
-  const launch=$("startGameBtn"),screen=$("startScreen"),facebookModal=$("facebookModal");
-  let launching=false;
-  const launchAsGuest=()=>{
-    if(launching||!launch||!screen)return;
-    launching=true;
-    ensureGuestIdentity();
-    launch.disabled=true;launch.textContent="جاري فتح المملكة...";
-    screen.classList.add("start-screen-leaving");
-    setTimeout(()=>{
-      screen.remove();
-      window.CMRShowWorldMap?.();
-      if(!document.getElementById("worldMap")){
-        launching=false;launch.disabled=false;launch.textContent="العب كضيف";
-        say("الخريطة مش جاهزة، حدّث الصفحة وحاول تاني.");
-      }
-    },520);
-  };
-  // Every optional screen control is bound defensively; a missing modal button
-  // must never abort the game bootstrap.
-  const bindOptional=(id,handler)=>{
-    const element=$(id);
-    if(element)element.addEventListener("click",handler);
-  };
-  bindOptional("facebookLoginBtn",()=>{
-    if(facebookModal)facebookModal.classList.remove("hidden");
-  });
-  bindOptional("facebookCloseBtn",()=>{
-    if(facebookModal)facebookModal.classList.add("hidden");
-  });
-  bindOptional("facebookGuestBtn",()=>{
-    if(facebookModal)facebookModal.classList.add("hidden");
-    launchAsGuest();
-  });
+  const facebookModal=$("facebookModal");
+  const bindOptional=(id,handler)=>{const element=$(id);if(element)element.addEventListener("click",handler);};
+  bindOptional("facebookLoginBtn",()=>{if(facebookModal)facebookModal.classList.remove("hidden");});
+  bindOptional("facebookCloseBtn",()=>{if(facebookModal)facebookModal.classList.add("hidden");});
+  bindOptional("facebookGuestBtn",()=>{if(facebookModal)facebookModal.classList.add("hidden");$("startGameBtn")?.click();});
 });
 })();
