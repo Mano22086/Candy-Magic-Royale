@@ -801,3 +801,9 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 /* The reward artwork must only exist visually inside the result modal after a win. */
 #rewardBag[hidden]{display:none!important}
 #rewardBag:not([hidden]){display:block!important}
+
+
+/* Final board cleanup: remove every legacy rim layer. */
+.art-board-wrap,.art-board-rim,.board-rim.art-board-rim{border:0!important;outline:0!important;border-radius:0!important;padding:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+.art-board-rim:before,.art-board-rim:after{content:none!important;display:none!important}
+#renderCanvas{inset:0!important;width:100%!important;height:100%!important;border:0!important;outline:0!important;border-radius:0!important;background:transparent!important}
