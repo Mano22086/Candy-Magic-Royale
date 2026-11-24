@@ -126,7 +126,7 @@ const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
 // ---- Unified candy size -------------------------------------------------
 // Each PNG has a different amount of transparent padding. We detect the real
 // visible area of every image, crop to it, and fit it into the same square.
-const CANDY_FIT=0.88;      // candy size relative to its board cell (0.80 - 0.95)
+const CANDY_FIT=0.98;      // candy size relative to its board cell (0.80 - 0.95)
 const candyTrim={};
 function loadCandyTrim(type){
   return new Promise(resolve=>{
@@ -281,7 +281,7 @@ function candyMesh(r,c,type,special,ice=0){
   const specialSpritePath=special==="wrapped"?(specialSpriteSources.wrapped[type]||specialSpriteSources.wrapped[1]):special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
   if(specialSpritePath){
     const spriteKey=special+"_"+type;
-    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.82,height:SPACING*.82},scene);
+    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*.96,height:SPACING*.96},scene);
     art.parent=root;
     art.rotation.x=Math.PI/2;
     art.position.y=.43;
@@ -1358,7 +1358,7 @@ function ensureBoardArtLayer(){
     img.alt="خلفية المرحلة";
     img.decoding="async";
     img.loading="eager";
-    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;pointer-events:none;user-select:none;";
+    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center;z-index:0;pointer-events:none;user-select:none;";
     frame.insertBefore(img,frame.firstChild);
   }
   const art=$("royalArtboard");
