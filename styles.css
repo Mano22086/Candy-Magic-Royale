@@ -788,3 +788,12 @@ body.game-started .game-shell{visibility:visible;opacity:1;pointer-events:auto}
 #renderCanvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
   border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important;
   background:transparent!important;z-index:1!important;touch-action:none!important}
+
+/* Character models stay inside their own upper slots and never cover counters. */
+.art-hero{top:5%!important;width:14%!important;height:9.8%!important;overflow:hidden!important}
+.art-dragon{left:31%!important;right:auto!important}
+.art-queen{left:54%!important;right:auto!important}
+.art-hero img,.art-hero img.combo-1,.art-hero img#dragon.combo-1{
+  width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;
+  flex:0 0 100%!important;object-fit:contain!important;object-position:center center!important;
+}
