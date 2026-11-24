@@ -1,11 +1,12 @@
 ```javascript
 /**
- * Candy Magic Royale - 3D Pharaoh Dragon + Exact Win 3 & Loss 3 Artwork Screens (v7)
- * - Uses the EXACT approved Win 3 & Loss 3 AAA 3D artworks with English "Candy Magic Royale" logo,
- *   embedded as lightweight WebP inside this single file (zero extra uploads).
- * - Smooth elastic entrance animation, gentle float, confetti/sparkles, and shine sweep on main CTA.
- * - Fixed Win vs Loss detection: inspects modal title/body WITHOUT button labels and checks Loss FIRST,
- *   so losing NEVER triggers Win and the old modal NEVER flashes underneath.
+ * Candy Magic Royale - All-in-One Suite (v8)
+ * 1. 50-Board Dynamic Palace/House Background Loader:
+ *    - Reads `Candy-Magic-Royale-50-Boards-HD.zip` directly via JSZip (no unzipping needed!).
+ *    - Maps every level/house 1..50 to `board_01`..`board_50` and repeats cleanly across every
+ *      palace (`((level - 1) % 50) + 1`), crossfading automatically whenever the level changes.
+ * 2. 3D Animated Pharaoh Dragon in the right arch (hides old green dragon, faces screen, 5 match animations).
+ * 3. Exact Win 3 & Loss 3 screens with English "Candy Magic Royale" logo, animations, and Loss-first detection.
  */
 (function () {
   "use strict";
@@ -16,6 +17,7 @@
   const CFG = {
     root: "./",
     file: "dragon-character.glb",
+    boardsZip: "./Candy-Magic-Royale-50-Boards-HD.zip",
     cooldownMs: 900,
   };
 
@@ -40,10 +42,29 @@
   }
 
   function injectStyles() {
-    if (document.getElementById("cmr-v7-styles")) return;
+    if (document.getElementById("cmr-v8-styles")) return;
     const st = document.createElement("style");
-    st.id = "cmr-v7-styles";
+    st.id = "cmr-v8-styles";
     st.textContent = `
+      /* ===== 50-Board Dynamic Palace Background Layer ===== */
+      #cmr-palace-board-bg {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 0 !important;
+        pointer-events: none !important;
+        background-color: #160a2a;
+        background-position: center center !important;
+        background-size: cover !important;
+        background-repeat: no-repeat !important;
+        opacity: 0;
+        transition: opacity 0.4s ease, background-image 0.35s ease;
+      }
+      #cmr-palace-board-bg.cmr-bg-ready {
+        opacity: 1 !important;
+      }
+
       /* ===== 3D Pharaoh Dragon Overlay ===== */
       .dragon-3d-replaced { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
       .dragon-3d-overlay {
@@ -68,86 +89,184 @@
       @keyframes d3dGlow { 0% { opacity: 0; transform: scale(.8); } 35% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0; transform: scale(1.25); } }
 
       /* ===== Exact Win 3 & Loss 3 Artwork Screens ===== */
-      .cmr-native-hidden {
-        opacity: 0 !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-      }
+      .cmr-native-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
       .cmr-art-backdrop {
         position: fixed; inset: 0; z-index: 99999;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(14, 7, 32, 0.88);
-        backdrop-filter: blur(6px);
+        background: rgba(14, 7, 32, 0.88); backdrop-filter: blur(6px);
         overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent;
         animation: cmrFadeIn 0.28s ease-out forwards;
       }
       .cmr-art-frame {
-        position: relative;
-        height: 100dvh; max-height: 100vh;
-        aspect-ratio: 9 / 16;
-        max-width: 100vw;
-        border-radius: 14px;
-        overflow: hidden;
+        position: relative; height: 100dvh; max-height: 100vh;
+        aspect-ratio: 9 / 16; max-width: 100vw; border-radius: 14px; overflow: hidden;
         box-shadow: 0 0 45px rgba(0, 0, 0, 0.75);
         animation: cmrArtPopIn 0.56s cubic-bezier(0.2, 1.28, 0.34, 1) forwards,
                    cmrArtFloat 3.8s ease-in-out 0.6s infinite;
       }
-      .cmr-art-img {
-        position: absolute; inset: 0; width: 100%; height: 100%;
-        object-fit: cover; display: block; pointer-events: none;
-      }
-      /* Live particles overlay */
+      .cmr-art-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
       .cmr-art-fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
-      .cmr-cft {
-        position: absolute; top: -14px; width: 9px; height: 15px; border-radius: 2px;
-        opacity: 0.9; animation: cmrCftFall var(--dur, 4s) linear var(--del, 0s) infinite;
-      }
-      .cmr-glint {
-        position: absolute; width: 7px; height: 7px; border-radius: 50%;
-        background: radial-gradient(circle, #fff 0%, rgba(190, 215, 255, 0) 70%);
-        animation: cmrGlintPulse var(--dur, 3s) ease-in-out var(--del, 0s) infinite alternate;
-      }
-
-      /* Invisible interactive button hotspots aligned precisely to the artwork buttons */
+      .cmr-cft { position: absolute; top: -14px; width: 9px; height: 15px; border-radius: 2px; opacity: 0.9; animation: cmrCftFall var(--dur, 4s) linear var(--del, 0s) infinite; }
+      .cmr-glint { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(190, 215, 255, 0) 70%); animation: cmrGlintPulse var(--dur, 3s) ease-in-out var(--del, 0s) infinite alternate; }
       .cmr-hotspot {
-        position: absolute; z-index: 5; background: transparent; border: none;
-        border-radius: 999px; cursor: pointer; padding: 0; margin: 0;
-        overflow: hidden; -webkit-tap-highlight-color: transparent;
+        position: absolute; z-index: 5; background: transparent; border: none; border-radius: 999px;
+        cursor: pointer; padding: 0; margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent;
         transition: transform 0.12s ease, background-color 0.12s ease;
       }
-      .cmr-hotspot:active {
-        transform: scale(0.95);
-        background-color: rgba(255, 255, 255, 0.18);
-      }
+      .cmr-hotspot:active { transform: scale(0.95); background-color: rgba(255, 255, 255, 0.18); }
       .cmr-hotspot-shine::after {
         content: ""; position: absolute; top: 0; left: -120%; width: 55%; height: 100%;
         background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
         animation: cmrShine 2.7s ease-in-out 0.8s infinite;
       }
-
       @keyframes cmrFadeIn { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes cmrArtPopIn {
-        0% { opacity: 0; transform: scale(0.76) translateY(32px); }
-        68% { opacity: 1; transform: scale(1.03) translateY(-3px); }
-        100% { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      @keyframes cmrArtFloat {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-4px); }
-      }
+      @keyframes cmrArtPopIn { 0% { opacity: 0; transform: scale(0.76) translateY(32px); } 68% { opacity: 1; transform: scale(1.03) translateY(-3px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+      @keyframes cmrArtFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
       @keyframes cmrShine { 0% { left: -120%; } 42%, 100% { left: 140%; } }
-      @keyframes cmrCftFall {
-        0% { transform: translateY(-16px) rotate(0deg); opacity: 0.95; }
-        100% { transform: translateY(104vh) rotate(520deg); opacity: 0.3; }
-      }
-      @keyframes cmrGlintPulse {
-        0% { opacity: 0.2; transform: scale(0.7); }
-        100% { opacity: 0.95; transform: scale(1.35); }
-      }
+      @keyframes cmrCftFall { 0% { transform: translateY(-16px) rotate(0deg); opacity: 0.95; } 100% { transform: translateY(104vh) rotate(520deg); opacity: 0.3; } }
+      @keyframes cmrGlintPulse { 0% { opacity: 0.2; transform: scale(0.7); } 100% { opacity: 0.95; transform: scale(1.35); } }
     `;
     document.head.appendChild(st);
   }
 
+  /* =====================================================================
+   * 1. 50-BOARD DYNAMIC PALACE / HOUSE BACKGROUND SYSTEM (50 Houses x Palaces)
+   * ===================================================================== */
+  function init50BoardsSystem() {
+    let bgLayer = document.getElementById("cmr-palace-board-bg");
+    if (!bgLayer) {
+      bgLayer = document.createElement("div");
+      bgLayer.id = "cmr-palace-board-bg";
+      document.body.insertBefore(bgLayer, document.body.firstChild);
+    }
+
+    let zipInstance = null;
+    let boardEntries = []; // sorted list of 50 filenames inside ZIP
+    const urlCache = new Map();
+    let currentBoardSlot = -1;
+
+    function detectCurrentLevelNumber() {
+      // 1. Check common JS globals if exposed
+      for (const k of ["currentLevel", "levelNumber", "activeLevel", "lvl"]) {
+        const v = window[k];
+        if (typeof v === "number" && v >= 1) return Math.floor(v);
+      }
+      // 2. Parse Arabic/English level pill in DOM (e.g. "المرحلة 23 - متوسط" or "Level 23")
+      const candidates = document.querySelectorAll(
+        "#level, #levelTitle, .level-badge, .level-pill, .level-title, [class*='level'], [id*='level'], span, div"
+      );
+      for (const el of candidates) {
+        if (el.children.length > 2) continue;
+        const txt = (el.textContent || "").trim();
+        if (!txt || txt.length > 48) continue;
+        const m = txt.match(/(?:المرحلة|المستوى|بيت|level|lvl|stage)\s*[:#-]?\s*(\d+)/i);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (n >= 1) return n;
+        }
+      }
+      return 1;
+    }
+
+    async function applyBoardForLevel(levelNum) {
+      if (!zipInstance || !boardEntries.length) return;
+      // Map any level/house across any palace into 0..49 (repeats 50 boards in every palace!)
+      const slot = ((Math.max(1, levelNum) - 1) % boardEntries.length);
+      if (slot === currentBoardSlot) return;
+      currentBoardSlot = slot;
+
+      const entryName = boardEntries[slot];
+      let objUrl = urlCache.get(entryName);
+      if (!objUrl) {
+        const fileObj = zipInstance.file(entryName);
+        if (!fileObj) return;
+        const blob = await fileObj.async("blob");
+        objUrl = URL.createObjectURL(blob);
+        urlCache.set(entryName, objUrl);
+      }
+
+      bgLayer.style.backgroundImage = `url("${objUrl}")`;
+      bgLayer.classList.add("cmr-bg-ready");
+
+      // Make sure the main app/body background is transparent so the HD board shows cleanly
+      document.body.style.backgroundColor = "transparent";
+      const mainBg = document.querySelector(".game-bg, #gameBg, .bg-layer, .art-bg");
+      if (mainBg) {
+        mainBg.style.backgroundImage = `url("${objUrl}")`;
+        mainBg.style.backgroundSize = "cover";
+        mainBg.style.backgroundPosition = "center";
+      }
+    }
+
+    async function loadBoardsZip() {
+      // Wait briefly for JSZip (already included in index.html)
+      let waited = 0;
+      while (!window.JSZip && waited < 10000) {
+        await new Promise((r) => setTimeout(r, 200));
+        waited += 200;
+      }
+      if (!window.JSZip) {
+        console.warn("[CMR 50 Boards] JSZip not found on page.");
+        return;
+      }
+
+      try {
+        const resp = await fetch(CFG.boardsZip, { cache: "force-cache" });
+        if (!resp.ok) {
+          console.warn("[CMR 50 Boards] Could not fetch", CFG.boardsZip, resp.status);
+          return;
+        }
+        const buf = await resp.arrayBuffer();
+        zipInstance = await window.JSZip.loadAsync(buf);
+        boardEntries = Object.keys(zipInstance.files)
+          .filter((name) => !zipInstance.files[name].dir && /\.(jpg|jpeg|png|webp)$/i.test(name))
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        if (!boardEntries.length) return;
+
+        // Apply immediately for current level/house
+        await applyBoardForLevel(detectCurrentLevelNumber());
+
+        // Watch for level changes so every house (1..50, 51..100, ...) gets its own board automatically
+        let lastDetected = detectCurrentLevelNumber();
+        setInterval(() => {
+          const lv = detectCurrentLevelNumber();
+          if (lv !== lastDetected) {
+            lastDetected = lv;
+            applyBoardForLevel(lv);
+          }
+        }, 600);
+
+        if (window.MutationObserver) {
+          let t = null;
+          new MutationObserver(() => {
+            if (t) return;
+            t = setTimeout(() => {
+              t = null;
+              const lv = detectCurrentLevelNumber();
+              if (lv !== lastDetected) {
+                lastDetected = lv;
+                applyBoardForLevel(lv);
+              }
+            }, 200);
+          }).observe(document.body, { childList: true, subtree: true, characterData: true });
+        }
+      } catch (err) {
+        console.warn("[CMR 50 Boards] Failed to load ZIP:", err);
+      }
+    }
+
+    loadBoardsZip();
+
+    window.CandyMagicBoards = {
+      setLevel: (n) => applyBoardForLevel(n),
+      getCount: () => boardEntries.length,
+    };
+  }
+
+  /* =====================================================================
+   * 2. EXACT WIN 3 & LOSS 3 SCREENS (LOSS-FIRST DETECTION)
+   * ===================================================================== */
   function showExactScreen(mode, nativeEl) {
     removeExactScreen();
     injectStyles();
@@ -178,20 +297,14 @@
     const hotspotsHtml =
       mode === "win"
         ? `
-          <button class="cmr-hotspot cmr-hotspot-shine" data-cmr-act="next" aria-label="المرحلة التالية"
-            style="left:19%;top:72%;width:62%;height:9.8%"></button>
-          <button class="cmr-hotspot" data-cmr-act="retry" aria-label="إعادة المرحلة"
-            style="left:18%;top:83.5%;width:31%;height:6.8%"></button>
-          <button class="cmr-hotspot" data-cmr-act="map" aria-label="الخريطة"
-            style="left:51%;top:83.5%;width:31%;height:6.8%"></button>
+          <button class="cmr-hotspot cmr-hotspot-shine" data-cmr-act="next" aria-label="المرحلة التالية" style="left:19%;top:72%;width:62%;height:9.8%"></button>
+          <button class="cmr-hotspot" data-cmr-act="retry" aria-label="إعادة المرحلة" style="left:18%;top:83.5%;width:31%;height:6.8%"></button>
+          <button class="cmr-hotspot" data-cmr-act="map" aria-label="الخريطة" style="left:51%;top:83.5%;width:31%;height:6.8%"></button>
         `
         : `
-          <button class="cmr-hotspot cmr-hotspot-shine" data-cmr-act="video" aria-label="مشاهدة فيديو (+5 حركات)"
-            style="left:22%;top:57.5%;width:56%;height:10.2%"></button>
-          <button class="cmr-hotspot" data-cmr-act="retry" aria-label="إعادة المحاولة"
-            style="left:20%;top:69%;width:29%;height:7.8%"></button>
-          <button class="cmr-hotspot" data-cmr-act="map" aria-label="الرجوع للخريطة"
-            style="left:51%;top:69%;width:29%;height:7.8%"></button>
+          <button class="cmr-hotspot cmr-hotspot-shine" data-cmr-act="video" aria-label="مشاهدة فيديو (+5 حركات)" style="left:22%;top:57.5%;width:56%;height:10.2%"></button>
+          <button class="cmr-hotspot" data-cmr-act="retry" aria-label="إعادة المحاولة" style="left:20%;top:69%;width:29%;height:7.8%"></button>
+          <button class="cmr-hotspot" data-cmr-act="map" aria-label="الرجوع للخريطة" style="left:51%;top:69%;width:29%;height:7.8%"></button>
         `;
 
     backdrop.innerHTML = `
@@ -217,10 +330,7 @@
           return cs.display !== "none" && cs.visibility !== "hidden";
         });
         const target = visibleBtns.find((b) => re.test((b.textContent || "").trim()));
-        if (target) {
-          target.click();
-          return true;
-        }
+        if (target) { target.click(); return true; }
         return false;
       }
 
@@ -247,14 +357,9 @@
         }
       }
 
-      // Close our screen and keep native hidden briefly while game transitions
       const el = document.getElementById("cmr-exact-screen");
       if (el) el.remove();
-      if (nativeEl) {
-        setTimeout(() => {
-          nativeEl.classList.remove("cmr-native-hidden");
-        }, 350);
-      }
+      if (nativeEl) setTimeout(() => nativeEl.classList.remove("cmr-native-hidden"), 350);
     });
 
     if (mode === "win" && window.Dragon3DCharacter && typeof window.Dragon3DCharacter.playCelebrate === "function") {
@@ -267,12 +372,6 @@
     if (el) el.remove();
   }
 
-  /**
-   * Accurate Win vs Loss detection:
-   * - Extracts ONLY non-button visible text (headings & paragraphs) from the modal so button labels
-   *   like "المرحلة التالية" never misclassify a Loss screen as a Win screen!
-   * - Always checks LOSS keywords FIRST.
-   */
   function initWinLossWatcher() {
     const LOSS_RE = /(خسارة|انتهت الحركات|نفدت الحركات|حاول مرة|للأسف|فشلت|لم تكتمل|لا توجد حركات|game over|out of moves|try again|defeat|failed|you lose)/i;
     const WIN_RE = /(انتصار\s*سحري|انتصار|فوز|أحسنت|مبروك|اكتملت المرحلة|أنقذت|victory|you win|level complete)/i;
@@ -294,7 +393,6 @@
     }
 
     function scan() {
-      // If active native modal closed, reset tracker
       if (activeNative && !isElementVisible(activeNative) && !activeNative.classList.contains("cmr-native-hidden")) {
         activeNative.dataset.cmrHandled = "0";
         activeNative = null;
@@ -304,7 +402,6 @@
       const headings = Array.from(
         document.querySelectorAll("h1, h2, h3, .modal-title, [class*='title'], [id*='title'], [id*='modal'] p, [class*='modal'] p")
       );
-
       for (const h of headings) {
         if (h.closest("#cmr-exact-screen") || h.closest("button")) continue;
         const hcs = getComputedStyle(h);
@@ -316,27 +413,20 @@
         if (!hTxt || hTxt.length > 260) continue;
         if (!LOSS_RE.test(hTxt) && !WIN_RE.test(hTxt)) continue;
 
-        // Walk up to the visible modal overlay container
         let container = h;
         while (container.parentElement && container.parentElement !== document.body) {
           const p = container.parentElement;
           const pcs = getComputedStyle(p);
           container = p;
-          if ((pcs.position === "fixed" || pcs.position === "absolute") && p.getBoundingClientRect().width >= window.innerWidth * 0.7) {
-            break;
-          }
+          if ((pcs.position === "fixed" || pcs.position === "absolute") && p.getBoundingClientRect().width >= window.innerWidth * 0.7) break;
         }
         if (container === document.body || container.id === "cmr-exact-screen") continue;
         if (container.dataset.cmrHandled === "1" && activeNative === container) continue;
 
-        // Classify using ONLY non-button text of the modal, checking LOSS FIRST!
         const modalText = getNonButtonText(container);
         let mode = null;
-        if (LOSS_RE.test(modalText)) {
-          mode = "loss";
-        } else if (WIN_RE.test(modalText)) {
-          mode = "win";
-        }
+        if (LOSS_RE.test(modalText)) mode = "loss";
+        else if (WIN_RE.test(modalText)) mode = "win";
         if (!mode) continue;
 
         container.classList.add("cmr-native-hidden");
@@ -363,7 +453,9 @@
     };
   }
 
-  /* ===== 3D Pharaoh Dragon Module ===== */
+  /* =====================================================================
+   * 3. 3D PHARAOH DRAGON MODULE
+   * ===================================================================== */
   function hideOldGreenDragonInGameScenes(B, ownScene) {
     if (!B || !B.Engine || !Array.isArray(B.Engine.Instances)) return;
     function isGreenishMaterial(mat) {
@@ -420,9 +512,10 @@
   }
 
   async function mount() {
-    if (window.__dragon3dV7Mounted) return;
-    window.__dragon3dV7Mounted = true;
+    if (window.__dragon3dV8Mounted) return;
+    window.__dragon3dV8Mounted = true;
     injectStyles();
+    init50BoardsSystem();
     initWinLossWatcher();
 
     const host = document.createElement("div");
