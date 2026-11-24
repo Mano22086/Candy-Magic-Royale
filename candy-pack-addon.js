@@ -1,4 +1,3 @@
-```javascript
 /* ============================================================================
  * Candy Magic Royale — Safe Non-Destructive Assets Add-on (candy-pack-addon.js)
  * Loads candy-assets-pack.zip via JSZip and upgrades buttons, icons, boosters,
@@ -343,4 +342,3 @@
     boot();
   }
 })();
-```
