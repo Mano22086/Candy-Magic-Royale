@@ -148,17 +148,12 @@
       button.addEventListener("click", run, true);
       button.addEventListener("touchend", run, {capture:true,passive:false});
     }
-    document.addEventListener("pointerup", (event) => {
-      const b = document.getElementById("startGameBtn");
-      if (!b || launching) return;
-      const rect = b.getBoundingClientRect();
-      if (event.clientX >= rect.left && event.clientX <= rect.right &&
-          event.clientY >= rect.top && event.clientY <= rect.bottom) run(event);
-    }, true);
+    // Play is handled by user-assets-integration.js after the asset-loading sequence.
   })();
   </script>
   <script src="./royal-assets-upgrade.js?v=crispcute-full-ui-20261123-5"></script>
   <script src="dragon-3d-character.js?v=dragon-syntax-fix-20261124-1"></script>
 <script src="candy-pack-addon.js"></script>
+<script src="./user-assets-integration.js?v=user-packs-loading-20261124-1"></script>
 </body>
 </html>
