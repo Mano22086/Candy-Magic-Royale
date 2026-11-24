@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0,obstacleGoal:0,obstaclesCleared:0};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0,obstacleGoal:0,obstaclesCleared:0,obstacleGrowthTurns:0};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -460,7 +460,7 @@ function buildGrid(){
   for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
   const saved=state.savedGrid;
   const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=0;state.moves=cfg.moves;state.obstacleGoal=cfg.obstacleCount;state.obstaclesCleared=0;state.chocolateBrokenThisTurn=false;const obstacleDeck=Array.from({length:cfg.obstacleCount},(_,i)=>cfg.obstacles[i%cfg.obstacles.length]);for(let i=obstacleDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[obstacleDeck[i],obstacleDeck[j]]=[obstacleDeck[j],obstacleDeck[i]];}for(let n=0;n<cfg.obstacleCount;n++){const o=obstacleDeck[n];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}else{state.obstaclesCleared=Math.max(0,Number(state.obstaclesCleared)||0);const remainingSaved=saved.reduce((sum,row)=>sum+row.filter(cell=>cell&&(cell.obs||cell.ice>0)).length,0);state.obstacleGoal=Math.max(1,state.obstaclesCleared+remainingSaved);}
+  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=0;state.moves=cfg.moves;state.obstacleGoal=cfg.obstacleCount;state.obstaclesCleared=0;state.obstacleGrowthTurns=0;state.chocolateBrokenThisTurn=false;const obstacleDeck=Array.from({length:cfg.obstacleCount},(_,i)=>cfg.obstacles[i%cfg.obstacles.length]);for(let i=obstacleDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[obstacleDeck[i],obstacleDeck[j]]=[obstacleDeck[j],obstacleDeck[i]];}for(let n=0;n<cfg.obstacleCount;n++){const o=obstacleDeck[n];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}else{state.obstaclesCleared=Math.max(0,Number(state.obstaclesCleared)||0);const remainingSaved=saved.reduce((sum,row)=>sum+row.filter(cell=>cell&&(cell.obs||cell.ice>0)).length,0);state.obstacleGoal=Math.max(1,state.obstaclesCleared+remainingSaved);}
   // obstacles from getLevelConfig
   state.iceRemaining=0;
   state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
