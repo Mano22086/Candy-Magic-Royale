@@ -7,7 +7,7 @@
   <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=reward-image-visibility-20261124-1">
+  <link rel="stylesheet" href="./styles.css?v=candy-size-winfix-20261124-4">
   <link rel="stylesheet" href="./premium-visual.css?v=royal-depth-20261119-1">
   <link rel="stylesheet" href="./world-map.css?v=four-realms-final-20261119-1">
   <link rel="stylesheet" href="./premium-map.css?v=animated-map-gif-20261123-2">
@@ -88,12 +88,12 @@
 (()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;const beginVideo=()=>{video.load();};if(document.readyState==="complete")beginVideo();else window.addEventListener("load",beginVideo,{once:true});video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
 </script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="./game.js?v=reward-image-visibility-20261124-1"></script>
+  <script src="./game.js?v=candy-size-winfix-20261124-4"></script>
   <script src="./royal-character-engine.js?v=babylon-characters-20261120-1"></script>
-  <script src="./world-map.js?v=clean-map-board-video-finish-20261124-3"></script>
+  <script src="./world-map.js?v=candy-size-winfix-20261124-4"></script>
   <script src="./royal-assets-upgrade.js?v=crispcute-full-ui-20261123-5"></script>
   <script src="dragon-3d-character.js?v=dragon-syntax-fix-20261124-1"></script>
 <script src="candy-pack-addon.js"></script>
-<script src="./user-assets-integration.js?v=clean-map-board-video-finish-20261124-3"></script>
+<script src="./user-assets-integration.js?v=candy-size-winfix-20261124-4"></script>
 </body>
 </html>
