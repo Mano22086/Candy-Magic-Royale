@@ -8,6 +8,40 @@ const realms=[
 ];
 const castlePath=realm=>({queen:"queen",chocolate:"chocolate",ice:"ice",enchanted:"queen"}[realm.castle]||"queen");
 let overlay=null,scale=1;
+const BOARD_ART_ARCHIVE="./Candy-Magic-Royale-50-Boards-HD.zip";
+let boardArtArchivePromise=null;
+const boardArtObjectUrls=new Map();
+function getBoardArtArchive(){
+ if(!boardArtArchivePromise)boardArtArchivePromise=fetch(BOARD_ART_ARCHIVE,{cache:"force-cache"}).then(r=>{if(!r.ok)throw Error("50-board archive HTTP "+r.status);return r.arrayBuffer();}).then(JSZip.loadAsync).then(zip=>{
+  const files=Object.keys(zip.files).filter(p=>!zip.files[p].dir&&/\.(png|jpe?g|webp)$/i.test(p)&&!/(thumb|preview|readme|license)/i.test(p.split("/").pop())).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
+  if(!files.length)throw Error("لم يتم العثور على صور داخل حزمة الخلفيات");
+  console.info("[CMR 50 Boards] found",files.length,"images");
+  if(files.length<50)console.warn("[CMR 50 Boards] archive has fewer than 50 image files");
+  return {zip,files:files.slice(0,50)};
+ });
+ return boardArtArchivePromise;
+}
+async function getBoardArtUrl(stage){
+ const {zip,files}=await getBoardArtArchive();
+ const index=((Math.max(1,Number(stage)||1)-1)%50)%files.length,path=files[index];
+ if(!boardArtObjectUrls.has(path)){const blob=await zip.file(path).async("blob");boardArtObjectUrls.set(path,URL.createObjectURL(blob));}
+ return boardArtObjectUrls.get(path);
+}
+async function applyHouseBoardArt(buttons){
+ try{
+  const {zip,files}=await getBoardArtArchive();
+  await Promise.all(buttons.map(async(btn,index)=>{
+   const path=files[index%files.length];
+   if(!boardArtObjectUrls.has(path)){const blob=await zip.file(path).async("blob");boardArtObjectUrls.set(path,URL.createObjectURL(blob));}
+   const url=boardArtObjectUrls.get(path);
+   btn.style.backgroundImage='linear-gradient(180deg,rgba(28,8,48,.18),rgba(28,8,48,.66)),url("'+url+'")';
+   btn.style.backgroundSize="cover";btn.style.backgroundPosition="center";
+   btn.style.backgroundRepeat="no-repeat";btn.classList.add("has-board-art");
+   btn.dataset.boardArt=String(index+1);
+  }));
+  console.info("[CMR 50 Boards] painted",Math.min(buttons.length,files.length),"house cards");
+ }catch(error){console.error("[CMR 50 Boards] house artwork failed:",error);}
+}
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(_){return {}}};
 const level=()=>{const x=read();return Math.max(1,Math.floor(Number(x.level)||1)+(x.completed?1:0))};
 const worldIndex=()=>Math.floor((level()-1)/50);
@@ -65,6 +99,7 @@ function renderHouses(world){
  route.setAttribute("class","wm-route");route.setAttribute("viewBox","0 0 500 740");route.setAttribute("preserveAspectRatio","none");route.setAttribute("aria-hidden","true");
  const points=[];for(let row=0;row<10;row++){const cols=row%2===0?[0,1,2,3,4]:[4,3,2,1,0];for(const col of cols)points.push((col*100+50)+","+(36+row*72))}
  const line=document.createElementNS("http://www.w3.org/2000/svg","polyline");line.setAttribute("points",points.join(" "));route.appendChild(line);grid.appendChild(route);
+ const houseArtButtons=[];
  for(let n=1;n<=50;n++){
   const global=world*50+n,done=global<level(),unlocked=global<=level(),btn=document.createElement("button");
   btn.type="button";btn.className="wm-house "+(done?"done":unlocked?"current":"locked")+(n%10===0?" checkpoint":"");
@@ -81,12 +116,13 @@ function renderHouses(world){
    try{const opened=await launch(global);if(opened!==true){btn.disabled=false;toast("المرحلة ما فتحتش. حاول مرة تانية.")}}
    catch(error){console.error("Stage button failed:",error);btn.disabled=false;toast("خطأ في فتح المرحلة: "+(error?.message||"غير معروف"))}
   };
-  grid.appendChild(btn);
+  grid.appendChild(btn);houseArtButtons.push(btn);
  }
+ void applyHouseBoardArt(houseArtButtons);
  w.style.setProperty("--wm-scale",scale);scroll.scrollTop=0;
  const current=grid.querySelector(".wm-house.current");
  if(current)requestAnimationFrame(()=>current.scrollIntoView({block:"center",behavior:"smooth"}));
 }
 function toast(message){const t=document.getElementById("toast");if(!t)return;t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
-window.CMRShowWorldMap=show;window.CMRHideWorldMap=hide;
+window.CMRGetBoardArtUrl=getBoardArtUrl;window.CMRShowWorldMap=show;window.CMRHideWorldMap=hide;
 })();
