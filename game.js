@@ -10,7 +10,7 @@ const palette=[
   {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
   {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
 ];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0,obstacleGoal:0,obstaclesCleared:0,obstacleGrowthTurns:0};
+const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,levelReady:false,endModalShown:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0,obstacleGoal:0,obstaclesCleared:0,obstacleGrowthTurns:0};
 
 const $=id=>document.getElementById(id);
 const rand=()=>1+Math.floor(Math.random()*TYPES);
@@ -1022,8 +1022,9 @@ function safeClaimLevelReward(level){
   }catch(e){return true;}
 }
 function checkEnd(){
+  if(!state.levelReady||state.busy||state.endModalShown)return;
   state.iceRemaining=countObstacles();if(state.obstaclesCleared>=state.obstacleGoal&&state.obstacleGoal>0&&!state.won){
-    state.lossHandled=false;state.won=true;const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
+    state.lossHandled=false;state.won=true;state.endModalShown=true;const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
     if(state.replayMode){$("nextBtn").textContent="العودة للخريطة";$("resultButton").textContent="العودة للخريطة";}
@@ -1031,7 +1032,7 @@ function checkEnd(){
     $("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
     triggerCharacterResult(true);playSfx("win");saveProgress(true);
   }else if(state.moves<=0&&!state.won){
-    state.won=true;
+    state.won=true;state.endModalShown=true;
     if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;if(state.lives<5&&!state.lastHeartAt)state.lastHeartAt=Date.now();}
     updateHud();
     $("resultTitle").textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
@@ -1084,8 +1085,8 @@ function loadProgress(){try{
   const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
   state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null,ice:Math.max(0,Math.min(2,Number(cell.ice)||0))*(Number(x.iceDurabilityVersion)>=2?1:2),obs:cell.obs||null}))):null;
 }catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;state.savedGrid=null;}}
-function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.score=0;state.moves=getLevelConfig(state.level).moves;state.obstacleGoal=0;state.obstaclesCleared=0;state.won=false;state.booster=null;
-  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
+function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.endModalShown=false;state.levelReady=false;state.score=0;state.moves=getLevelConfig(state.level).moves;state.obstacleGoal=0;state.obstaclesCleared=0;state.won=false;state.booster=null;
+  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();state.levelReady=true;updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
 async function useHammer(cell){
   if(state.won||state.busy)return;
   const it=state.grid[cell.r][cell.c];if(!it)return;
@@ -1205,7 +1206,7 @@ function nextLevel(){
     for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
     state.grid=[];state.savedGrid=null;updateHud();window.CMRShowWorldMap?.();return;
   }
-  state.lossHandled=false;state.level++;state.target=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;
+  state.lossHandled=false;state.levelReady=false;state.endModalShown=false;state.level++;state.target=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;
   const hammerButton=$("hammerBtn")||$("bombBtn");
   if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
   refreshBoosterBadges();
@@ -1354,18 +1355,18 @@ function setBoardBackground(level){
 }
 async function start(){
   loadProgress();
+  state.levelReady=false;state.endModalShown=false;
   const loading=$("loading");
   if(loading){loading.style.display="grid";loading.textContent="جاري تجهيز الحلوى الملكية...";}
   setupScene();
   // Do not create placeholder 3D candies. Wait until the six supplied PNG
   // textures are ready, then reveal the board with the correct artwork only.
   await preloadCandyTextures();
-  buildGrid();bindUI();updateHud();startHeartClock();startBusyWatchdog();
+  bindUI();updateHud();startHeartClock();startBusyWatchdog();
   if(loading)loading.style.display="none";
   refreshBoosterBadges();
   $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
-  checkEnd();
-  saveProgress(state.won);
+  // The first board is created only after a house is selected on the map.
 }
 let gameInitialized=false;
 window.CMRStartSelectedHouse=async(selectedLevel)=>{
@@ -1385,12 +1386,12 @@ window.CMRStartSelectedHouse=async(selectedLevel)=>{
     setBoardBackground(requested);
     state.target=0;
     state.moves=Math.max(18,25-Math.floor(requested/4));
-    state.score=0;state.won=false;state.busy=false;state.lossHandled=false;
+    state.score=0;state.won=false;state.busy=false;state.lossHandled=false;state.levelReady=false;state.endModalShown=false;
     state.booster=null;state.savedGrid=null;
     $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
     $("nextBtn").textContent=state.replayMode?"العودة للخريطة":"المرحلة التالية";
     $("resultButton").textContent="استمرار";
-    buildGrid();updateHud();refreshBoosterBadges();saveProgress(false);
+    buildGrid();state.levelReady=true;updateHud();refreshBoosterBadges();saveProgress(false);
     return true;
   }catch(error){
     console.error("House game initialization failed:",error);
