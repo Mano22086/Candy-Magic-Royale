@@ -381,11 +381,11 @@ function setupScene(){
   if(!canvas||typeof canvas.addEventListener!=="function"){
     throw new Error("عنصر لوحة اللعب renderCanvas غير موجود في الصفحة");
   }
-  engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true,antialias:true},false);
-  // Reduce mobile GPU load; requestAnimationFrame follows 60/90/120 Hz displays when supported.
-  const deviceRatio=Math.max(1,window.devicePixelRatio||1);
-  const hardwareScale=1;
-  engine.setHardwareScalingLevel(hardwareScale); // Render at native device resolution for sharper candy artwork.
+  // Lower the internal render resolution on phones; this cuts GPU fill cost substantially
+  // while leaving the HTML HUD and buttons at full resolution.
+  const isMobileViewport=window.matchMedia("(max-width: 900px)").matches;
+  engine=new BABYLON.Engine(canvas,false,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
+  engine.setHardwareScalingLevel(isMobileViewport?1.6:1);
   engine.enableOfflineSupport=false;
   scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
   scene.skipPointerMovePicking=true;
@@ -1023,7 +1023,11 @@ function safeClaimLevelReward(level){
 }
 function checkEnd(){
   if(!state.levelReady||state.busy||state.endModalShown)return;
-  state.iceRemaining=countObstacles();if(state.obstaclesCleared>=state.obstacleGoal&&state.obstacleGoal>0&&!state.won){
+  // Derive completion from the live board, not only the historical counter.
+  // This recovers safely if a special-candy chain or a restored save desynchronizes the counter.
+  state.iceRemaining=countObstacles();
+  if(state.obstacleGoal>0&&state.iceRemaining===0&&!state.won){
+    state.obstaclesCleared=Math.max(state.obstaclesCleared,state.obstacleGoal);
     state.lossHandled=false;state.won=true;state.endModalShown=true;const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
     $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
     $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
