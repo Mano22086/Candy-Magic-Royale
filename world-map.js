@@ -27,21 +27,6 @@ async function getBoardArtUrl(stage){
  if(!boardArtObjectUrls.has(path)){const blob=await zip.file(path).async("blob");boardArtObjectUrls.set(path,URL.createObjectURL(blob));}
  return boardArtObjectUrls.get(path);
 }
-async function applyHouseBoardArt(buttons){
- try{
-  const {zip,files}=await getBoardArtArchive();
-  await Promise.all(buttons.map(async(btn,index)=>{
-   const path=files[index%files.length];
-   if(!boardArtObjectUrls.has(path)){const blob=await zip.file(path).async("blob");boardArtObjectUrls.set(path,URL.createObjectURL(blob));}
-   const url=boardArtObjectUrls.get(path);
-   btn.style.backgroundImage='linear-gradient(180deg,rgba(28,8,48,.18),rgba(28,8,48,.66)),url("'+url+'")';
-   btn.style.backgroundSize="cover";btn.style.backgroundPosition="center";
-   btn.style.backgroundRepeat="no-repeat";btn.classList.add("has-board-art");
-   btn.dataset.boardArt=String(index+1);
-  }));
-  console.info("[CMR 50 Boards] painted",Math.min(buttons.length,files.length),"house cards");
- }catch(error){console.error("[CMR 50 Boards] house artwork failed:",error);}
-}
 const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(_){return {}}};
 const level=()=>{const x=read();return Math.max(1,Math.floor(Number(x.level)||1)+(x.completed?1:0))};
 const worldIndex=()=>Math.floor((level()-1)/50);
@@ -99,7 +84,6 @@ function renderHouses(world){
  route.setAttribute("class","wm-route");route.setAttribute("viewBox","0 0 500 740");route.setAttribute("preserveAspectRatio","none");route.setAttribute("aria-hidden","true");
  const points=[];for(let row=0;row<10;row++){const cols=row%2===0?[0,1,2,3,4]:[4,3,2,1,0];for(const col of cols)points.push((col*100+50)+","+(36+row*72))}
  const line=document.createElementNS("http://www.w3.org/2000/svg","polyline");line.setAttribute("points",points.join(" "));route.appendChild(line);grid.appendChild(route);
- const houseArtButtons=[];
  for(let n=1;n<=50;n++){
   const global=world*50+n,done=global<level(),unlocked=global<=level(),btn=document.createElement("button");
   btn.type="button";btn.className="wm-house "+(done?"done":unlocked?"current":"locked")+(n%10===0?" checkpoint":"");
@@ -116,9 +100,8 @@ function renderHouses(world){
    try{const opened=await launch(global);if(opened!==true){btn.disabled=false;toast("المرحلة ما فتحتش. حاول مرة تانية.")}}
    catch(error){console.error("Stage button failed:",error);btn.disabled=false;toast("خطأ في فتح المرحلة: "+(error?.message||"غير معروف"))}
   };
-  grid.appendChild(btn);houseArtButtons.push(btn);
+  grid.appendChild(btn);
  }
- void applyHouseBoardArt(houseArtButtons);
  w.style.setProperty("--wm-scale",scale);scroll.scrollTop=0;
  const current=grid.querySelector(".wm-house.current");
  if(current)requestAnimationFrame(()=>current.scrollIntoView({block:"center",behavior:"smooth"}));
