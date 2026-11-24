@@ -1,0 +1,17 @@
+{
+  "name": "candy-magic-royale",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Candy Magic Royale — 3D Match-Three Kingdom Game",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check server.js && node --check game-core.js && node --check ad-manager.js && node --check game.js && node --check world-map.js && node --check royal-character-engine.js && node --check royal-assets-upgrade.js && node --check dragon-3d-character.js && node --check candy-pack-addon.js && node --check user-assets-integration.js",
+    "lint": "node --check server.js && node --check game-core.js && node --check ad-manager.js && node --check game.js && node --check world-map.js && node --check royal-character-engine.js && node --check royal-assets-upgrade.js && node --check dragon-3d-character.js && node --check candy-pack-addon.js && node --check user-assets-integration.js",
+    "test": "node --test server.test.js game-core.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

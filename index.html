@@ -4,96 +4,621 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#27104e">
-  <meta name="description" content="Candy Magic Royale — عالم الحلوى السحري">
+  <meta name="description" content="Candy Magic Royale — 3D Match-Three Kingdom Game">
+  <meta property="og:title" content="Candy Magic Royale">
+  <meta property="og:description" content="Candy Magic Royale — 3D Match-Three Kingdom Game">
   <title>Candy Magic Royale</title>
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./styles.css?v=candy-size-winfix-20261124-4">
-  <link rel="stylesheet" href="./premium-visual.css?v=royal-depth-20261119-1">
-  <link rel="stylesheet" href="./world-map.css?v=four-realms-final-20261119-1">
-  <link rel="stylesheet" href="./premium-map.css?v=animated-map-gif-20261123-2">
-  <link rel="stylesheet" href="./royal-gameplay-4k.css?v=obstacle-objectives-20261123-1">
-  <link rel="stylesheet" href="./royal-character-engine.css?v=babylon-characters-20261120-1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./royal-unified.css?v=cmr-phase2-20261124">
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 </head>
-<body>
-  <section class="start-screen" id="startScreen" aria-label="شاشة بداية Candy Magic Royale">
+<body data-state="title">
+  <!-- Main Start Screen (First screen displayed on launch) -->
+  <section class="start-screen" id="startScreen" aria-label="القائمة الرئيسية للعبة Candy Magic Royale">
     <video class="start-cinematic-video" id="startCinematicVideo" muted playsinline preload="none" aria-hidden="true">
       <source src="./assets/1027565433_1794873190877752.mp4" type="video/mp4">
     </video>
-    <div class="start-sky"></div>
-    <img class="start-castle" src="./assets/enchanted-castle.svg" alt="">
-    <div class="start-stars" aria-hidden="true">✦　✧　　 ✧　✦　　✧</div>
-    
-    <div class="start-heroes">
-      <img class="start-queen" src="./assets/queen-luma.svg" alt="الملكة لوما">
-      <div class="start-title"><span class="title-kicker">✦ THE KINGDOM OF SWEETS ✦</span><h1><span class="title-main">CANDY MAGIC</span><em>ROYALE</em></h1><p>MAGIC · SWEETS · ADVENTURE</p></div>
-      <img class="start-dragon" src="./assets/dragon-prince.svg" alt="أمير التنين">
-    </div>
-    <div class="start-bottom">
-      <div class="start-promise">✦ YOUR MAGICAL ADVENTURE AWAITS ✦</div>
-      <button class="start-button" id="startGameBtn"><span class="button-label">PLAY</span><span class="button-arrow">✦</span></button>
-      <button class="facebook-button" id="facebookLoginBtn"><span class="facebook-mark">f</span><span>FACEBOOK PLAY</span></button>
-      <small>CHOOSE YOUR WAY INTO THE KINGDOM</small>
+    <div class="start-sky" aria-hidden="true"></div>
+    <img class="start-castle" src="./assets/enchanted-castle.svg" alt="" aria-hidden="true">
+    <div class="start-stars" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
+
+    <div class="start-content">
+      <!-- Top Player Profile & Wallet Strip -->
+      <div class="start-top-bar" aria-label="ملف اللاعب والرصيد">
+        <button type="button" class="menu-profile-chip" id="menuProfileChip" aria-label="حساب اللاعب">
+          <img src="./assets/packs/images/crown.png" alt="">
+          <span id="menuPlayerName">لاعب ضيف</span>
+        </button>
+        <div class="menu-wallet-pills">
+          <span class="menu-pill" title="القلوب">
+            <img src="./assets/packs/buttons/icon_heart.png" alt="">
+            <b id="menuHearts">5</b>
+          </span>
+          <span class="menu-pill" title="الجواهر">
+            <img src="./assets/packs/buttons/icon_gem.png" alt="">
+            <b id="menuGems">25</b>
+          </span>
+          <span class="menu-pill" title="العملات الذهبية">
+            <img src="./assets/packs/buttons/icon_coin.png" alt="">
+            <b id="menuCoins">500</b>
+          </span>
+        </div>
+      </div>
+
+      <!-- Prominent Game Logo -->
+      <div class="start-title">
+        <span class="title-kicker">✦ مملكة الحلوى الفرعونية السحرية ✦</span>
+        <div class="start-logo-emblem" aria-hidden="true">
+          <img src="./assets/packs/images/crown.png" alt="">
+        </div>
+        <h1>
+          <span class="title-main">CANDY MAGIC</span>
+          <em>ROYALE</em>
+        </h1>
+        <p>10 قصور سحرية · 1000 مرحلة · مواجهة زعيم ملك الحلوى</p>
+      </div>
+
+      <!-- Egyptian Queen & Purple Baby Dragon -->
+      <div class="start-heroes">
+        <div class="start-hero-frame">
+          <img class="start-queen" src="./assets/Picsart_26-11-17_02-37-45-792.png" alt="الملكة المصرية لوما">
+          <span>الملكة لوما</span>
+        </div>
+        <div class="start-hero-frame">
+          <img class="start-dragon" src="./assets/Picsart_26-11-17_02-38-02-164.png" alt="التنين البنفسجي الصغير">
+          <span>أمير التنين</span>
+        </div>
+      </div>
+
+      <!-- 5 Functional Arabic Main Menu Buttons -->
+      <div class="start-bottom">
+        <button class="start-button" id="startGameBtn" data-start="true" type="button" aria-label="ابدأ اللعب">
+          <img class="btn-inline-icon" src="./assets/packs/buttons/icon_play.png" alt="">
+          <span class="button-label">ابدأ اللعب</span>
+        </button>
+
+        <div class="start-menu-grid" role="group" aria-label="خيارات القائمة الرئيسية">
+          <button class="menu-action-btn menu-btn-login" id="loginMenuBtn" type="button">
+            <img src="./assets/packs/buttons/icon_crown.png" alt="">
+            <span>تسجيل الدخول</span>
+          </button>
+          <button class="menu-action-btn menu-btn-guest" id="guestPlayBtn" type="button">
+            <img src="./assets/packs/buttons/icon_star.png" alt="">
+            <span>اللعب كضيف</span>
+          </button>
+          <button class="menu-action-btn menu-btn-shop" id="menuShopBtn" type="button">
+            <img src="./assets/packs/buttons/icon_cart.png" alt="">
+            <span>المتجر</span>
+          </button>
+          <button class="menu-action-btn menu-btn-settings" id="menuSettingsBtn" type="button">
+            <img src="./assets/packs/buttons/icon_settings.png" alt="">
+            <span>الإعدادات</span>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
-  <div class="modal hidden" id="facebookModal" role="dialog" aria-modal="true" aria-labelledby="facebookModalTitle">
-    <div class="modal-card facebook-card">
-      <div class="facebook-mark large">f</div>
-      <h2 id="facebookModalTitle">تسجيل الدخول بفيسبوك</h2>
-      <p>ربط فيسبوك الحقيقي هيتفعل بعد إعداد تطبيق Meta. وقتها هنطلب إذن البريد الإلكتروني ونربط حسابك بتقدمك الحالي.</p>
-      <button id="facebookGuestBtn" class="primary-button">العب كضيف دلوقتي</button>
-      <button id="facebookCloseBtn" class="soft-button">رجوع</button>
+
+  <!-- Full-Screen Loading Progress Video Screen (plays supplied video once on Play) -->
+  <section class="loading-video-overlay hidden" id="loadingVideoOverlay" aria-label="شاشة تحميل اللعبة" aria-live="polite">
+    <video
+      id="loadingProgressVideo"
+      class="loading-progress-video"
+      src="./assets/packs/images/4_5877503749181675068.mp4"
+      muted
+      playsinline
+      preload="auto"
+    ></video>
+    <div class="loading-video-scrim" aria-hidden="true"></div>
+    <div class="loading-video-footer">
+      <div class="loading-video-badge">
+        <img src="./assets/packs/images/crown.png" alt="">
+        <span>CANDY MAGIC ROYALE</span>
+      </div>
+      <div class="loading-progress-meta">
+        <span id="loadingProgressText">جاري تحميل مملكة الحلوى...</span>
+        <strong id="loadingProgressPercent">0%</strong>
+      </div>
+      <div class="loading-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="loading-progress-fill" id="loadingProgressFill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Player Account Sign-In Modal -->
+  <div class="modal hidden" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+    <div class="modal-card royal-panel login-card">
+      <button type="button" class="modal-close-icon" id="loginCloseBtn" aria-label="إغلاق نافذة تسجيل الدخول">
+        <img src="./assets/packs/images/btn_close_round_normal.png" alt="إغلاق">
+      </button>
+      <div class="royal-title-ribbon">
+        <img src="./assets/packs/buttons/icon_crown.png" alt="">
+        <h2 id="loginModalTitle">تسجيل الدخول</h2>
+      </div>
+      <p class="login-subtitle" id="loginStatusBanner">سجّل اسمك الملكي لحفظ تقدمك ومخزونك على هذا الجهاز.</p>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <div class="login-field">
+          <label for="loginDisplayName">اسم اللاعب الملكي</label>
+          <input
+            type="text"
+            id="loginDisplayName"
+            name="displayName"
+            maxlength="24"
+            placeholder="مثال: الأمير أحمد"
+            autocomplete="nickname"
+            required
+          >
+        </div>
+        <div class="login-field">
+          <label for="loginEmail">البريد الإلكتروني (اختياري)</label>
+          <input
+            type="email"
+            id="loginEmail"
+            name="email"
+            maxlength="64"
+            placeholder="player@example.com"
+            autocomplete="email"
+          >
+        </div>
+        <p class="login-error hidden" id="loginErrorText" role="alert"></p>
+        <button type="submit" class="royal-lime-btn" id="loginSubmitBtn">حفظ الحساب والدخول</button>
+      </form>
+
+      <div class="login-secondary-actions">
+        <button type="button" id="loginAsGuestBtn" class="royal-action-btn royal-amber-btn">
+          <img src="./assets/packs/buttons/icon_star.png" alt="">
+          <span>المتابعة كضيف</span>
+        </button>
+        <button type="button" id="loginSignOutBtn" class="royal-action-btn royal-neutral-btn hidden">
+          <span>تسجيل الخروج</span>
+        </button>
+      </div>
     </div>
   </div>
-  <main class="game-shell">
-    <img id="royalArtboard" class="royal-artboard" src="./assets/board-bg-01.svg" alt="" aria-hidden="true">
-    <section class="art-hud" aria-label="بيانات المرحلة">
-      <div class="art-target"><small class="art-hud-title art-hud-title-heart" aria-label="Heart"><svg class="ribbon-title-svg" viewBox="0 0 140 44" aria-hidden="true"><defs><path id="heartCurve" d="M 12,28 Q 70,12 128,28"/></defs><text><textPath href="#heartCurve" startOffset="50%" text-anchor="middle">Heart</textPath></text></svg></small><div class="heart-counter"><span class="royal-heart-3d" aria-hidden="true"><svg viewBox="0 0 64 60" width="30" height="28"><defs><radialGradient id="heartGrad" cx="38%" cy="30%" r="68%"><stop offset="0%" stop-color="#ff9ec4"/><stop offset="32%" stop-color="#ff2e74"/><stop offset="75%" stop-color="#b8003c"/><stop offset="100%" stop-color="#6b0022"/></radialGradient><linearGradient id="heartRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe699"/><stop offset="50%" stop-color="#f6b93b"/><stop offset="100%" stop-color="#9e6308"/></linearGradient></defs><path d="M32 56 C30 56 5 39 5 20 C5 10 13 4 21 4 C26.5 4 30.5 7 32 10.5 C33.5 7 37.5 4 43 4 C51 4 59 10 59 20 C59 39 34 56 32 56 Z" fill="url(#heartGrad)" stroke="url(#heartRim)" stroke-width="3"/><ellipse cx="21" cy="16" rx="7" ry="4" transform="rotate(-28 21 16)" fill="rgba(255,255,255,0.65)"/><circle cx="16" cy="22" r="2.2" fill="rgba(255,255,255,0.45)"/></svg></span><strong id="heartCount">5</strong></div><span id="targetScore" hidden>1,500</span><b id="levelLabel" hidden>المستوى 1</b><i class="level-progress" hidden><i id="levelProgress"></i></i><span class="art-stars" hidden>⭐ <b id="stars">0</b></span></div>
-      <div class="art-hero art-queen"><img id="queen" src="./assets/queen-luma.svg" alt="الملكة لوما"></div>
-      <div class="art-hero art-dragon"><img id="dragon" src="./assets/dragon-prince.svg" alt="أمير التنين"></div>
-      <div class="art-moves"><strong id="moves">25</strong><small class="art-hud-title art-hud-title-moves" aria-label="Moves"><svg class="ribbon-title-svg" viewBox="0 0 140 44" aria-hidden="true"><defs><path id="movesCurve" d="M 12,28 Q 70,12 128,28"/></defs><text><textPath href="#movesCurve" startOffset="50%" text-anchor="middle">Moves</textPath></text></svg></small><span>✦ <b id="coinCount">500</b></span><button id="plusCoins" aria-label="المزيد">＋</button><button id="soundBtn" aria-label="الصوت">♫</button></div>
-      <span class="diff-tier-badge" id="difficultyBadge">&#1575;&#1604;&#1605;&#1587;&#1578;&#1608;&#1609; 1 &bull; &#1587;&#1607;&#1604;</span><div class="art-score">⭐ <b id="score">0</b><small id="iceGoal" hidden>❄️ 0</small></div>
-      <div class="art-message" id="characterMessage">أهلاً بك! أنقذ مملكتي بالحلوى.</div>
-      <div class="art-objective" id="obstacleObjective">اكسر العوائق 0/2</div>
+
+  <!-- Main Gameplay Shell (Exact 9:16 Stage matching the 720x1280 HD Board Artwork) -->
+  <main class="game-shell" id="gameShell" data-phase="Playing" data-level="1" data-palace="1" data-boss="false">
+    <img
+      id="royalArtboard"
+      class="royal-artboard"
+      src="./assets/packs/boards/board_01_royal_castle_v1.jpg"
+      alt=""
+      aria-hidden="true"
+    >
+
+    <section class="art-hud" aria-label="شريط معلومات المرحلة">
+      <!-- Top-Left Settings Button (aligned with built-in gear slot) -->
+      <button
+        type="button"
+        id="settingsBtn"
+        class="art-settings-btn"
+        aria-label="إعدادات اللعب"
+        title="إعدادات اللعب"
+      >
+        <img src="./assets/packs/buttons/icon_settings.png" alt="الإعدادات">
+      </button>
+
+      <!-- Top-Right Compact Wallet & Shop Bar -->
+      <div class="art-top-wallet" aria-label="العملات والجواهر والمتجر">
+        <span class="wallet-chip" title="الجواهر">
+          <img src="./assets/packs/buttons/icon_gem.png" alt="">
+          <b id="gemCount">25</b>
+        </span>
+        <span class="wallet-chip" title="العملات الذهبية">
+          <img src="./assets/packs/buttons/icon_coin.png" alt="">
+          <b id="coinCount">500</b>
+        </span>
+        <button type="button" id="plusCoins" class="wallet-mini-btn" aria-label="مكافأة يومية" title="مكافأة يومية">＋</button>
+        <button type="button" id="shopOpenBtn" class="wallet-mini-btn wallet-shop-btn" aria-label="المتجر الملكي" title="المتجر الملكي">
+          <img src="./assets/packs/buttons/icon_cart.png" alt="المتجر">
+        </button>
+      </div>
+
+      <!-- Left Square Slot: Remaining Moves -->
+      <div class="art-moves" aria-label="الحركات المتبقية">
+        <small class="hud-slot-label">الحركات</small>
+        <strong id="moves">25</strong>
+      </div>
+
+      <!-- Center-Left Oval Slot: Queen Luma -->
+      <div class="art-hero art-queen" aria-label="الملكة لوما">
+        <img id="queen" src="./assets/Picsart_26-11-17_02-37-45-792.png" alt="الملكة لوما">
+      </div>
+
+      <!-- Center-Right Oval Slot: 3D Pharaoh Dragon (with 2D fallback inside slot) -->
+      <div class="art-hero art-dragon" aria-label="أمير التنين">
+        <img id="dragon" src="./assets/Picsart_26-11-17_02-38-02-164.png" alt="أمير التنين">
+      </div>
+
+      <!-- Right Square Slot: Hearts / Lives -->
+      <div class="art-target" aria-label="القلوب المتبقية">
+        <small class="hud-slot-label">القلوب</small>
+        <div class="heart-counter">
+          <img class="hud-heart-img" src="./assets/packs/buttons/icon_heart.png" alt="">
+          <strong id="heartCount">5</strong>
+        </div>
+        <span id="targetScore" hidden>0</span>
+        <b id="levelLabel" hidden>المرحلة 1</b>
+        <i class="level-progress" hidden><i id="levelProgress"></i></i>
+        <span class="art-stars" hidden><b id="stars">0</b></span>
+      </div>
+
+      <!-- Clean Compact Objective & Stage Strip between upper portraits and board -->
+      <div class="art-objective-strip">
+        <span class="diff-tier-badge" id="difficultyBadge">القصر 1 · مرحلة 1</span>
+        <div class="art-objective" id="obstacleObjective">اكسر العوائق 0/2</div>
+        <div class="art-score" aria-label="النقاط">
+          <img src="./assets/packs/buttons/icon_star.png" alt="">
+          <b id="score">0</b>
+          <small id="iceGoal" hidden>0</small>
+        </div>
+      </div>
+
+      <div class="art-message sr-only" id="characterMessage" aria-live="polite">أهلاً بك في مملكة الحلوى!</div>
     </section>
+
+    <!-- Exact 7x8 Board Area (zero artificial rim/frame — sits directly on the HD board grid) -->
     <section class="board-wrap art-board-wrap" aria-label="لوحة الحلوى">
       <div class="board-rim art-board-rim">
-        <canvas id="renderCanvas" touch-action="none"></canvas>
-        <div class="board-loading" id="loading">جاري تجهيز عالم الحلوى...</div>
+        <canvas id="renderCanvas" data-testid="game-canvas" touch-action="none"></canvas>
+        <div class="board-loading" id="loading">جاري تجهيز لوحة الحلوى...</div>
       </div>
     </section>
-    <section class="art-boosters" aria-label="المساعدات">
-      <button class="booster art-booster art-booster-one" id="paintBtn" aria-label="فرشاة تغيير اللون"><img class="booster-icon" src="./10_paintbrush_rainbow.png" alt="Paintbrush"><small>3</small></button>
-      <button class="booster art-booster art-booster-two" id="shuffleBtn" aria-label="خلط الحلوى"><img class="booster-icon" src="./12_arrows_cross.png" alt="Shuffle"><small>2</small></button>
-      <button class="booster art-booster art-booster-three" id="bombBtn" aria-label="قنبلة"><img class="booster-icon" src="./08_bomb_skull.png" alt="Bomb"><small>3</small></button>
-      <button class="booster art-booster art-booster-four" id="colorBtn" aria-label="عجلة الألوان"><img class="booster-icon" src="./11_color_wheel.png" alt="Color wheel"><small>3</small></button>
-      <button class="booster art-booster art-booster-five" id="rocketBtn" aria-label="صاروخ"><img class="booster-icon" src="./09_rocket_striped.png" alt="Rocket"><small>3</small></button>
+
+    <!-- Bottom Booster Dock -->
+    <section class="art-boosters" aria-label="المساعدات السحرية">
+      <button type="button" class="booster art-booster" id="paintBtn" aria-label="فرشاة تغيير اللون">
+        <img class="booster-icon" src="./10_paintbrush_rainbow.png" alt="">
+        <span class="booster-name">فرشاة</span>
+        <small>3</small>
+      </button>
+      <button type="button" class="booster art-booster" id="shuffleBtn" aria-label="خلط الحلوى">
+        <img class="booster-icon" src="./12_arrows_cross.png" alt="">
+        <span class="booster-name">خلط</span>
+        <small>∞</small>
+      </button>
+      <button type="button" class="booster art-booster" id="bombBtn" aria-label="قنبلة">
+        <img class="booster-icon" src="./08_bomb_skull.png" alt="">
+        <span class="booster-name">قنبلة</span>
+        <small>3</small>
+      </button>
+      <button type="button" class="booster art-booster" id="colorBtn" aria-label="عجلة الألوان">
+        <img class="booster-icon" src="./11_color_wheel.png" alt="">
+        <span class="booster-name">ألوان</span>
+        <small>3</small>
+      </button>
+      <button type="button" class="booster art-booster" id="rocketBtn" aria-label="صاروخ">
+        <img class="booster-icon" src="./09_rocket_striped.png" alt="">
+        <span class="booster-name">صاروخ</span>
+        <small>3</small>
+      </button>
     </section>
   </main>
-  <div class="toast" id="toast" role="status"></div>
-  <div class="modal hidden" id="resultModal">
-    <div class="modal-card">
-      <div class="modal-crown">♛</div>
-      <h2 id="resultTitle">أحسنت!</h2>
-      <p id="resultText">لقد أنقذت الحديقة السحرية.</p>
-      <img id="rewardBag" src="./14_bag_gold.png" alt="مكافأة المرحلة" hidden style="width:92px;height:92px;object-fit:contain;margin:4px auto 8px;filter:drop-shadow(0 5px 8px #1b073f99)"><div class="result-stars">⭐ ⭐ ⭐</div>
-      <button id="resultButton" class="primary-button">استمرار</button><div class="result-actions"><button id="restartBtn" type="button">إعادة المرحلة</button><button id="nextBtn" type="button" disabled>المرحلة التالية</button></div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Settings Modal (Shared across Main Menu, World Map, and Active Gameplay) -->
+  <div class="modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="modal-card royal-panel settings-card">
+      <button type="button" class="modal-close-icon" id="settingsCloseBtn" aria-label="إغلاق الإعدادات">
+        <img src="./assets/packs/images/btn_close_round_normal.png" alt="إغلاق">
+      </button>
+      <div class="royal-title-ribbon">
+        <img src="./assets/packs/buttons/icon_settings.png" alt="">
+        <h2 id="settingsModalTitle">إعدادات اللعب</h2>
+      </div>
+
+      <div class="settings-section">
+        <!-- Music ON/OFF & Volume -->
+        <div class="settings-audio-block">
+          <div class="settings-row">
+            <div class="settings-label">
+              <img id="musicStateIcon" src="./assets/packs/buttons/icon_volume.png" alt="">
+              <span>الموسيقى</span>
+            </div>
+            <button
+              type="button"
+              id="musicToggleBtn"
+              class="royal-toggle-btn"
+              aria-pressed="true"
+              aria-label="تشغيل أو إيقاف الموسيقى"
+            >
+              <img src="./assets/packs/images/toggle_on_normal.png" alt="مفعّل">
+              <span class="toggle-text">تشغيل</span>
+            </button>
+          </div>
+          <div class="settings-slider-row">
+            <label for="musicVolumeSlider">مستوى الموسيقى</label>
+            <input type="range" id="musicVolumeSlider" min="0" max="100" value="45" aria-label="مستوى صوت الموسيقى">
+            <output id="musicVolumeValue" for="musicVolumeSlider">45%</output>
+          </div>
+        </div>
+
+        <!-- SFX ON/OFF & Volume -->
+        <div class="settings-audio-block">
+          <div class="settings-row">
+            <div class="settings-label">
+              <img id="sfxStateIcon" src="./assets/packs/buttons/icon_volume.png" alt="">
+              <span>المؤثرات الصوتية</span>
+            </div>
+            <button
+              type="button"
+              id="sfxToggleBtn"
+              class="royal-toggle-btn"
+              aria-pressed="true"
+              aria-label="تشغيل أو إيقاف المؤثرات الصوتية"
+            >
+              <img src="./assets/packs/images/toggle_on_normal.png" alt="مفعّل">
+              <span class="toggle-text">تشغيل</span>
+            </button>
+          </div>
+          <div class="settings-slider-row">
+            <label for="sfxVolumeSlider">مستوى المؤثرات</label>
+            <input type="range" id="sfxVolumeSlider" min="0" max="100" value="70" aria-label="مستوى المؤثرات الصوتية">
+            <output id="sfxVolumeValue" for="sfxVolumeSlider">70%</output>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button type="button" id="settingsRestartBtn" class="royal-action-btn royal-amber-btn">
+          <img src="./assets/packs/buttons/icon_refresh.png" alt="">
+          <span>إعادة المرحلة</span>
+        </button>
+        <button type="button" id="settingsExitBtn" class="royal-action-btn royal-crimson-btn">
+          <img src="./assets/packs/buttons/icon_home.png" alt="">
+          <span>الخروج من المرحلة</span>
+        </button>
+        <button type="button" id="settingsResumeBtn" class="royal-lime-btn">
+          <span>متابعة اللعب</span>
+        </button>
+      </div>
     </div>
   </div>
+
+  <!-- Confirmation Modal for Restart / Exit Stage (Deducts 1 Heart only on Confirm) -->
+  <div class="modal hidden" id="confirmActionModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card royal-panel confirm-card">
+      <div class="confirm-heart-emblem">
+        <img src="./assets/packs/images/heart.png" alt="">
+        <span class="confirm-heart-delta">−1</span>
+      </div>
+      <h2 id="confirmTitle">تأكيد الإجراء</h2>
+      <p id="confirmMessage">سيتم خصم قلب واحد عند التأكيد. هل تريد المتابعة؟</p>
+      <div class="confirm-hearts-status" id="confirmHeartsPreview">قلوبك الحالية: 5</div>
+      <div class="confirm-buttons">
+        <button type="button" id="confirmYesBtn" class="royal-action-btn royal-crimson-btn">
+          <img src="./assets/packs/buttons/icon_check.png" alt="">
+          <span>تأكيد (−1 قلب)</span>
+        </button>
+        <button type="button" id="confirmCancelBtn" class="royal-action-btn royal-neutral-btn">
+          <img src="./assets/packs/buttons/icon_cross.png" alt="">
+          <span>إلغاء</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Professional Victory & Defeat Modal (Supplied Transparent PNGs + Flying Confetti) -->
+  <div class="modal hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="victory-confetti" id="victoryConfetti" aria-hidden="true"></div>
+
+    <!-- Victory Screen View -->
+    <div class="result-art-view victory-view hidden" id="victoryView">
+      <div class="victory-royal-aura" aria-hidden="true"></div>
+
+      <!-- Queen Luma Celebrating Companion Accent -->
+      <div class="victory-queen-badge" aria-hidden="true">
+        <img src="./assets/Picsart_26-11-17_02-37-45-792.png" alt="">
+        <span>الملكة لوما تهنئك!</span>
+      </div>
+
+      <!-- Aspect-Locked Transparent Victory Artwork with Pixel-Aligned Interactive Buttons -->
+      <div class="artwork-stage victory-stage">
+        <img
+          src="/assets/aistudio/Picsart_26-11-24_21-58-55-365_00747e2e.png"
+          alt="فوز ملكي — شاشة الانتصار"
+          class="artwork-png"
+        >
+        <button
+          type="button"
+          id="winNextBtn"
+          class="art-hotspot hs-win-next"
+          aria-label="المرحلة التالية"
+          title="المرحلة التالية"
+        ></button>
+        <button
+          type="button"
+          id="winReplayBtn"
+          class="art-hotspot hs-win-replay"
+          aria-label="إعادة اللعب"
+          title="إعادة اللعب"
+        ></button>
+        <button
+          type="button"
+          id="winMapBtn"
+          class="art-hotspot hs-win-map"
+          aria-label="العودة إلى الخريطة"
+          title="العودة إلى الخريطة"
+        ></button>
+
+        <!-- Dynamic Live Rewards & Objectives Summary in Transparent Bottom Margin -->
+        <div class="win-summary-bar" id="winSummaryBar">
+          <div class="win-summary-head">
+            <strong id="resultTitle">فوز ملكي!</strong>
+            <span class="win-stars-inline" id="resultStars" aria-label="النجوم المكتسبة">⭐⭐⭐</span>
+          </div>
+          <p id="resultText">أكملت أهداف المرحلة وحصلت على مكافآتك الملكية!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Defeat Screen View -->
+    <div class="result-art-view defeat-view hidden" id="defeatView">
+      <div class="defeat-fantasy-aura" aria-hidden="true"></div>
+
+      <!-- Sad / Disappointed Dragon Companion -->
+      <div class="defeat-dragon-badge" id="defeatDragonBadge">
+        <img src="./assets/Picsart_26-11-17_02-38-02-164.png" alt="التنين البنفسجي حزين">
+        <div class="defeat-dragon-copy">
+          <strong>لا تستسلم يا بطل!</strong>
+          <small id="defeatSubtext">انتهت الحركات قبل كسر جميع العوائق</small>
+        </div>
+      </div>
+
+      <!-- Aspect-Locked Transparent Defeat Artwork with Pixel-Aligned Interactive Buttons -->
+      <div class="artwork-stage defeat-stage">
+        <img
+          src="/assets/aistudio/Picsart_26-11-24_02-32-44-943_5bb9cc15.png"
+          alt="خسارة — انتهت الحركات"
+          class="artwork-png"
+        >
+        <button
+          type="button"
+          id="lossWatchAdBtn"
+          class="art-hotspot hs-loss-ad"
+          aria-label="مشاهدة فيديو (+5 حركات)"
+          title="مشاهدة فيديو (+5 حركات)"
+        ></button>
+        <button
+          type="button"
+          id="lossRetryBtn"
+          class="art-hotspot hs-loss-retry"
+          aria-label="حاول مرة أخرى"
+          title="حاول مرة أخرى"
+        ></button>
+        <button
+          type="button"
+          id="lossMapBtn"
+          class="art-hotspot hs-loss-map"
+          aria-label="العودة إلى الخريطة"
+          title="العودة إلى الخريطة"
+        ></button>
+      </div>
+
+      <!-- Dedicated Functional Help Action -->
+      <div class="defeat-help-row">
+        <button type="button" id="lossHelpBtn" class="royal-help-btn">
+          <img src="./assets/packs/buttons/icon_cart.png" alt="">
+          <span>احصل على مساعدة (المتجر والمعززات)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complete 6-Category In-Game Royal Store Modal -->
+  <div class="modal hidden" id="royalShop" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+    <div class="modal-card royal-panel shop-card-pro">
+      <button type="button" class="modal-close-icon shop-close" aria-label="إغلاق المتجر">
+        <img src="./assets/packs/images/btn_close_round_normal.png" alt="إغلاق">
+      </button>
+
+      <div class="royal-title-ribbon">
+        <img src="./assets/packs/images/chest_gold.png" alt="">
+        <h2 id="shopTitle">المتجر الملكي</h2>
+      </div>
+
+      <!-- Live Player Wallet Bar -->
+      <div class="shop-wallet-bar" aria-label="رصيدك الحالي">
+        <span class="shop-wallet-pill">
+          <img src="./assets/packs/buttons/icon_coin.png" alt="">
+          <span>عملات:</span>
+          <b id="shopCoins">500</b>
+        </span>
+        <span class="shop-wallet-pill is-gems">
+          <img src="./assets/packs/buttons/icon_gem.png" alt="">
+          <span>جواهر:</span>
+          <b id="shopGems">25</b>
+        </span>
+        <span class="shop-wallet-pill is-hearts">
+          <img src="./assets/packs/buttons/icon_heart.png" alt="">
+          <span>قلوب:</span>
+          <b id="shopHearts">5/5</b>
+        </span>
+      </div>
+
+      <!-- 6 Store Categories Tabs -->
+      <div class="shop-category-tabs" id="shopCategoryTabs" role="tablist" aria-label="أقسام المتجر"></div>
+
+      <!-- Active Category Products Grid -->
+      <div class="shop-products-grid" id="shopGrid"></div>
+
+      <!-- Live Booster Inventory Footer -->
+      <div class="shop-inventory-bar" id="shopInventoryBar" aria-label="مخزون المعززات الحالي">
+        <span><img src="./08_bomb_skull.png" alt=""> قنابل: <b id="invBomb">3</b></span>
+        <span><img src="./09_rocket_striped.png" alt=""> صواريخ: <b id="invRocket">3</b></span>
+        <span><img src="./11_color_wheel.png" alt=""> ألوان: <b id="invColor">3</b></span>
+        <span><img src="./10_paintbrush_rainbow.png" alt=""> فرش: <b id="invPaint">3</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legitimate Rewarded Advertisement Modal -->
+  <div class="modal hidden" id="rewardedAdModal" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
+    <div class="modal-card royal-panel ad-modal-card">
+      <button type="button" class="modal-close-icon" id="adModalCloseBtn" aria-label="إغلاق نافذة الإعلان">
+        <img src="./assets/packs/images/btn_close_round_normal.png" alt="إغلاق">
+      </button>
+      <div class="royal-title-ribbon">
+        <img src="./assets/packs/images/gift_box.png" alt="">
+        <h2 id="adModalTitle">إعلان مكافأ</h2>
+      </div>
+      <p class="ad-modal-desc" id="adModalDescription">شاهد إعلاناً مكافأً بالكامل لاستلام المكافأة.</p>
+      <div class="ad-reward-pill" id="adModalRewardBadge">المكافأة: +100 عملة</div>
+      <div class="ad-quota-line" id="adModalQuota">المتبقي اليوم: 3 / 3</div>
+      <div class="ad-status-box" id="adModalStatusBox"></div>
+      <div class="ad-modal-actions">
+        <button type="button" id="adWatchConfirmBtn" class="royal-lime-btn">مشاهدة الإعلان</button>
+        <button type="button" id="adModalCancelBtn" class="royal-action-btn royal-neutral-btn">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ambient start video helper -->
   <script>
-(()=>{const screen=document.getElementById("startScreen");const video=document.getElementById("startCinematicVideo");if(!screen||!video)return;const beginVideo=()=>{video.load();};if(document.readyState==="complete")beginVideo();else window.addEventListener("load",beginVideo,{once:true});video.addEventListener("canplay",()=>{screen.classList.add("cinematic-ready");video.play().catch(()=>screen.classList.remove("cinematic-ready"));},{once:true});video.addEventListener("timeupdate",()=>{if(video.currentTime>=6.45){video.currentTime=0;video.play().catch(()=>{});} });video.addEventListener("error",()=>screen.classList.remove("cinematic-ready"));})();
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="./game.js?v=candy-size-winfix-20261124-4"></script>
-  <script src="./royal-character-engine.js?v=babylon-characters-20261120-1"></script>
-  <script src="./world-map.js?v=candy-size-winfix-20261124-4"></script>
-  <script src="./royal-assets-upgrade.js?v=crispcute-full-ui-20261123-5"></script>
-  <script src="dragon-3d-character.js?v=dragon-syntax-fix-20261124-1"></script>
-<script src="candy-pack-addon.js"></script>
-<script src="./user-assets-integration.js?v=candy-size-winfix-20261124-4"></script>
+    (() => {
+      const screen = document.getElementById("startScreen");
+      const video = document.getElementById("startCinematicVideo");
+      if (!screen || !video) return;
+      const beginVideo = () => {
+        if (!screen.classList.contains("hidden")) video.load();
+      };
+      if (document.readyState === "complete") beginVideo();
+      else window.addEventListener("load", beginVideo, { once: true });
+      video.addEventListener("canplay", () => {
+        if (screen.classList.contains("hidden")) return;
+        screen.classList.add("cinematic-ready");
+        video.play().catch(() => screen.classList.remove("cinematic-ready"));
+      }, { once: true });
+      video.addEventListener("timeupdate", () => {
+        if (screen.classList.contains("hidden")) {
+          video.pause();
+          return;
+        }
+        if (video.currentTime >= 6.45) {
+          video.currentTime = 0;
+          video.play().catch(() => {});
+        }
+      });
+      video.addEventListener("error", () => screen.classList.remove("cinematic-ready"));
+    })();
+  </script>
+
+  <!-- Core & Game Modules in strict dependency order -->
+  <script src="./game-core.js?v=cmr-phase2-20261124"></script>
+  <script src="./royal-assets-upgrade.js?v=cmr-phase2-20261124"></script>
+  <script src="./ad-manager.js?v=cmr-phase2-20261124"></script>
+  <script src="./world-map.js?v=cmr-phase2-20261124"></script>
+  <script src="./game.js?v=cmr-phase2-20261124"></script>
+  <script src="./royal-character-engine.js?v=cmr-phase2-20261124"></script>
+  <script src="./dragon-3d-character.js?v=cmr-phase2-20261124"></script>
+  <script src="./candy-pack-addon.js?v=cmr-phase2-20261124"></script>
+  <script src="./user-assets-integration.js?v=cmr-phase2-20261124"></script>
 </body>
 </html>

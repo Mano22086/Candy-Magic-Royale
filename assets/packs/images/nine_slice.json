@@ -1,0 +1,282 @@
+{
+ "unit": "px in the file; order [left, top, right, bottom]; every 2x value is exactly twice the 1x value",
+ "pieces": {
+  "btn_wide_lime": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    49,
+    0,
+    49,
+    0
+   ],
+   "margins_2x": [
+    98,
+    0,
+    98,
+    0
+   ],
+   "canvas_1x": [
+    183,
+    98
+   ],
+   "canvas_2x": [
+    366,
+    196
+   ],
+   "source_margins_px": [
+    171,
+    0,
+    171,
+    0
+   ],
+   "note": "Horizontal stretch only (the height is fixed). The highlight streak lives in the left cap."
+  },
+  "slot_empty": {
+   "stretch": "horizontal and vertical",
+   "margins_1x": [
+    31,
+    31,
+    31,
+    31
+   ],
+   "margins_2x": [
+    62,
+    62,
+    62,
+    62
+   ],
+   "canvas_1x": [
+    103,
+    102
+   ],
+   "canvas_2x": [
+    206,
+    204
+   ],
+   "source_margins_px": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "note": "Both directions. The inside is dark purple."
+  },
+  "window_frame_red": {
+   "stretch": "horizontal and vertical",
+   "margins_1x": [
+    38,
+    38,
+    38,
+    38
+   ],
+   "margins_2x": [
+    76,
+    76,
+    76,
+    76
+   ],
+   "canvas_1x": [
+    227,
+    172
+   ],
+   "canvas_2x": [
+    454,
+    344
+   ],
+   "source_margins_px": [
+    150,
+    150,
+    150,
+    150
+   ],
+   "note": "Hand-drawn wavy sides (the art's character): best between 1x and about 1.8x the file size; the waves stretch with the size."
+  },
+  "inner_panel": {
+   "stretch": "horizontal and vertical",
+   "margins_1x": [
+    31,
+    31,
+    31,
+    31
+   ],
+   "margins_2x": [
+    62,
+    62,
+    62,
+    62
+   ],
+   "canvas_1x": [
+    111,
+    108
+   ],
+   "canvas_2x": [
+    222,
+    216
+   ],
+   "source_margins_px": [
+    85,
+    85,
+    85,
+    85
+   ],
+   "note": "Both directions; the cleanest 9-slice of the set."
+  },
+  "title_plate": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    35,
+    0,
+    35,
+    0
+   ],
+   "margins_2x": [
+    70,
+    0,
+    70,
+    0
+   ],
+   "canvas_1x": [
+    178,
+    86
+   ],
+   "canvas_2x": [
+    356,
+    172
+   ],
+   "source_margins_px": [
+    100,
+    0,
+    100,
+    0
+   ],
+   "note": "Horizontal stretch only."
+  },
+  "coin_plate": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    32,
+    0,
+    32,
+    0
+   ],
+   "margins_2x": [
+    64,
+    0,
+    64,
+    0
+   ],
+   "canvas_1x": [
+    144,
+    63
+   ],
+   "canvas_2x": [
+    288,
+    126
+   ],
+   "source_margins_px": [
+    105,
+    0,
+    105,
+    0
+   ],
+   "note": "Horizontal stretch only. Blank plate: icon on the left, number on the right."
+  },
+  "bar_frame": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    28,
+    0,
+    28,
+    0
+   ],
+   "margins_2x": [
+    56,
+    0,
+    56,
+    0
+   ],
+   "canvas_1x": [
+    163,
+    56
+   ],
+   "canvas_2x": [
+    326,
+    112
+   ],
+   "source_margins_px": [
+    91,
+    0,
+    91,
+    0
+   ],
+   "note": "Horizontal stretch only. Dark channel: see bars.json for the fill recipe."
+  },
+  "bar_fill_red": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    9,
+    0,
+    9,
+    0
+   ],
+   "margins_2x": [
+    18,
+    0,
+    18,
+    0
+   ],
+   "canvas_1x": [
+    131,
+    30
+   ],
+   "canvas_2x": [
+    262,
+    60
+   ],
+   "source_margins_px": [
+    30,
+    0,
+    30,
+    0
+   ],
+   "note": "Horizontal stretch only. Outline-free: scale to the channel height and clip to the channel."
+  },
+  "bar_fill_lime": {
+   "stretch": "horizontal only",
+   "margins_1x": [
+    9,
+    0,
+    9,
+    0
+   ],
+   "margins_2x": [
+    18,
+    0,
+    18,
+    0
+   ],
+   "canvas_1x": [
+    126,
+    30
+   ],
+   "canvas_2x": [
+    252,
+    60
+   ],
+   "source_margins_px": [
+    30,
+    0,
+    30,
+    0
+   ],
+   "note": "Same as bar_fill_red."
+  }
+ },
+ "fixed_size": {
+  "btn_close_round": "round, with the X in the art",
+  "btn_round_orange": "round; stretching would make an ellipse",
+  "ribbon_long_orange": "curved ribbon with folded ends",
+  "toggle_off": "knob in the art",
+  "toggle_on": "knob in the art"
+ }
+}

@@ -1,0 +1,53 @@
+COZY UI & MENU SOUND EFFECTS
+
+ASSET USE LICENSE — ITCH.IO EDITION
+
+Creator / Publisher: Zeno Studio
+
+Copyright © 2026 Zeno Studio, to the extent permitted by applicable law.
+
+1. Permitted Use
+
+You are allowed to:
+
+Use these sound effects in personal and commercial games, applications, videos, films, animations, streams, and other creative projects.
+
+Modify, edit, process, and combine the sound effects to suit your projects.
+
+Distribute finished projects containing these sound effects as integrated elements.
+
+Share the original files privately with team members or collaborators working on the same project.
+
+Attribution is not required but is appreciated.
+
+2. Restrictions
+
+You are NOT allowed to:
+
+Resell, redistribute, or share these sound effects as standalone files.
+
+Repackage or include these sounds in other sound libraries, sample packs, or asset collections for distribution.
+
+Claim exclusive ownership of the original sound effects or this asset pack.
+
+Upload the original sounds to other marketplaces, stock audio websites, or downloadable asset repositories.
+
+3. License Terms
+
+This license grants a non-exclusive, worldwide, perpetual right to use the sound effects in permitted projects.
+
+The license does not transfer ownership of the original asset pack.
+
+4. Marketplace Licensing
+
+This license applies to downloads obtained through the official Zeno Studio itch.io listing.
+
+Downloads obtained through Fab or the Unity Asset Store are governed by their respective marketplace license agreements.
+
+5. Disclaimer
+
+The sound effects are provided "AS IS" without warranties, to the extent permitted by applicable law.
+
+The permissions granted under this license apply only to rights legally controlled by Zeno Studio.
+
+© 2026 Zeno Studio. All rights reserved, subject to the permissions granted above.

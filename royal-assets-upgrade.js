@@ -1,317 +1,340 @@
-/* Candy Magic Royale asset integration.
- * Safe pass: animated map + opt-in music/SFX. UI ZIP skins are intentionally
- * not auto-applied until their internal assets and licenses are reviewed.
+/* Candy Magic Royale — Unified Audio & Extracted Asset Pack Manager
+ * Uses extracted assets from "اصوات كاندي.zip", "ازرار كاندي.zip", and "صور كاندي.zip"
+ * directly from ./assets/packs/ for fast mobile loading, zero JSZip lag, and zero 404 errors.
  */
 (function () {
   "use strict";
-  const ROOT = "./";
-  const KEY = "cmr_assets_audio_muted_v1";
-  const state = {
-    muted: localStorage.getItem(KEY) === "1",
-    unlocked: false,
-    bgm: null,
-    pools: Object.create(null),
-    urls: []
+  if (window.__CMR_UNIFIED_AUDIO__) return;
+  window.__CMR_UNIFIED_AUDIO__ = true;
+
+  const SETTINGS_KEY = "cmr_audio_settings_v2";
+  const SFX_BASE = "./assets/packs/sounds/";
+
+  const SFX_MAP = {
+    click: [SFX_BASE + "UI_Click_Bubble_Pop_V06.wav"],
+    confirm: [SFX_BASE + "UI_Confirm_Bubble_Double_Pop_V01.wav"],
+    cancel: [SFX_BASE + "UI_Cancel_Back_V02.wav"],
+    reward: [SFX_BASE + "UI_Reward_Coin_Pickup_V03.wav"],
+    coin: [SFX_BASE + "UI_Reward_Coin_Pickup_V03.wav"],
+    win: [SFX_BASE + "UI_Level_Complete_V02.wav"],
+    achievement: [SFX_BASE + "UI_Achievement_Unlocked_V01.wav"],
+    boss: [SFX_BASE + "UI_Achievement_Unlocked_V01.wav"],
+    lose: [SFX_BASE + "UI_Notify_New_Message_V02.wav"],
+    notify: [SFX_BASE + "UI_Notify_New_Message_V02.wav"],
+    match: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V01.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V02.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V03.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V04.wav",
+    ],
+    swap: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Airy_Swish_V01.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Airy_Swish_V02.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Airy_Swish_V03.wav",
+    ],
+    pop: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Bubble_Blip_V01.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Bubble_Blip_V02.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Bubble_Blip_V03.wav",
+    ],
+    booster: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V05.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Magical_Sparkle_V06.wav",
+    ],
+    ice: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Wooden_Mallet_V01.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Wooden_Mallet_V02.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Wooden_Mallet_V03.wav",
+    ],
+    open: [
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Fabric_Slide_V01.wav",
+      SFX_BASE + "02_Menu_Hover/UI_Hover_Fabric_Slide_V02.wav",
+    ],
+    error: [SFX_BASE + "UI_Cancel_Back_V02.wav"],
   };
 
-  function addStyles() {
-    if (document.getElementById("cmr-assets-upgrade-styles")) return;
-    const style = document.createElement("style");
-    style.id = "cmr-assets-upgrade-styles";
-    style.textContent = `
-      /* Actual map element created by world-map.js */
-      .world-map {
-        background-color: #17082f !important;
-        background-image:
-          radial-gradient(ellipse at 50% 18%, rgba(255,218,151,.20), transparent 34%),
-          linear-gradient(180deg, rgba(24,8,49,.36), rgba(23,8,47,.12) 42%, rgba(16,6,34,.48)),
-          url("./1795443357274.gif") !important;
-        background-position: center, center, center;
-        background-size: auto, auto, cover;
-        background-repeat: no-repeat;
-      }
-      .cmr-audio-fab {
-        position: fixed; top: 12px; left: 12px; z-index: 9999;
-        width: 44px; height: 44px; border-radius: 50%;
-        border: 2px solid rgba(255,224,130,.85);
-        background: radial-gradient(circle at 30% 30%, #ff85c0, #7c3aed);
-        color: white; font-size: 20px; display: grid; place-items: center;
-        box-shadow: 0 6px 16px rgba(15,7,32,.45);
-        -webkit-tap-highlight-color: transparent;
-      }
-      .cmr-audio-fab.is-muted { filter: grayscale(.75) brightness(.8); }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function playAudio(audio) {
-    if (state.muted || !audio) return;
+  function loadSettings() {
     try {
-      audio.currentTime = 0;
-      const promise = audio.play();
-      if (promise && promise.catch) promise.catch(() => {});
-    } catch (_) {}
-  }
-
-  function unlockAudio() {
-    state.unlocked = true;
-    if (!state.muted && state.bgm) {
-      const promise = state.bgm.play();
-      if (promise && promise.catch) promise.catch(() => {});
+      const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      return {
+        musicEnabled: raw.musicEnabled !== undefined ? Boolean(raw.musicEnabled) : true,
+        sfxEnabled: raw.sfxEnabled !== undefined ? Boolean(raw.sfxEnabled) : true,
+        musicVolume:
+          typeof raw.musicVolume === "number" && Number.isFinite(raw.musicVolume)
+            ? Math.max(0, Math.min(1, raw.musicVolume))
+            : 0.45,
+        sfxVolume:
+          typeof raw.sfxVolume === "number" && Number.isFinite(raw.sfxVolume)
+            ? Math.max(0, Math.min(1, raw.sfxVolume))
+            : 0.7,
+      };
+    } catch (_) {
+      return { musicEnabled: true, sfxEnabled: true, musicVolume: 0.45, sfxVolume: 0.7 };
     }
   }
 
-  function setMuted(value) {
-    state.muted = Boolean(value);
-    localStorage.setItem(KEY, state.muted ? "1" : "0");
-    if (state.bgm) {
-      if (state.muted) state.bgm.pause();
-      else if (state.unlocked) {
-        const promise = state.bgm.play();
-        if (promise && promise.catch) promise.catch(() => {});
+  const settings = loadSettings();
+  const pools = Object.create(null);
+  const lastPlayedAt = Object.create(null);
+  const listeners = new Set();
+
+  let unlocked = false;
+  let audioCtx = null;
+  let musicGain = null;
+  let musicTimer = null;
+  let musicStep = 0;
+
+  // Gentle royal celesta/harp progression (pentatonic C-major / A-minor fantasy motif)
+  const MELODY_NOTES = [
+    523.25, 659.25, 783.99, 659.25, 880.0, 783.99, 659.25, 587.33,
+    440.0, 523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 392.0,
+  ];
+  const BASS_NOTES = [261.63, 220.0, 174.61, 196.0];
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (_) {}
+    listeners.forEach((fn) => {
+      try {
+        fn({ ...settings });
+      } catch (_) {}
+    });
+  }
+
+  function ensureAudioContext() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!audioCtx) {
+      audioCtx = new AudioCtx();
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = settings.musicEnabled ? settings.musicVolume * 0.16 : 0;
+      musicGain.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playMusicNote() {
+    if (!settings.musicEnabled || document.hidden || !unlocked || settings.musicVolume <= 0.001) {
+      return;
+    }
+    const ctx = ensureAudioContext();
+    if (!ctx || ctx.state !== "running" || !musicGain) return;
+
+    const now = ctx.currentTime;
+    const freq = MELODY_NOTES[musicStep % MELODY_NOTES.length];
+    const osc = ctx.createOscillator();
+    const noteGain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(freq, now);
+
+    noteGain.gain.setValueAtTime(0.0001, now);
+    noteGain.gain.linearRampToValueAtTime(0.28, now + 0.04);
+    noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+
+    osc.connect(noteGain);
+    noteGain.connect(musicGain);
+    osc.start(now);
+    osc.stop(now + 0.76);
+
+    if (musicStep % 4 === 0) {
+      const bassFreq = BASS_NOTES[Math.floor(musicStep / 4) % BASS_NOTES.length];
+      const bass = ctx.createOscillator();
+      const bassGain = ctx.createGain();
+      bass.type = "sine";
+      bass.frequency.setValueAtTime(bassFreq, now);
+      bassGain.gain.setValueAtTime(0.0001, now);
+      bassGain.gain.linearRampToValueAtTime(0.22, now + 0.08);
+      bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+      bass.connect(bassGain);
+      bassGain.connect(musicGain);
+      bass.start(now);
+      bass.stop(now + 1.55);
+    }
+
+    musicStep++;
+  }
+
+  function updateMusicPlayback() {
+    if (musicGain && audioCtx) {
+      const target = settings.musicEnabled && !document.hidden ? settings.musicVolume * 0.16 : 0;
+      try {
+        musicGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.05);
+      } catch (_) {
+        musicGain.gain.value = target;
       }
     }
-    const button = document.getElementById("cmrAudioToggleBtn");
-    if (button) {
-      button.textContent = state.muted ? "🔇" : "🔊";
-      button.classList.toggle("is-muted", state.muted);
-      button.setAttribute("aria-label", state.muted ? "تشغيل الصوت" : "كتم الصوت");
+    if (settings.musicEnabled && unlocked && !document.hidden && settings.musicVolume > 0.001) {
+      if (!musicTimer) {
+        ensureAudioContext();
+        musicTimer = setInterval(playMusicNote, 560);
+      }
+    } else if (musicTimer) {
+      clearInterval(musicTimer);
+      musicTimer = null;
     }
   }
 
-  function mountAudioToggle() {
-    if (document.getElementById("cmrAudioToggleBtn")) return;
-    const button = document.createElement("button");
-    button.id = "cmrAudioToggleBtn";
-    button.type = "button";
-    button.className = "cmr-audio-fab" + (state.muted ? " is-muted" : "");
-    button.textContent = state.muted ? "🔇" : "🔊";
-    button.title = "الصوت والموسيقى";
-    button.setAttribute("aria-label", state.muted ? "تشغيل الصوت" : "كتم الصوت");
-    button.addEventListener("click", function (event) {
-      event.stopPropagation();
-      unlockAudio();
-      setMuted(!state.muted);
-      if (!state.muted) playSfx("confirm");
-    });
-    document.body.appendChild(button);
+  function getPool(channel) {
+    const key = SFX_MAP[channel] ? channel : "click";
+    if (!pools[key]) {
+      const sources = SFX_MAP[key];
+      const items = sources.map((src) => {
+        const audio = new Audio(src);
+        audio.preload = "none";
+        audio.volume = settings.sfxVolume;
+        return audio;
+      });
+      pools[key] = { items, index: 0 };
+    }
+    return pools[key];
+  }
+
+  function stopAllSfx() {
+    for (const pool of Object.values(pools)) {
+      for (const audio of pool.items) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch (_) {}
+      }
+    }
   }
 
   function playSfx(channel) {
-    const pool = state.pools[channel] || state.pools.click;
-    if (!pool || state.muted) return;
+    if (!settings.sfxEnabled || settings.sfxVolume <= 0.001 || document.hidden) return;
+    const key = SFX_MAP[channel] ? channel : "click";
+    const now = performance.now();
+    const minGap = key === "match" || key === "ice" || key === "pop" ? 75 : 55;
+    if (lastPlayedAt[key] && now - lastPlayedAt[key] < minGap) return;
+    lastPlayedAt[key] = now;
+
+    const pool = getPool(key);
     const audio = pool.items[pool.index++ % pool.items.length];
-    playAudio(audio);
-  }
-
-  async function loadUiPack() {
-    if (!window.JSZip || document.getElementById("cmr-crispcute-ui")) return;
+    if (!audio) return;
     try {
-      const response = await fetch(ROOT + "CrispCute_Free_Sampler.zip");
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
-      const root = "CrispCute_Sampler/PNG/2x/";
-      const assetPaths = {
-        button: root + "strawberry/button_medium_normal.png",
-        buttonHover: root + "strawberry/button_medium_hover.png",
-        buttonPressed: root + "strawberry/button_medium_pressed.png",
-        buttonDisabled: root + "strawberry/button_medium_disabled.png",
-        roundButton: root + "strawberry/button_round_normal.png",
-        closeButton: root + "strawberry/button_close_normal.png",
-        panel: root + "strawberry/panel.png",
-        panelInset: root + "strawberry/panel_inset.png",
-        panelCloud: root + "strawberry/panel_cloud.png",
-        dialog: root + "strawberry/dialog_box.png",
-        nameTag: root + "strawberry/name_tag.png",
-        tooltip: root + "strawberry/tooltip.png",
-        slot: root + "strawberry/slot.png",
-        slotSelected: root + "strawberry/slot_selected.png",
-        coinPlate: root + "strawberry/coin_plate.png",
-        ribbon: root + "strawberry/ribbon.png",
-        starFull: root + "strawberry/star_full.png",
-        heartFull: root + "strawberry/heart_full.png",
-        heartEmpty: root + "strawberry/heart_empty.png",
-        windowEars: root + "strawberry/window_ears.png",
-        dialogContinue: root + "strawberry/dialog_continue.png",
-        barTrack: root + "strawberry/bar_track.png",
-        barHealth: root + "strawberry/bar_fill_health.png",
-        barHeartCap: root + "strawberry/bar_cap_heart.png",
-        hotbarSlot: root + "strawberry/hotbar_slot.png",
-        settings: root + "icons/settings.png",
-        play: root + "icons/play.png",
-        pause: root + "icons/pause.png",
-        close: root + "icons/close.png",
-        check: root + "icons/check.png",
-        home: root + "icons/home.png",
-        heart: root + "icons/heart.png",
-        star: root + "icons/star.png",
-        coin: root + "icons/coin.png"
-      };
-      const vars = [];
-      for (const [key, path] of Object.entries(assetPaths)) {
-        const file = zip.file(path);
-        if (!file) continue;
-        const data = await file.async("base64");
-        vars.push("--cmr-" + key + ':url("data:image/png;base64,' + data + '")');
-      }
-      const fontFile = zip.file("CrispCute_Sampler/fonts/Fredoka.ttf");
-      let fontRule = "";
-      if (fontFile) {
-        const fontBlob = await fontFile.async("blob");
-        const fontUrl = URL.createObjectURL(fontBlob);
-        state.urls.push(fontUrl);
-        fontRule = '@font-face{font-family:"CMR Fredoka";src:url("' + fontUrl + '") format("truetype");font-display:swap}';
-      }
-      const css = document.createElement("style");
-      css.id = "cmr-crispcute-ui";
-      css.textContent = fontRule + ":root{" + vars.join(";") + "}" +
-        /* Keep the existing Egyptian palette; use the sampler as polished UI artwork. */
-        ".primary-button{background:var(--cmr-button) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important;color:#54245e!important;text-shadow:0 1px #fff8!important}" +
-        ".primary-button:not(:disabled):hover{background-image:var(--cmr-buttonHover)!important}" +
-        ".primary-button:not(:disabled):active{background-image:var(--cmr-buttonPressed)!important;transform:translateY(1px) scale(.99)}" +
-        ".primary-button:disabled{background-image:var(--cmr-buttonDisabled)!important}" +
-        ".soft-button{background:var(--cmr-roundButton) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important;color:#fff!important}" +
-        ".modal-card{background:var(--cmr-dialog) center/100% 100% no-repeat!important;border:0!important;box-shadow:0 12px 32px #09001899!important}" +
-        ".modal-card h2{font-family:'CMR Fredoka',Cairo,sans-serif!important;text-shadow:0 1px 2px #48205e}" +
-        ".royal-shop-card{background:var(--cmr-panelCloud) center/100% 100% no-repeat!important;border:0!important;box-shadow:0 12px 32px #09001899!important}" +
-        ".shop-item{background:var(--cmr-slot) center/100% 100% no-repeat!important;border:0!important;border-radius:14px!important;padding:9px!important}" +
-        ".shop-item button{background:var(--cmr-button) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
-        ".booster{background:var(--cmr-slot) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
-        ".booster.active{background-image:var(--cmr-slotSelected)!important}" +
-        ".shop-close{background:var(--cmr-closeButton) center/contain no-repeat!important;border:0!important;font-size:0!important;min-width:36px;min-height:36px}" +
-        ".toast{background:var(--cmr-tooltip) center/100% 100% no-repeat!important;border:0!important;box-shadow:none!important}" +
-        ".art-objective{background:var(--cmr-panel) center/100% 100% no-repeat!important}" +
-        ".art-message{background:var(--cmr-panelInset) center/100% 100% no-repeat!important}" +
-        ".diff-tier-badge{background:var(--cmr-ribbon) center/100% 100% no-repeat!important;border:0!important}" +
-        ".royal-heart-3d svg{display:none!important}" +
-        ".royal-heart-3d{background:var(--cmr-heartFull) center/contain no-repeat!important}" +
-        ".modal-crown{background:var(--cmr-nameTag) center/100% 100% no-repeat;padding:8px 18px}" +
-        ".result-stars{color:#ffe18a;text-shadow:0 2px 4px #54245e}" +
-        ".coin-pill{background:var(--cmr-coinPlate) center/100% 100% no-repeat!important;border:0!important}" +
-        ".cmr-pack-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:0!important}" +
-        ".cmr-pack-icon:before{content:'';display:block;width:22px;height:22px;background-image:var(--cmr-current-icon);background-size:contain;background-position:center;background-repeat:no-repeat}" +
-        ".cmr-pack-icon[data-cmr-icon='settings']{--cmr-current-icon:var(--cmr-settings)}" +
-        ".cmr-pack-icon[data-cmr-icon='play']{--cmr-current-icon:var(--cmr-play)}" +
-        ".cmr-pack-icon[data-cmr-icon='pause']{--cmr-current-icon:var(--cmr-pause)}" +
-        ".cmr-pack-icon[data-cmr-icon='close']{--cmr-current-icon:var(--cmr-close)}" +
-        ".cmr-pack-icon[data-cmr-icon='home']{--cmr-current-icon:var(--cmr-home)}" +
-        ".cmr-pack-icon[data-cmr-icon='heart']{--cmr-current-icon:var(--cmr-heart)}" +
-        ".cmr-pack-icon[data-cmr-icon='star']{--cmr-current-icon:var(--cmr-star)}" +
-        ".cmr-pack-icon[data-cmr-icon='coin']{--cmr-current-icon:var(--cmr-coin)}";
-      document.head.appendChild(css);
-
-      const iconTargets = [
-        [".shop-close", "close"],
-        ["#plusCoins", "coin"]
-      ];
-      for (const [selector, icon] of iconTargets) {
-        const button = document.querySelector(selector);
-        if (!button) continue;
-        button.dataset.cmrIcon = icon;
-        button.classList.add("cmr-pack-icon");
-      }
-      console.info("[CMR Assets] CrispCute UI artwork loaded:", Object.keys(assetPaths).length, "assets");
-    } catch (error) {
-      console.warn("[CMR Assets] CrispCute UI pack could not be loaded:", error);
-    }
-  }
-  async function loadSfx() {
-    if (!window.JSZip) {
-      console.warn("[CMR Assets] JSZip missing; SFX skipped.");
-      return;
-    }
-    try {
-      const response = await fetch(ROOT + "Cozy_UI_Menu_SFX.zip");
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const zip = await window.JSZip.loadAsync(await response.arrayBuffer());
-      const files = Object.keys(zip.files).filter(name =>
-        !zip.files[name].dir &&
-        !name.toLowerCase().includes("__macosx/") &&
-        /\.(mp3|wav|ogg|m4a)$/i.test(name)
-      );
-      if (!files.length) return;
-
-      const rules = {
-        click: /(click|tap|select|button|press|tick)/i,
-        pop: /(pop|bubble|plop|blip|boop)/i,
-        confirm: /(confirm|accept|start|play|positive|success)/i,
-        open: /(open|whoosh|slide|appear|expand|enter)/i,
-        close: /(close|back|cancel|dismiss|exit)/i,
-        reward: /(reward|win|chime|coin|star|fanfare|sparkle|bonus)/i,
-        error: /(error|deny|invalid|fail|locked|negative)/i
-      };
-      const used = new Set();
-      for (const [channel, pattern] of Object.entries(rules)) {
-        const entry = files.find(name => !used.has(name) && pattern.test(name));
-        if (!entry) continue;
-        used.add(entry);
-        const blob = await zip.file(entry).async("blob");
-        const url = URL.createObjectURL(blob);
-        state.urls.push(url);
-        state.pools[channel] = {
-          items: [0, 1, 2].map(() => {
-            const audio = new Audio(url);
-            audio.preload = "auto";
-            audio.volume = channel === "reward" ? .68 : .5;
-            return audio;
-          }),
-          index: 0
-        };
-      }
-    } catch (error) {
-      console.warn("[CMR Assets] SFX archive could not be loaded:", error);
-    }
-  }
-
-  function init() {
-    addStyles();
-    mountAudioToggle();
-
-    try {
-      state.bgm = new Audio(ROOT + "preview.mp3");
-      state.bgm.loop = true;
-      state.bgm.volume = .22;
-      state.bgm.preload = "auto";
-      if (state.unlocked && !state.muted) {
-        const promise = state.bgm.play();
-        if (promise && promise.catch) promise.catch(() => {});
-      }
+      audio.volume = Math.max(0, Math.min(1, settings.sfxVolume));
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
     } catch (_) {}
+  }
 
-    ["pointerdown", "touchstart", "keydown"].forEach(type => {
-      window.addEventListener(type, unlockAudio, { once: true, passive: true });
-    });
+  function unlock() {
+    if (!unlocked) {
+      unlocked = true;
+      ensureAudioContext();
+      updateMusicPlayback();
+    } else if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  }
 
-    document.addEventListener("click", event => {
-      const target = event.target && event.target.closest
-        ? event.target.closest("button, [role='button'], .wm-house, .wm-realm")
-        : null;
-      if (!target || target.id === "cmrAudioToggleBtn") return;
-      if (target.disabled || target.classList.contains("disabled")) {
+  function setMusicEnabled(enabled) {
+    settings.musicEnabled = Boolean(enabled);
+    saveSettings();
+    updateMusicPlayback();
+  }
+
+  function setSfxEnabled(enabled) {
+    settings.sfxEnabled = Boolean(enabled);
+    if (!settings.sfxEnabled) stopAllSfx();
+    saveSettings();
+  }
+
+  function setMusicVolume(vol) {
+    settings.musicVolume = Math.max(0, Math.min(1, Number(vol) || 0));
+    saveSettings();
+    updateMusicPlayback();
+  }
+
+  function setSfxVolume(vol) {
+    settings.sfxVolume = Math.max(0, Math.min(1, Number(vol) || 0));
+    for (const pool of Object.values(pools)) {
+      for (const audio of pool.items) {
+        audio.volume = settings.sfxVolume;
+      }
+    }
+    saveSettings();
+  }
+
+  function setMuted(muted) {
+    const m = Boolean(muted);
+    settings.musicEnabled = !m;
+    settings.sfxEnabled = !m;
+    if (m) stopAllSfx();
+    saveSettings();
+    updateMusicPlayback();
+  }
+
+  function isMuted() {
+    return !settings.musicEnabled && !settings.sfxEnabled;
+  }
+
+  ["pointerdown", "touchstart", "keydown"].forEach((evt) => {
+    window.addEventListener(evt, unlock, { passive: true });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopAllSfx();
+    }
+    updateMusicPlayback();
+  });
+
+  // Single authoritative UI button click SFX listener (eliminates overlapping duplicate clicks)
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target =
+        event.target && event.target.closest
+          ? event.target.closest("button, [role='button'], .wm-house, .wm-realm")
+          : null;
+      if (!target || target.dataset.silentSfx === "1") return;
+      unlock();
+      if (target.disabled || target.classList.contains("locked")) {
         playSfx("error");
         return;
       }
-      const identity = ((target.id || "") + " " + (target.className || "")).toLowerCase();
-      if (/(paintbtn|shufflebtn|bombbtn|colorbtn|rocketbtn|booster)/.test(identity)) playSfx("pop");
-      else if (/(close|cancel|back|dismiss)/.test(identity)) playSfx("close");
-      else if (/(play|start|confirm|next|retry)/.test(identity)) playSfx("confirm");
-      else if (/(map|world|shop|settings)/.test(identity)) playSfx("open");
+      const id = ((target.id || "") + " " + (target.className || "")).toLowerCase();
+      if (/(cancel|close|back|exit|quit)/.test(id)) playSfx("cancel");
+      else if (/(confirm|start|play|next|continue|retry|restart)/.test(id)) playSfx("confirm");
+      else if (/(booster|paint|shuffle|bomb|rocket|color)/.test(id)) playSfx("pop");
+      else if (/(coin|shop|reward|chest|buy)/.test(id)) playSfx("reward");
+      else if (/(settings|map|world|realm|house)/.test(id)) playSfx("open");
       else playSfx("click");
-    }, true);
+    },
+    true
+  );
 
-    loadSfx();
-    loadUiPack();
-  }
-
-  window.CMR_ASSETS = {
+  const api = {
     playSfx,
+    stopAllSfx,
+    unlock,
+    getSettings: () => ({ ...settings }),
+    setMusicEnabled,
+    setSfxEnabled,
+    setMusicVolume,
+    setSfxVolume,
     setMuted,
-    isMuted: () => state.muted
+    isMuted,
+    onChange(fn) {
+      if (typeof fn === "function") listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    assets: {
+      buttons: "./assets/packs/buttons/",
+      images: "./assets/packs/images/",
+      sounds: "./assets/packs/sounds/",
+      boards: "./assets/packs/boards/",
+      blockers: "./assets/packs/blockers/",
+    },
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  window.CMRAudio = api;
+  window.CMR_ASSETS = api;
+  window.CMR_USER_SOUNDS = { play: playSfx };
 })();

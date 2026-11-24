@@ -1,1464 +1,3308 @@
 (() => {
-"use strict";
-const COLS=7, ROWS=8, SPACING=1.02, TYPES=6, SAVE_KEY="cmr_reborn_v1", PLAYER_KEY="cmr_player_identity_v1";
-const palette=[
-  {name:"Ruby Heart",color:new BABYLON.Color3(.96,.12,.31)},
-  {name:"Sun Drop",color:new BABYLON.Color3(1,.48,.055)},
-  {name:"Star Sugar",color:new BABYLON.Color3(1,.79,.12)},
-  {name:"Emerald Leaf",color:new BABYLON.Color3(.12,.78,.38)},
-  {name:"Sky Diamond",color:new BABYLON.Color3(.12,.61,1)},
-  {name:"Violet Jelly",color:new BABYLON.Color3(.68,.25,.96)},
-  {name:"Plum Pop",color:new BABYLON.Color3(.52,.16,.68)}
-];
-const state={grid:[],savedGrid:null,score:0,target:1500,moves:25,level:1,resumeLevel:1,replayMode:false,coins:500,stars:0,lives:5,lastHeartAt:0,selected:null,busy:false,won:false,lossHandled:false,levelReady:false,endModalShown:false,booster:null,hammer:3,rockets:3,colors:3,paints:3,extra:2,iceRemaining:0,obstacleGoal:0,obstaclesCleared:0,obstacleGrowthTurns:0};
+  "use strict";
 
-const $=id=>document.getElementById(id);
-const rand=()=>1+Math.floor(Math.random()*TYPES);
-const pos=(r,c)=>new BABYLON.Vector3((c-(COLS-1)/2)*SPACING,0,((ROWS-1)/2-r)*SPACING);
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-function makeMaterial(type){
-  const index=Math.max(1,Math.min(TYPES,Number(type)||1));
-  if(materials[index])return materials[index];
-  const mat=new BABYLON.StandardMaterial("candyMaterial_"+index,scene);
-  mat.diffuseColor=palette[index-1].color.clone();
-  mat.emissiveColor=palette[index-1].color.scale(.18);
-  mat.specularColor=new BABYLON.Color3(.85,.85,.85);
-  mat.specularPower=48;
-  materials[index]=mat;
-  return mat;
-}
-function say(message){
-  const el=$("toast");if(!el)return;
-  el.textContent=String(message||"");el.classList.add("show");
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
-}
-function playSfx(kind){
-  if(!soundEnabled)return;
-  try{
-    const AudioCtx=window.AudioContext||window.webkitAudioContext;
-    if(!AudioCtx)return;
-    audioContext=audioContext||new AudioCtx();
-    if(audioContext.state==="suspended")void audioContext.resume();
-    const osc=audioContext.createOscillator(),gain=audioContext.createGain();
-    const tones={match:660,coin:880,tap:440,win:990,lose:180,bomb:150,rocket:760,color:1080};
-    osc.type="sine";osc.frequency.value=tones[kind]||520;
-    gain.gain.setValueAtTime(.0001,audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.07,audioContext.currentTime+.012);
-    gain.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+.13);
-    osc.connect(gain);gain.connect(audioContext.destination);osc.start();osc.stop(audioContext.currentTime+.14);
-  }catch(_){}
-}
-function applyHeartRegen(){
-  const now=Date.now(),interval=30*60*1000;
-  if(state.lives>=5){state.lives=5;state.lastHeartAt=now;return;}
-  if(!state.lastHeartAt||state.lastHeartAt>now){state.lastHeartAt=now;return;}
-  const gained=Math.floor((now-state.lastHeartAt)/interval);
-  if(gained>0){state.lives=Math.min(5,state.lives+gained);state.lastHeartAt=state.lives>=5?now:state.lastHeartAt+gained*interval;}
-}
-function startHeartClock(){
-  if(heartTimer)clearInterval(heartTimer);
-  heartTimer=setInterval(()=>{const before=state.lives;applyHeartRegen();if(state.lives!==before){updateHud();saveProgress(false);}},60000);
-}
-let soundEnabled=true,audioContext=null,heartTimer=null;
-let engine,scene,camera,canvas,materials=[],coreMaterials=[],toastTimer,boardBaseMesh,backgroundVideoLayer,renderLoop;
-const activeAnimations=new Set();
-let animationFrame=0;
-const spriteMaterials={};
-const spriteTextures={};
-const specialSpriteMaterials={};
-const specialSpriteTextures={};
-const specialSpriteSources={
-  wrapped:{
-    1:"./14_bag_gold.png",
-    2:"./15_bag_rainbow.png",
-    3:"./16_bag_diamond_blue.png",
-    4:"./17_bag_flower_purple.png",
-    5:"./18_bag_crown_green.png",
-    6:"./19_bag_lollipop_red.png"
-  },
-  color:"./13_chocolate_ball.png",
-  striped:{
-    1:"./21_rocket_crown_gold.png",
-    2:"./22_rocket_crown_rainbow.png",
-    3:"./23_rocket_diamond_blue.png",
-    4:"./24_rocket_flower_purple.png",
-    5:"./25_rocket_crown_green.png",
-    6:"./26_rocket_lollipop_red.png"
-  }
-};
-function specialSpriteMaterial(key,source){
-  if(specialSpriteMaterials[key])return specialSpriteMaterials[key];
-  const mat=new BABYLON.StandardMaterial("specialSpriteMat_"+key,scene);
-  mat.diffuseColor=new BABYLON.Color3(1,1,1);
-  mat.emissiveColor=new BABYLON.Color3(1,1,1);
-  mat.disableLighting=true;
-  mat.backFaceCulling=false;
-  mat.useAlphaFromDiffuseTexture=true;
-  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-  const texture=new BABYLON.Texture(source,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
-    (message,error)=>console.warn("Special candy artwork unavailable; native 3D fallback remains:",source,message,error));
-  texture.hasAlpha=true;
-  texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  mat.diffuseTexture=texture;
-  specialSpriteTextures[key]=texture;
-  specialSpriteMaterials[key]=mat;
-  return mat;
-}
-let shineSharedMaterial=null,iceOverlayMaterial=null;
-const iceStageTextures={};
-const iceStageMaterials={};const obstacleMaterials={};const OBSTACLE_ZIP_URL="./Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs.zip";let obstacleZipPromise=null;function loadObstaclePng(img,path){if(!obstacleZipPromise){obstacleZipPromise=fetch(OBSTACLE_ZIP_URL).then(r=>{if(!r.ok)throw new Error("Obstacle pack download failed: "+r.status);return r.arrayBuffer();}).then(buf=>JSZip.loadAsync(buf));}obstacleZipPromise.then(zip=>{const file=zip.file("Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs/11_blocker/"+path+".png");if(!file)throw new Error("Missing obstacle image "+path);return file.async("blob");}).then(blob=>{img.src=URL.createObjectURL(blob);}).catch(err=>console.warn("Obstacle art unavailable; fallback remains:",path,err));}const OBSTACLE_DEFS={single_ice:{img:"1",hp:1,adj:true,self:true,spread:false,reward:false},double_ice:{img:"2",hp:2,adj:true,self:true,spread:false,reward:false},stone_wall:{img:"3",hp:2,adj:true,self:false,spread:false,reward:false},rope_net:{img:"4",hp:2,adj:true,self:false,spread:false,reward:false},vault:{img:"5",hp:3,adj:true,self:false,spread:false,reward:true},roots:{img:"6",hp:2,adj:true,self:false,spread:true,reward:false},golden_cage:{img:"7",hp:2,adj:false,self:true,spread:false,reward:true},iron_cage:{img:"8",hp:2,adj:false,self:true,spread:false,reward:false},whirlpool:{img:"9",hp:1,adj:true,self:false,spread:false,reward:true}};function getLevelConfig(lv){const L=Math.max(1,lv|0);let obstacles=["single_ice"],diffLabel="سهل";if(L<=2)obstacles=["single_ice"];else if(L<=5)obstacles=["single_ice","double_ice"];else if(L<=9){obstacles=["double_ice","stone_wall"];diffLabel="سهل";}else if(L<=13){obstacles=["single_ice","rope_net"];diffLabel="متوسط";}else if(L<=17){obstacles=["double_ice","roots"];diffLabel="متوسط";}else if(L<=21){obstacles=["stone_wall","vault"];diffLabel="متوسط";}else if(L<=25){obstacles=["rope_net","golden_cage"];diffLabel="متوسط";}else if(L<=29){obstacles=["roots","iron_cage"];diffLabel="صعب";}else if(L<=33){obstacles=["vault","whirlpool"];diffLabel="صعب";}else if(L<=40){obstacles=["single_ice","golden_cage","roots"];diffLabel="صعب";}else if(L<=50){obstacles=["stone_wall","iron_cage","whirlpool"];diffLabel="صعب جداً";}else{const cycle=[["single_ice","rope_net"],["double_ice","vault"],["stone_wall","roots"],["golden_cage","whirlpool"],["iron_cage","single_ice"]];obstacles=cycle[Math.floor((L-51)/5)%cycle.length];diffLabel="ملكي";}const obstacleCount=Math.min(20,2+Math.floor((L-1)/5));const target=1200+(L-1)*350+Math.floor(L/5)*250;const moves=Math.max(18,Math.min(30,25-Math.floor((L-1)/8)+(L>=25?1:0)));return{level:L,obstacleCount,target,moves,obstacles,diffLabel};}function isCellLocked(c){return !!(c&&(c.obs||c.ice>0));}function countObstacles(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&(it.obs||it.ice>0))n++;}return n;}function makeObstacleMaterial(type,hp){const t=OBSTACLE_DEFS[type]?type:"single_ice";const key=t+"_"+hp;if(obstacleMaterials[key])return obstacleMaterials[key];const def=OBSTACLE_DEFS[t];const mat=new BABYLON.StandardMaterial("obsMat_"+key,scene);const dt=new BABYLON.DynamicTexture("obsTex_"+key,{width:256,height:256},scene,true);dt.hasAlpha=true;const ctx=dt.getContext();const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{ctx.clearRect(0,0,256,256);ctx.drawImage(img,0,0,256,256);if(hp<def.hp){ctx.strokeStyle="rgba(255,255,255,0.9)";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(40,40);ctx.lineTo(110,120);ctx.lineTo(80,190);ctx.stroke();}dt.update();};loadObstaclePng(img,def.img);mat.diffuseTexture=dt;mat.diffuseColor=new BABYLON.Color3(.92,.96,1);mat.emissiveColor=new BABYLON.Color3(.025,.035,.055);mat.specularColor=new BABYLON.Color3(.22,.25,.3);mat.specularPower=24;mat.opacityTexture=dt;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.backFaceCulling=false;mat.needDepthPrePass=true;obstacleMaterials[key]=mat;return mat;}function spreadChocolateIfNeeded(){const palace=Math.floor((state.level-1)/50)+1;if(palace<3)return;state.obstacleGrowthTurns=(state.obstacleGrowthTurns||0)+1;if(state.obstacleGrowthTurns%2!==0||countObstacles()>=22)return;const cands=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const it=state.grid[r]?.[c];if(it&&it.obs==="roots"){for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc,nb=state.grid[nr]?.[nc];if(inBounds(nr,nc)&&nb&&!nb.obs&&!nb.ice)cands.push({item:nb,r:nr,c:nc});}}}if(!cands.length){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const item=state.grid[r]?.[c];if(item&&!item.obs&&!item.ice)cands.push({item,r,c});}}if(!cands.length)return;const pick=cands[Math.floor(Math.random()*cands.length)],item=pick.item;item.obs="roots";item.ice=1;state.obstacleGoal++;if(item.mesh){item.mesh.dispose();item.mesh=candyMesh(pick.r,pick.c,item.type,item.special,item.ice);item.mesh.position.copyFrom(pos(pick.r,pick.c));}state.iceRemaining=countObstacles();}
-const specialRingSharedMaterials={};
-const specialMaterials={};
-let shockwaveMaterial=null;
-const burstSharedMaterials={};
-const candyImages={
-  1:"./01_star_gold.png",
-  2:"./02_heart_rainbow.png",
-  3:"./03_diamond_blue.png",
-  4:"./04_flower_purple.png",
-  5:"./05_crown_green.png",
-  6:"./06_lollipop_red.png"
-};
-const candyImageRatios={1:1.01,2:.99,3:.84,4:1.33,5:1,6:1.02};
-
-// ---- Unified candy size -------------------------------------------------
-// Each PNG has a different amount of transparent padding. We detect the real
-// visible area of every image, crop to it, and fit it into the same square.
-const CANDY_FIT=1.12;      // enlarged artwork fills the uploaded cell art
-const candyTrim={};
-function loadCandyTrim(type){
-  return new Promise(resolve=>{
-    const src=candyImages[type];
-    if(!src){resolve();return;}
-    const img=new Image();
-    let settled=false;
-    const finish=()=>{if(settled)return;settled=true;resolve();};
-    // A failed or slow image must never prevent the game board from opening.
-    const timeout=setTimeout(finish,5000);
-    img.onload=()=>{
-      try{
-        const w=img.naturalWidth,h=img.naturalHeight;
-        // Analyze a tiny thumbnail instead of reading millions of full-size pixels
-        // on mobile. The trim is only a layout estimate; the original art is untouched.
-        const sample=128,scale=Math.min(1,sample/Math.max(w,h));
-        const sw=Math.max(1,Math.round(w*scale)),sh=Math.max(1,Math.round(h*scale));
-        const cv=document.createElement("canvas");cv.width=sw;cv.height=sh;
-        const ctx=cv.getContext("2d",{willReadFrequently:true});
-        if(!ctx){clearTimeout(timeout);finish();return;}
-        ctx.drawImage(img,0,0,sw,sh);
-        const d=ctx.getImageData(0,0,sw,sh).data;
-        let x0=sw,y0=sh,x1=-1,y1=-1;
-        for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){
-          if(d[(y*sw+x)*4+3]>40){
-            if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
-          }
-        }
-        if(x1>=x0&&y1>=y0){
-          x1++;y1++;
-          candyTrim[type]={u0:x0/sw,u1:x1/sw,v0:1-y1/sh,v1:1-y0/sh,ratio:(x1-x0)/(y1-y0)};
-        }
-      }catch(e){console.warn("Candy trim failed",type,e);}
-      clearTimeout(timeout);finish();
-    };
-    img.onerror=()=>{clearTimeout(timeout);finish();};
-    img.src=src;
-  });
-}
-function preloadCandyArt(){return Promise.all(Object.keys(candyImages).map(loadCandyTrim));}
-async function preloadCandyTextures(){
-  // Load the supplied PNGs before creating the first board. Some Babylon.js
-  // Poll texture readiness instead of relying on optional Babylon observables.
-  await preloadCandyArt();
-  await Promise.all(Object.keys(candyImages).map(async type=>{
-    candySpriteMaterial(Number(type));
-    const texture=spriteTextures[type];
-    if(!texture||texture.isReady())return;
-    const started=Date.now();
-    while(!texture.isReady()&&Date.now()-started<4500)await wait(50);
-    // If an image failed, candyMesh keeps its native 3D fallback visible.
-  }));
-}
-// -------------------------------------------------------------------------
-
-function candySpriteMaterial(type){
-  if(spriteMaterials[type])return spriteMaterials[type];
-  const mat=new BABYLON.StandardMaterial("candyArtworkMat_"+type,scene);
-  mat.diffuseColor=new BABYLON.Color3(1,1,1);
-  mat.emissiveColor=new BABYLON.Color3(1,1,1);
-  mat.disableLighting=true;
-  mat.backFaceCulling=false;
-  mat.useAlphaFromDiffuseTexture=true;
-  mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-  const source=candyImages[type];
-  if(!source){spriteMaterials[type]=mat;return mat;}
-  const texture=new BABYLON.Texture(
-    source,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-    ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);},
-    (message,error)=>console.warn("Candy artwork unavailable; keeping native 3D fallback:",source,message,error)
-  );
-  texture.hasAlpha=true;
-  texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
-  mat.diffuseTexture=texture;
-  spriteTextures[type]=texture;
-  spriteMaterials[type]=mat;
-  return mat;
-}
-function candyMesh(r,c,type,special,ice=0){
-  const root=new BABYLON.TransformNode("candyRoot_"+r+"_"+c,scene);
-  root.position=pos(r,c);
-  root.metadata={r,c,candy:true};
-  root.isPickable=false;
-
-  // Native 3D candy remains visible until its PNG artwork has loaded successfully.
-  const body=BABYLON.MeshBuilder.CreateSphere("candy3D_"+r+"_"+c,{diameter:SPACING*.90,segments:20},scene);
-  body.parent=root;
-  body.position.y=.17;
-  body.scaling.y=.48;
-  body.material=makeMaterial(type);
-  body.isPickable=true;
-  body.metadata={r,c,candy:true};
-
-  const shine=BABYLON.MeshBuilder.CreateSphere("candyShine_"+r+"_"+c,{diameter:SPACING*.17,segments:12},scene);
-  shine.parent=root;
-  shine.position=new BABYLON.Vector3(-.13,.31,-.12);
-  shine.scaling=new BABYLON.Vector3(1,.28,.62);
-  if(!shineSharedMaterial){
-    shineSharedMaterial=new BABYLON.StandardMaterial("candyShineShared",scene);
-    shineSharedMaterial.diffuseColor=new BABYLON.Color3(1,1,1);
-    shineSharedMaterial.emissiveColor=new BABYLON.Color3(.22,.22,.22);
-    shineSharedMaterial.alpha=.72;
-  }
-  shine.material=shineSharedMaterial;
-  shine.isPickable=false;
-
-  const artworkPath=candyImages[type];
-  if(artworkPath&&!special){
-    const trim=candyTrim[type];
-    const ratio=trim?trim.ratio:(candyImageRatios[type]||1);
-    const maxSide=SPACING*CANDY_FIT;
-    const artworkWidth=ratio>=1?maxSide:maxSide*ratio;
-    const artworkHeight=ratio>=1?maxSide/ratio:maxSide;
-    const planeOpts={width:artworkWidth,height:artworkHeight};
-    if(trim)planeOpts.frontUVs=new BABYLON.Vector4(trim.u0,trim.v0,trim.u1,trim.v1);
-    const artwork=BABYLON.MeshBuilder.CreatePlane("candyArtwork_"+r+"_"+c,planeOpts,scene);
-    artwork.parent=root;
-    // Board coordinates lie on XZ and the camera looks down from above.
-    // Lay the candy artwork flat above the 3D body instead of edge-on.
-    artwork.rotation.x=Math.PI/2;
-    artwork.position=new BABYLON.Vector3(0,.39,0);
-    artwork.material=candySpriteMaterial(type);
-    artwork.isPickable=false;
-    artwork.isVisible=false;
-    const texture=spriteTextures[type];
-    const revealArtwork=()=>{
-      if(root.isDisposed?.())return;
-      artwork.isVisible=true;
-      body.setEnabled(false);
-      shine.setEnabled(false);
-    };
-    const revealWhenReady=()=>{
-      if(root.isDisposed?.())return;
-      if(texture&&texture.isReady()){revealArtwork();return;}
-      if(texture)setTimeout(revealWhenReady,60);
-    };
-    revealWhenReady();
-  }
-
-  if(special){
-    const ringKind=special==="wrapped"?"wrapped":special==="color"?"color":"striped";
-    if(!specialRingSharedMaterials[ringKind]){
-      const ringMat=new BABYLON.StandardMaterial("specialRingShared_"+ringKind,scene);
-      ringMat.diffuseColor=ringKind==="wrapped"?new BABYLON.Color3(1,.72,.18):ringKind==="color"?new BABYLON.Color3(.9,.55,1):new BABYLON.Color3(.25,.9,1);
-      ringMat.emissiveColor=ringMat.diffuseColor.scale(.75);
-      specialRingSharedMaterials[ringKind]=ringMat;
-    }
-    const ring=BABYLON.MeshBuilder.CreateTorus("specialRing_"+r+"_"+c,{diameter:.91,thickness:.055,tessellation:24},scene);
-    ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.y=.12;ring.material=specialRingSharedMaterials[ringKind];ring.isPickable=false;
-  }
-  const specialSpritePath=special==="wrapped"?(specialSpriteSources.wrapped[type]||specialSpriteSources.wrapped[1]):special==="color"?specialSpriteSources.color:special==="striped"?(specialSpriteSources.striped[type]||specialSpriteSources.striped[1]):null;
-  if(specialSpritePath){
-    const spriteKey=special+"_"+type;
-    const art=BABYLON.MeshBuilder.CreatePlane("specialCandyArtwork_"+r+"_"+c,{width:SPACING*1.10,height:SPACING*1.10},scene);
-    art.parent=root;
-    art.rotation.x=Math.PI/2;
-    art.position.y=.43;
-    art.material=specialSpriteMaterial(spriteKey,specialSpritePath);
-    art.isPickable=false;
-    art.isVisible=false;
-    const texture=specialSpriteTextures[spriteKey];
-    const revealSpecial=()=>{if(root.isDisposed?.())return;art.isVisible=true;for(const child of root.getChildMeshes())if(child!==art&&child.name!=="iceOverlay")child.setEnabled(false);};
-    const revealSpecialWhenReady=()=>{
-      if(root.isDisposed?.())return;
-      if(texture&&texture.isReady()){revealSpecial();return;}
-      if(texture)setTimeout(revealSpecialWhenReady,60);
-    };
-    revealSpecialWhenReady();
-  }
-  if(special&&!specialSpritePath){
-    const mat=(key,color,emissive=color)=>{if(!specialMaterials[key]){const m=new BABYLON.StandardMaterial("specialArt_"+key,scene);m.diffuseColor=color;m.emissiveColor=emissive;m.specularColor=new BABYLON.Color3(.9,.9,.9);m.specularPower=64;specialMaterials[key]=m;}return specialMaterials[key];};
-    if(special==="wrapped"){
-      const bomb=BABYLON.MeshBuilder.CreateSphere("wrappedCandyBomb",{diameter:.52,segments:16},scene);bomb.parent=root;bomb.position.y=.61;bomb.material=mat("bomb",new BABYLON.Color3(.18,.07,.3),new BABYLON.Color3(.3,.08,.48));bomb.isPickable=false;
-      const fuse=BABYLON.MeshBuilder.CreateCylinder("bombFuse",{height:.18,diameter:.055,tessellation:8},scene);fuse.parent=root;fuse.position=new BABYLON.Vector3(.12,.91,-.08);fuse.rotation.z=-.5;fuse.material=mat("fuse",new BABYLON.Color3(1,.65,.12));fuse.isPickable=false;
-      const spark=BABYLON.MeshBuilder.CreateSphere("bombSpark",{diameter:.12,segments:8},scene);spark.parent=root;spark.position=new BABYLON.Vector3(.2,.99,-.13);spark.material=mat("spark",new BABYLON.Color3(1,.88,.22),new BABYLON.Color3(1,.45,.04));spark.isPickable=false;
-    }else if(special==="striped"){
-      const rocket=BABYLON.MeshBuilder.CreateCylinder("stripedCandyRocket",{height:.62,diameter:.22,tessellation:12},scene);rocket.parent=root;rocket.position.y=.59;rocket.rotation.z=Math.PI/2;rocket.material=mat("rocket",new BABYLON.Color3(.92,.12,.22),new BABYLON.Color3(.45,.04,.08));rocket.isPickable=false;
-      const nose=BABYLON.MeshBuilder.CreateCylinder("rocketNose",{height:.25,diameterTop:0,diameterBottom:.24,tessellation:12},scene);nose.parent=root;nose.position=new BABYLON.Vector3(.42,.59,0);nose.rotation.z=-Math.PI/2;nose.material=mat("rocketNose",new BABYLON.Color3(1,.72,.18));nose.isPickable=false;
-      const flame=BABYLON.MeshBuilder.CreateSphere("rocketFlame",{diameter:.2,segments:8},scene);flame.parent=root;flame.position=new BABYLON.Vector3(-.38,.55,0);flame.scaling.x=1.35;flame.material=mat("rocketFlame",new BABYLON.Color3(1,.45,.08),new BABYLON.Color3(1,.18,.02));flame.isPickable=false;
-    }else if(special==="color"){
-      const orb=BABYLON.MeshBuilder.CreateSphere("rainbowCandyBall",{diameter:.5,segments:20},scene);orb.parent=root;orb.position.y=.62;orb.material=mat("rainbowOrb",new BABYLON.Color3(.95,.9,1),new BABYLON.Color3(.5,.25,.8));orb.isPickable=false;
-      const hues=[new BABYLON.Color3(1,.12,.25),new BABYLON.Color3(1,.55,.08),new BABYLON.Color3(1,.88,.12),new BABYLON.Color3(.12,.9,.4),new BABYLON.Color3(.1,.58,1),new BABYLON.Color3(.68,.2,1)];
-      hues.forEach((color,i)=>{const dot=BABYLON.MeshBuilder.CreateSphere("rainbowOrbDot",{diameter:.12,segments:8},scene);const a=i*Math.PI/3;dot.parent=root;dot.position=new BABYLON.Vector3(Math.cos(a)*.23,.79,Math.sin(a)*.23);dot.material=mat("rainbowDot"+i,color,color.scale(.8));dot.isPickable=false;});
-    }
-  }
-    const obs=state.grid[r]?.[c]?.obs;if(ice>0){if(obs){const obsMesh=BABYLON.MeshBuilder.CreatePlane("iceOverlay",{width:SPACING*.92,height:SPACING*.92},scene);obsMesh.parent=root;obsMesh.position.y=.48;obsMesh.rotation.x=Math.PI/2;obsMesh.material=makeObstacleMaterial(obs,ice);obsMesh.isPickable=false;obsMesh.renderingGroupId=2;}else{
-    const stage=ice>=2?0:1;
-    const path=stage===0?"./ice_cube_realistic_4k.png":"./ice_cube_stylized_4k.png";
-    const key=String(stage);
-    if(!iceStageMaterials[key]){
-      const mat=new BABYLON.StandardMaterial("iceStageMaterial_"+key,scene);
-      const texture=new BABYLON.Texture(path,scene,false,true,BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-        ()=>{texture.hasAlpha=true;mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;mat.specularColor=new BABYLON.Color3(.28,.36,.42);mat.specularPower=28;},
-        (message,error)=>console.warn("Ice artwork unavailable:",path,message,error));
-      texture.hasAlpha=true;texture.wrapU=BABYLON.Texture.CLAMP_ADDRESSMODE;texture.wrapV=BABYLON.Texture.CLAMP_ADDRESSMODE;
-      mat.diffuseTexture=texture;mat.useAlphaFromDiffuseTexture=true;mat.transparencyMode=BABYLON.Material.MATERIAL_ALPHABLEND;
-      mat.diffuseColor=new BABYLON.Color3(.86,.93,1);mat.emissiveColor=new BABYLON.Color3(.015,.025,.04);mat.specularColor=new BABYLON.Color3(.28,.36,.42);mat.specularPower=28;mat.backFaceCulling=false;
-      iceStageMaterials[key]=mat;iceStageTextures[key]=texture;
-    }
-    // A real 3D box gives the supplied 4K ice artwork depth from every viewing angle.
-    const iceBox=BABYLON.MeshBuilder.CreateBox("iceCube3D_"+stage+"_"+r+"_"+c,{width:SPACING*.88,height:SPACING*.88,depth:SPACING*.88,segments:1},scene);
-    iceBox.parent=root;iceBox.position.y=.39;iceBox.material=iceStageMaterials[key];iceBox.isPickable=false;iceBox.renderingGroupId=2;
-    const texture=iceStageTextures[key];
-    const revealIceWhenReady=()=>{if(root.isDisposed?.()||iceBox.isDisposed?.())return;if(texture&&texture.isReady()){iceBox.setEnabled(true);return;}if(texture)setTimeout(revealIceWhenReady,60);};
-    iceBox.setEnabled(false);revealIceWhenReady();
-  }
-  }root.__cmrSpriteBacked=!!artworkPath;
-  return root;
-}
-// FIX: animations can never hang. The frame loop is wrapped in try/catch and
-// every animate() promise has a safety timeout, so state.busy can't get stuck.
-function runAnimations(){
-  animationFrame=0;
-  const now=performance.now();
-  try{
-    for(const job of Array.from(activeAnimations)){
-      if(!job.mesh||job.mesh.isDisposed?.()){activeAnimations.delete(job);job.resolve();continue;}
-      const t=Math.max(0,Math.min(1,(now-job.begin)/job.duration)),e=1-Math.pow(1-t,3);
-      BABYLON.Vector3.LerpToRef(job.start,job.target,e,job.mesh.position);
-      if(t>=1){activeAnimations.delete(job);job.resolve();}
-    }
-  }catch(err){
-    console.error("Animation loop error:",err);
-    for(const job of activeAnimations)job.resolve();
-    activeAnimations.clear();
-  }
-  if(activeAnimations.size)animationFrame=requestAnimationFrame(runAnimations);
-}
-function animate(mesh,target,duration=170){
-  return new Promise(resolve=>{
-    let done=false;
-    const finish=()=>{if(done)return;done=true;resolve();};
-    const job={mesh,start:mesh.position.clone(),target:target.clone(),duration,begin:performance.now(),resolve:finish};
-    activeAnimations.add(job);
-    // Safety net: the promise always resolves, even if the frame loop stalls.
-    setTimeout(()=>{
-      if(activeAnimations.delete(job)&&mesh&&!mesh.isDisposed?.())mesh.position.copyFrom(target);
-      finish();
-    },duration+600);
-    if(!animationFrame)animationFrame=requestAnimationFrame(runAnimations);
-  });
-}
-function makeBoard(){ /* The uploaded artwork supplies the empty 7x8 board and frame. */ }
-function setupScene(){
-  if(engine&&scene)return;
-  // Validate startup dependencies before Babylon registers canvas event listeners.
-  if(!window.BABYLON||typeof BABYLON.Engine!=="function"){
-    throw new Error("مكتبة Babylon.js لم يتم تحميلها");
-  }
-  canvas=$("renderCanvas");
-  if(!canvas||typeof canvas.addEventListener!=="function"){
-    throw new Error("عنصر لوحة اللعب renderCanvas غير موجود في الصفحة");
-  }
-  // Lower the internal render resolution on phones; this cuts GPU fill cost substantially
-  // while leaving the HTML HUD and buttons at full resolution.
-  const isMobileViewport=window.matchMedia("(max-width: 900px)").matches;
-  engine=new BABYLON.Engine(canvas,false,{preserveDrawingBuffer:false,stencil:false,antialias:false},false);
-  engine.setHardwareScalingLevel(isMobileViewport?1.6:1);
-  engine.enableOfflineSupport=false;
-  scene=new BABYLON.Scene(engine);scene.clearColor=new BABYLON.Color4(0,0,0,0);
-  scene.skipPointerMovePicking=true;
-  scene.imageProcessingConfiguration.toneMappingEnabled=false;
-  camera=new BABYLON.ArcRotateCamera("royalCamera",-Math.PI/2,.02,14.6,new BABYLON.Vector3(0,0,0),scene);
-  camera.mode=BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-  camera.orthoLeft=-3.58;camera.orthoRight=3.58;camera.orthoTop=4.09;camera.orthoBottom=-4.09;
-  camera.lowerRadiusLimit=14.6;camera.upperRadiusLimit=14.6;camera.inputs.clear();camera.minZ=.1;camera.maxZ=100;
-  const hemi=new BABYLON.HemisphericLight("softbox",new BABYLON.Vector3(0,1,-.35),scene);hemi.intensity=1.05;
-  const key=new BABYLON.DirectionalLight("candyKey",new BABYLON.Vector3(-.45,-1,.65),scene);key.position=new BABYLON.Vector3(-5,10,-7);key.intensity=1.15;
-  // Keep the scene lightweight on mobile: two lights, no full-screen glow post-process.
-  makeBoard();bindInput();
-  let lastRenderAt=0;renderLoop=()=>{if(document.hidden)return;const now=performance.now();if(now-lastRenderAt<1000/60)return;lastRenderAt=now;scene.render();};
-  engine.runRenderLoop(renderLoop);
-  window.CMRPauseGameRender=()=>{if(engine&&renderLoop)engine.stopRenderLoop(renderLoop);};
-  window.CMRResumeGameRender=()=>{if(engine&&renderLoop&&!document.hidden)engine.runRenderLoop(renderLoop);};
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&engine)engine.resize();});
-  window.addEventListener("resize",()=>engine.resize());
-  requestAnimationFrame(()=>engine.resize());
-}
-function randomType(r,c){
-  const createsMatch=t=>(c>1&&state.grid[r][c-1]?.type===t&&state.grid[r][c-2]?.type===t)||(r>1&&state.grid[r-1][c]?.type===t&&state.grid[r-2][c]?.type===t);
-  let t=rand(),tries=0;
-  while(tries<12&&createsMatch(t)){t=rand();tries++;}
-  // Deterministic fallback guarantees the first board has no accidental triples,
-  // even if the random retry limit is reached on an unlucky mobile session.
-  if(createsMatch(t))for(let candidate=1;candidate<=TYPES;candidate++){if(!createsMatch(candidate)){t=candidate;break;}}
-  return t;
-}
-function damageIceAt(r,c,score=25,source="booster"){
-  const item=state.grid[r]?.[c];if(!item||(item.ice<=0&&!item.obs))return false;
-  const obs=item.obs||(item.ice>1?"double_ice":"single_ice"),def=OBSTACLE_DEFS[obs]||OBSTACLE_DEFS.single_ice;
-  if(source==="adj"&&!def.adj)return false;
-  if(source==="self"&&!def.self)return false;
-  const impactPosition=item.mesh?.position?.clone();
-  item.ice=Math.max(0,(Number(item.ice)||def.hp||1)-1);
-  if(obs==="double_ice"&&item.ice===1)item.obs="single_ice";
-  if(item.ice===0){state.obstaclesCleared=Math.min(state.obstacleGoal,state.obstaclesCleared+1);
-    item.obs=null;
-    if(obs==="vault"){state.coins+=75;state.score+=125;say("اتفتحت الخزنة الملكية! +75 عملة");}
-    else if(obs==="golden_cage"){state.coins+=50;state.score+=100;say("اتفتح القفص الذهبي! +50 عملة");}
-    else if(def.reward){const sp=["striped","wrapped","color"];item.special=sp[Math.floor(Math.random()*sp.length)];}
-    if(obs==="whirlpool"){
-      const neighbours=[[-1,0],[1,0],[0,-1],[0,1]].map(([dr,dc])=>[r+dr,c+dc]).filter(([nr,nc])=>inBounds(nr,nc)&&state.grid[nr]?.[nc]&&!state.grid[nr][nc].obs&&!(state.grid[nr][nc].ice>0));
-      if(neighbours.length){
-        const [nr,nc]=neighbours[Math.floor(Math.random()*neighbours.length)],victim=state.grid[nr][nc];
-        if(victim?.mesh&&!victim.mesh.isDisposed?.()){burstAt(victim.mesh.position,victim.type);victim.mesh.dispose();}
-        state.grid[nr][nc]=null;state.score+=80;
-      }
-    }
-  }
-  state.iceRemaining=countObstacles();
-  if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
-  item.mesh=candyMesh(r,c,item.type,item.special,item.ice);
-  state.score+=score;
-  if(impactPosition){iceImpactAt(impactPosition,item.ice);playSfx("match");}
-  return true;
-}
-function _unused_damageIceAt(r,c,score=25){
-  const item=state.grid[r]?.[c];if(!item||item.ice<=0)return false;
-  const impactPosition=item.mesh?.position?.clone();
-  item.ice=Math.max(0,item.ice-1);
-  if(item.ice===0)state.iceRemaining=Math.max(0,state.iceRemaining-1);
-  if(item.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
-  item.mesh=candyMesh(r,c,item.type,item.special,item.ice);
-  state.score+=score;
-  if(impactPosition){shockwaveAt(impactPosition,"ice");playSfx("match");}
-  return true;
-}
-function buildGrid(){
-  // Dispose the previous board before creating another one to prevent GPU memory leaks.
-  for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
-  const saved=state.savedGrid;
-  const canRestore=Array.isArray(saved)&&saved.length===ROWS&&saved.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES));
-  const cfg=getLevelConfig(state.level);const obsMap=new Map();if(!canRestore){state.target=0;state.moves=cfg.moves;state.obstacleGoal=cfg.obstacleCount;state.obstaclesCleared=0;state.obstacleGrowthTurns=0;state.chocolateBrokenThisTurn=false;const obstacleDeck=Array.from({length:cfg.obstacleCount},(_,i)=>cfg.obstacles[i%cfg.obstacles.length]);for(let i=obstacleDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[obstacleDeck[i],obstacleDeck[j]]=[obstacleDeck[j],obstacleDeck[i]];}for(let n=0;n<cfg.obstacleCount;n++){const o=obstacleDeck[n];let idx,tries=0;do{idx=Math.floor(Math.random()*ROWS*COLS);tries++;}while(obsMap.has(idx)&&tries<100);if(!obsMap.has(idx))obsMap.set(idx,o);}}else{state.obstaclesCleared=Math.max(0,Number(state.obstaclesCleared)||0);const remainingSaved=saved.reduce((sum,row)=>sum+row.filter(cell=>cell&&(cell.obs||cell.ice>0)).length,0);state.obstacleGoal=Math.max(1,state.obstaclesCleared+remainingSaved);}
-  // obstacles from getLevelConfig
-  state.iceRemaining=0;
-  state.grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const savedCell=canRestore?saved[r][c]:null;
-    const type=savedCell?savedCell.type:randomType(r,c);
-    const special=savedCell&&(savedCell.special==="color"||savedCell.special==="striped"||savedCell.special==="wrapped")?savedCell.special:null;
-    const obs=savedCell?(savedCell.obs||null):(obsMap.get(r*COLS+c)||null);const ice=savedCell?Math.max(0,Math.min(3,Number(savedCell.ice)||0)):(obs?(OBSTACLE_DEFS[obs]?.hp||1):0);
-    if(ice)state.iceRemaining++;
-    state.grid[r][c]={type,special,ice,obs,mesh:null};state.grid[r][c].mesh=candyMesh(r,c,type,special,ice);
-  }
-  state.savedGrid=null;
-}
-function cellScreenPos(r,c){const rect=canvas.getBoundingClientRect(),rw=engine.getRenderWidth()||rect.width||1,rh=engine.getRenderHeight()||rect.height||1,vp=camera.viewport.toGlobal(rw,rh),p=BABYLON.Vector3.Project(pos(r,c),BABYLON.Matrix.Identity(),scene.getTransformMatrix(),vp);return{x:rect.left+(p.x/rw)*rect.width,y:rect.top+(p.y/rh)*rect.height};}function pickCellAtClient(clientX,clientY){const rect=canvas.getBoundingClientRect(),maxDist=Math.max(rect.width/COLS,rect.height/ROWS)*0.85;let best=null,bestD=Infinity;for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){const sp=cellScreenPos(r,c),d=Math.hypot(clientX-sp.x,clientY-sp.y);if(d<bestD&&d<=maxDist){bestD=d;best={r,c};}}}return best;}function chooseNeighbour(cell,dx,dy){const origin=cellScreenPos(cell.r,cell.c),dirs=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]];let best=null,bestDot=-Infinity;for(const[nr,nc]of dirs){if(!inBounds(nr,nc))continue;const np=cellScreenPos(nr,nc),vx=np.x-origin.x,vy=np.y-origin.y,len=Math.hypot(vx,vy)||1,dot=(dx*vx+dy*vy)/len;if(dot>bestDot){bestDot=dot;best={r:nr,c:nc};}}return best;}function bindInput(){if(!canvas||typeof canvas.addEventListener!=="function")throw new Error("لوحة الرسم renderCanvas غير موجودة");let gesture=null;const reset=()=>{gesture=null;};canvas.addEventListener("pointerdown",event=>{if(state.busy||state.won)return;event.preventDefault();const startCell=pickCellAtClient(event.clientX,event.clientY);if(!startCell)return;gesture={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startCell,swiped:false};if(canvas.setPointerCapture){try{canvas.setPointerCapture(event.pointerId);}catch(_){}}},{passive:false});canvas.addEventListener("pointermove",event=>{if(!gesture||gesture.swiped||event.pointerId!==gesture.pointerId)return;event.preventDefault();if(state.busy||state.won)return;const dx=event.clientX-gesture.startX,dy=event.clientY-gesture.startY;if(Math.hypot(dx,dy)>=14){gesture.swiped=true;const next=chooseNeighbour(gesture.startCell,dx,dy),start=gesture.startCell;gesture=null;if(next&&inBounds(next.r,next.c)){clearSelection();void swap(start,next);}}},{passive:false});canvas.addEventListener("pointerup",event=>{if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();const g=gesture;gesture=null;if(state.busy||state.won)return;if(!g.swiped)tapCell(g.startCell);},{passive:false});canvas.addEventListener("pointercancel",reset,{passive:true});canvas.addEventListener("lostpointercapture",reset,{passive:true});window.addEventListener("blur",reset);}function inBounds(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
-async function useSelectedBooster(cell){
-  if(state.busy||state.won||!state.booster)return;
-  const kind=state.booster,counts={bomb:state.hammer,rocket:state.rockets,color:state.colors,paint:state.paints};
-  if((counts[kind]||0)<=0){say("المساعد ده خلص. اختار مساعد تاني.");state.booster=null;return;}
-  const anchor=state.grid[cell.r][cell.c];if(!anchor)return;
-  state.busy=true;clearSelection();
-  try{
-    if(kind==="paint"){
-      const neighbors=[[cell.r-1,cell.c],[cell.r+1,cell.c],[cell.r,cell.c-1],[cell.r,cell.c+1]].filter(([r,c])=>inBounds(r,c)&&state.grid[r][c]&&!state.grid[r][c].special);
-      const target=neighbors.find(([r,c])=>state.grid[r][c].type!==anchor.type);
-      if(!target){say("اختار حلوى جنب لون مختلف.");state.busy=false;return;}
-      const newType=state.grid[target[0]][target[1]].type;
-      if(anchor.mesh&&!anchor.mesh.isDisposed?.())anchor.mesh.dispose();
-      anchor.type=newType;anchor.special=null;anchor.mesh=candyMesh(cell.r,cell.c,newType,null,anchor.ice||0);
-      state.paints--;state.score+=40;state.moves=Math.max(0,state.moves-1);say("اتغير لون الحلوى!");
-    }else{
-      const cells=new Set();
-      if(kind==="bomb"){
-        for(let r=cell.r-1;r<=cell.r+1;r++)for(let c=cell.c-1;c<=cell.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
-      }else if(kind==="rocket"){
-        for(let c=0;c<COLS;c++)cells.add(cell.r+","+c);
-        for(let r=0;r<ROWS;r++)cells.add(r+","+cell.c);
-      }else if(kind==="color"){
-        const targetType=anchor.type;
-        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===targetType)cells.add(r+","+c);
-      }
-      shockwaveAt(anchor.mesh.position,kind);playSfx(kind==="bomb"?"bomb":kind==="rocket"?"rocket":"color");
-      for(const key of cells){
-        const [r,c]=key.split(",").map(Number),it=state.grid[r][c];if(!it)continue;
-        if(it.ice>0){damageIceAt(r,c,40);continue;}
-        burstAt(it.mesh.position,it.type);if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
-        state.grid[r][c]=null;state.score+=kind==="color"?75:85;
-      }
-      if(kind==="bomb")state.hammer--;if(kind==="rocket")state.rockets--;if(kind==="color")state.colors--;
-      state.moves=Math.max(0,state.moves-1);
-      say(kind==="bomb"?"انفجار القنبلة!":kind==="rocket"?"الصاروخ مسح الصف والعمود!":"كرة الألوان مسحت نفس اللون!");
-    }
-    state.booster=null;
-    for(const id of ["paintBtn","bombBtn","colorBtn","rocketBtn"]){const button=$(id);if(button)button.classList.remove("active");}
-    refreshBoosterBadges();updateHud();await wait(90);await settle();
-  }catch(error){console.error("Booster failed:",error);say("المساعد اتعطل، جرّب تاني.");}
-  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
-}
-function tapCell(cell){
-  if(state.booster){void useSelectedBooster(cell);return;}
-  if(state.selected){
-    const previous=state.selected;
-    if(previous.r===cell.r&&previous.c===cell.c){clearSelection();return;}
-    if(Math.abs(previous.r-cell.r)+Math.abs(previous.c-cell.c)===1){
-      clearSelection();void swap(previous,cell);return;
-    }
-  }
-  select(cell);
-}
-function select(cell){
-  clearSelection();
-  state.selected=cell;
-  const item=state.grid[cell.r][cell.c];
-  if(item?.mesh)item.mesh.scaling.setAll(1.08);
-}
-function clearSelection(){
-  if(state.selected){
-    const it=state.grid[state.selected.r][state.selected.c];
-    if(it?.mesh)it.mesh.scaling.setAll(1);
-  }
-  state.selected=null;
-}
-async function swap(a,b){
-  if(state.busy||!inBounds(a.r,a.c)||!inBounds(b.r,b.c))return;
-  if(Math.abs(a.r-b.r)+Math.abs(a.c-b.c)!==1)return;
-  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];if(!A||!B||isCellLocked(A)||isCellLocked(B)){clearSelection();return;}
-  state.busy=true;clearSelection();
-  try{
-    await Promise.all([animate(A.mesh,pos(b.r,b.c),115),animate(B.mesh,pos(a.r,a.c),115)]);
-    state.grid[a.r][a.c]=B;state.grid[b.r][b.c]=A;
-    A.mesh.metadata={r:b.r,c:b.c,candy:true};B.mesh.metadata={r:a.r,c:a.c,candy:true};
-    // A special candy activates only when deliberately swapped with an adjacent candy.
-    // Ordinary swaps still require a confirmed 3+ match and revert when invalid.
-    if(A.special||B.special){
-      state.moves--;state.chocolateBrokenThisTurn=false;updateHud();
-      await activateSpecial(a,b);
-      await settle();
-    }else if(findMatches().size===0){
-      await Promise.all([animate(A.mesh,pos(a.r,a.c),115),animate(B.mesh,pos(b.r,b.c),115)]);
-      state.grid[a.r][a.c]=A;state.grid[b.r][b.c]=B;
-      A.mesh.metadata={r:a.r,c:a.c,candy:true};B.mesh.metadata={r:b.r,c:b.c,candy:true};
-    }else{state.moves--;state.chocolateBrokenThisTurn=false;updateHud();await settle();}
-  }catch(error){console.error("Candy swap failed:",error);say("حصلت مشكلة في الحركة، جرّب تاني.");}
-  finally{state.busy=false;checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
-}
-function findMatches(){
-  const found=new Set();
-  // Match by base color, regardless of whether a candy is special.
-  // A special candy activates only when it belongs to a confirmed 3+ match;
-  // swapping/touching it without a resulting match never activates it.
-  const sameCandy=(a,b)=>!!a&&!!b&&a.type===b.type;
-  for(let r=0;r<ROWS;r++){
-    let c=0;while(c<COLS){
-      const item=state.grid[r][c];if(!item){c++;continue;}
-      let end=c+1;while(end<COLS&&sameCandy(state.grid[r][end],item))end++;
-      if(end-c>=3)for(let k=c;k<end;k++)found.add(r+","+k);c=end;
-    }
-  }
-  for(let c=0;c<COLS;c++){
-    let r=0;while(r<ROWS){
-      const item=state.grid[r][c];if(!item){r++;continue;}
-      let end=r+1;while(end<ROWS&&sameCandy(state.grid[end][c],item))end++;
-      if(end-r>=3)for(let k=r;k<end;k++)found.add(k+","+c);r=end;
-    }
-  }
-  return found;
-}
-function findSpecialCandidate(matches){
-  // A T/L intersection of two same-type runs (3+ in each direction) creates a wrapped candy.
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    if(!matches.has(r+","+c))continue;
-    const item=state.grid[r][c];if(!item)continue;
-    let left=0,right=0,up=0,down=0;
-    for(let x=c-1;x>=0&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x--)left++;
-    for(let x=c+1;x<COLS&&state.grid[r][x]&&!state.grid[r][x].special&&state.grid[r][x].type===item.type;x++)right++;
-    for(let y=r-1;y>=0&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y--)up++;
-    for(let y=r+1;y<ROWS&&state.grid[y][c]&&!state.grid[y][c].special&&state.grid[y][c].type===item.type;y++)down++;
-    if(left+right+1>=3&&up+down+1>=3)return {length:Math.max(left+right+1,up+down+1)+2,type:"wrapped",cell:{r,c}};
-  }
-  let best=null;
-  const consider=(cells,type)=>{
-    if(cells.length<4)return;
-    if(!best||cells.length>best.length||(cells.length===best.length&&type==="color"&&best.type!=="color")){
-      best={length:cells.length,type,cell:cells[Math.floor(cells.length/2)]};
-    }
-  };
-  // Scan real same-type contiguous runs, not merely adjacent cells that happen to
-  // belong to different crossing matches. A vertical match must not join two
-  // separate horizontal runs into a false four- or five-candy special.
-  for(let r=0;r<ROWS;r++){
-    let c=0;
-    while(c<COLS){
-      const item=state.grid[r][c];
-      if(!item||!matches.has(r+","+c)){c++;continue;}
-      const type=item.type;let end=c+1;
-      while(end<COLS&&matches.has(r+","+end)&&state.grid[r][end]?.type===type)end++;
-      const cells=[];for(let x=c;x<end;x++)cells.push({r,c:x});
-      consider(cells,cells.length>=5?"color":"striped");
-      c=end;
-    }
-  }
-  for(let c=0;c<COLS;c++){
-    let r=0;
-    while(r<ROWS){
-      const item=state.grid[r][c];
-      if(!item||!matches.has(r+","+c)){r++;continue;}
-      const type=item.type;let end=r+1;
-      while(end<ROWS&&matches.has(end+","+c)&&state.grid[end][c]?.type===type)end++;
-      const cells=[];for(let y=r;y<end;y++)cells.push({r:y,c});
-      consider(cells,cells.length>=5?"color":"striped");
-      r=end;
-    }
-  }
-  return best;
-}
-function beamBetween(from,to,color,duration=280){
-  if(activeVfxMeshes.size>=VFX_MESH_LIMIT)return;
-  const start=from.clone();start.y+=.54;
-  const end=to.clone();end.y+=.54;
-  const beam=BABYLON.MeshBuilder.CreateTube("royalEnergyBeam",{path:[start,end],radius:.026,tessellation:6,cap:BABYLON.Mesh.CAP_ROUND},scene);
-  const mat=new BABYLON.StandardMaterial("royalEnergyBeamMaterial",scene);
-  mat.diffuseColor=color;mat.emissiveColor=color.scale(1.7);mat.specularColor=new BABYLON.Color3(1,1,1);mat.alpha=.92;
-  beam.material=mat;beam.isPickable=false;
-  const started=performance.now();
-  const observer=scene.onBeforeRenderObservable.add(()=>{
-    if(beam.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);if(!mat.isDisposed?.())mat.dispose();return;}
-    const t=Math.min(1,(performance.now()-started)/duration);
-    mat.alpha=.92*(1-t);
-    if(t>=1){scene.onBeforeRenderObservable.remove(observer);if(!mat.isDisposed?.())mat.dispose();}
-  });
-  trackVfx(beam,duration+40);
-}
-function rocketSweepAt(cell){
-  const origin=pos(cell.r,cell.c);
-  shockwaveAt(origin,"rocket");
-  const cyan=new BABYLON.Color3(.16,.82,1);
-  beamBetween(pos(cell.r,0),pos(cell.r,COLS-1),cyan,300);
-  beamBetween(pos(0,cell.c),pos(ROWS-1,cell.c),cyan,300);
-}
-function wrappedDetonationAt(cell,type){
-  const origin=pos(cell.r,cell.c);
-  shockwaveAt(origin,"wrapped");
-  burstAt(origin,type);
-}
-function colorChainAt(originCell,targetType){
-  const origin=pos(originCell.r,originCell.c);
-  shockwaveAt(origin,"color");
-  const beamColor=targetType?palette[Math.max(1,Math.min(TYPES,targetType))-1].color:new BABYLON.Color3(.84,.42,1);
-  let emitted=0;
-  for(let r=0;r<ROWS&&emitted<18;r++)for(let c=0;c<COLS&&emitted<18;c++){
-    const item=state.grid[r]?.[c];
-    if(!item||(targetType&&item.type!==targetType)||(r===originCell.r&&c===originCell.c))continue;
-    beamBetween(origin,pos(r,c),beamColor,260+emitted*4);
-    emitted++;
-  }
-}
-async function activateSpecial(a,b){
-  const A=state.grid[a.r][a.c],B=state.grid[b.r][b.c];
-  if(A?.special||B?.special){
-    const kind=A?.special||B?.special;
-    playSfx(kind==="wrapped"?"bomb":kind==="striped"?"rocket":"color");
-    if(A?.special==="wrapped")wrappedDetonationAt(a,A.type);
-    else if(A?.special==="striped")rocketSweepAt(a);
-    else if(A?.special==="color")colorChainAt(a,B?.type||null);
-    if(B?.special==="wrapped")wrappedDetonationAt(b,B.type);
-    else if(B?.special==="striped")rocketSweepAt(b);
-    else if(B?.special==="color")colorChainAt(b,A?.type||null);
-  }
-  const cells=new Set([a.r+","+a.c,b.r+","+b.c]);
-  const addCross=cell=>{for(let k=0;k<COLS;k++)cells.add(cell.r+","+k);for(let k=0;k<ROWS;k++)cells.add(k+","+cell.c);};
-  if(A?.special==="color"&&B?.special==="color"){
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)cells.add(r+","+c);
-  }else if(A?.special==="wrapped"&&B?.special==="wrapped"){
-    for(const center of [a,b])for(let r=center.r-2;r<=center.r+2;r++)for(let c=center.c-2;c<=center.c+2;c++)if(inBounds(r,c))cells.add(r+","+c);
-  }else if((A?.special==="wrapped"&&B?.special==="striped")||(B?.special==="wrapped"&&A?.special==="striped")){
-    const center=A.special==="wrapped"?a:b;
-    for(let offset=-1;offset<=1;offset++){
-      for(let c=0;c<COLS;c++)if(inBounds(center.r+offset,c))cells.add((center.r+offset)+","+c);
-      for(let r=0;r<ROWS;r++)if(inBounds(r,center.c+offset))cells.add(r+","+(center.c+offset));
-    }
-  }else if((A?.special==="wrapped"&&B?.special==="color")||(B?.special==="wrapped"&&A?.special==="color")){
-    const wrapped=A.special==="wrapped"?A:B,center=A.special==="wrapped"?a:b;
-    const target=(wrapped===A?B:A)?.type;
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(state.grid[r][c]?.type===target){
-      for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))cells.add(y+","+x);
-    }
-    for(let r=center.r-1;r<=center.r+1;r++)for(let c=center.c-1;c<=center.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
-  }else if(A?.special==="wrapped"||B?.special==="wrapped"){
-    const center=A?.special==="wrapped"?a:b;
-    for(let r=center.r-1;r<=center.r+1;r++)for(let c=center.c-1;c<=center.c+1;c++)if(inBounds(r,c))cells.add(r+","+c);
-  }else if(A?.special==="striped"&&B?.special==="striped"){
-    addCross(a);addCross(b);
-  }else if(A?.special==="color"||B?.special==="color"){
-    const colorCandy=A.special==="color"?A:B;
-    const other=A.special==="color"?B:A;
-    const target=other?.type;
-    if(target)for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      if(state.grid[r][c]?.type===target){cells.add(r+","+c);if(other.special==="striped")addCross({r,c});}
-    }
-    if(colorCandy===A&&B?.special==="striped")addCross(b);
-    if(colorCandy===B&&A?.special==="striped")addCross(a);
-  }else{
-    // A striped candy clears the row and column passing through its own cell,
-    // not through the ordinary candy it was swapped with.
-    if(A?.special==="striped")addCross(a);
-    if(B?.special==="striped")addCross(b);
-  }
-  for(const key of cells){
-    const [r,c]=key.split(",").map(Number),it=state.grid[r][c];
-    if(it){if(it.ice>0){damageIceAt(r,c,25);}else{burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[r][c]=null;state.score+=60;}}
-  }
-  updateHud();await wait(170);
-}
-function triggerCharacterCombo(chain){
-  const queen=$("queen"),dragon=$("dragon");
-  if(!queen||!dragon)return;
-  const tier=chain>=3?3:chain===2?2:1;
-  const message=tier===3?"قوة سحرية هائلة!":tier===2?"الكومبو بيزيد!":"رائع! استمر!";
-  $("characterMessage").textContent=message;
-  for(const [el,kind] of [[queen,"queen"],[dragon,"dragon"]]){
-    el.classList.remove("combo-1","combo-2","combo-3");
-    // Restart the CSS animation even when two cascades happen quickly.
-    void el.offsetWidth;
-    el.classList.add("combo-"+tier);
-    el.addEventListener("animationend",()=>el.classList.remove("combo-1","combo-2","combo-3"),{once:true});
-  }
-}
-function hasHoles(){
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!state.grid[r][c])return true;
-  return false;
-}
-// Drop candies into empty cells and refill the top. Also used after special candies
-// clear cells, so the board never stays with empty holes.
-async function dropAndRefill(){
-  const falling=[];
-  for(let c=0;c<COLS;c++){
-    let write=ROWS-1;
-    for(let r=ROWS-1;r>=0;r--){const it=state.grid[r][c];if(it){if(write!==r){state.grid[write][c]=it;state.grid[r][c]=null;it.mesh.metadata={r:write,c:c,candy:true};falling.push(animate(it.mesh,pos(write,c),170));}write--;}}
-    for(let r=write;r>=0;r--){
-      const type=rand(),mesh=candyMesh(r,c,type,null);
-      // New candies always enter from above the top edge, then fall down into gaps.
-      const target=pos(r,c);
-      const rowsAbove=write-r+1;
-      mesh.position=new BABYLON.Vector3(target.x,.17,target.z+SPACING*(rowsAbove+0.8));
-      state.grid[r][c]={type:type,special:null,mesh:mesh};
-      mesh.metadata={r:r,c:c,candy:true};
-      falling.push(animate(mesh,target,Math.min(300,180+rowsAbove*24)));
-    }
-  }
-  await Promise.all(falling);
-  await wait(80);
-}
-async function settle(){
-  let chain=0;
-  // Prevent a pathological cascade from locking the board or monopolizing a mobile frame.
-  // Bound cascade work so one lucky chain cannot monopolize a mobile browser.
-  while(chain<8){
-    if(hasHoles())await dropAndRefill();
-    const matches=findMatches();if(matches.size===0)break;
-    chain++;playSfx("match");
-    // Only specials that are themselves inside a confirmed 3+ same-type match fire.
-    // Their blast expands the clear set; merely touching/swapping a special never does.
-    const matchedSpecials=[];
-    for(const key of matches){
-      const [r,c]=key.split(",").map(Number),item=state.grid[r][c];
-      if(item?.special)matchedSpecials.push({r,c,item});
-    }
-    for(const {r,c,item} of matchedSpecials){
-      if(item.special==="wrapped"){
-        for(let y=r-1;y<=r+1;y++)for(let x=c-1;x<=c+1;x++)if(inBounds(y,x))matches.add(y+","+x);
-        playSfx("bomb");wrappedDetonationAt({r,c},item.type);
-      }else if(item.special==="striped"){
-        for(let x=0;x<COLS;x++)matches.add(r+","+x);
-        for(let y=0;y<ROWS;y++)matches.add(y+","+c);
-        playSfx("rocket");rocketSweepAt({r,c});
-      }else if(item.special==="color"){
-        for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(state.grid[y][x]?.type===item.type)matches.add(y+","+x);
-        playSfx("color");colorChainAt({r,c},item.type);
-      }
-    }
-    const remove=Array.from(matches).map(s=>s.split(",").map(Number));
-    // A confirmed 3+ match also cracks ice directly beside its matched candies.
-    // Deduplicate cells so an ice block touched by two matched candies takes one hit only.
-    const obstacleHitCells=new Map();
-    for(const key of matches){
-      const [mr,mc]=key.split(",").map(Number),current=state.grid[mr]?.[mc];
-      if(current&&(current.obs||current.ice>0))obstacleHitCells.set(mr+","+mc,"self");
-      for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
-        const ir=mr+dr,ic=mc+dc,near=state.grid[ir]?.[ic];
-        if(inBounds(ir,ic)&&near&&(near.obs||near.ice>0)&&!obstacleHitCells.has(ir+","+ic))obstacleHitCells.set(ir+","+ic,"adj");
-      }
-    }
-    for(const [key,source] of obstacleHitCells){const [ir,ic]=key.split(",").map(Number);damageIceAt(ir,ic,25,source);}
-    const specialCandidate=matchedSpecials.length===0&&chain===1?findSpecialCandidate(matches):null;
-    const groupSpecial=specialCandidate?.type||null;
-    const keep=specialCandidate?.cell||null;
-    for(const p of remove){
-      const r=p[0],c=p[1],it=state.grid[r][c];
-      if(keep&&r===keep.r&&c===keep.c)continue;
-      if(it?.ice>0||it?.obs){if(!obstacleHitCells.has(r+","+c))damageIceAt(r,c,25,"self");if(state.grid[r][c]?.ice>0||state.grid[r][c]?.obs)continue;}
-      if(it&&it.mesh){burstAt(it.mesh.position,it.type);it.mesh.dispose();}
-      state.grid[r][c]=null;state.score+=60;
-    }
-    if(keep){
-      const it=state.grid[keep.r][keep.c];if(it){it.special=groupSpecial;it.mesh.dispose();it.mesh=candyMesh(keep.r,keep.c,it.type,groupSpecial,it.ice||0);}
-    }
-    if(chain>1)state.score+=matches.size*10;
-    updateHud();await wait(100);
-    await dropAndRefill();
-  }
-  if(findMatches().size>0){
-    // A pathological board can keep auto-matching; reshuffle its types in place
-    // to restore a playable stable board instead of leaving the game locked.
-    const items=state.grid.flat().filter(Boolean);
-    const original=items.map(item=>item.type);
-    let stable=false;
-    for(let attempt=0;attempt<12&&!stable;attempt++){
-      const values=original.slice();
-      for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
-      for(let i=0;i<items.length;i++)items[i].type=values[i];
-      stable=findMatches().size===0&&hasPossibleMove();
-    }
-    if(!stable){
-      // Last-resort safe board with no initial horizontal or vertical triples.
-      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-        let type=rand(),tries=0;
-        while(tries++<12&&((c>1&&state.grid[r][c-1].type===type&&state.grid[r][c-2].type===type)||(r>1&&state.grid[r-1][c].type===type&&state.grid[r-2][c].type===type)))type=rand();
-        state.grid[r][c].type=type;
-      }
-    }
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      const item=state.grid[r][c];if(item?.mesh){
-        item.mesh.dispose();item.mesh=candyMesh(r,c,item.type,item.special||null,item.ice||0);
-        item.mesh.metadata={r,c,candy:true};
-      }
-    }
-    say("تم ترتيب اللوحة تلقائيًا عشان تقدر تكمل اللعب.");
-  }else if(chain>1)say("سلسلة سحرية ×"+chain+"!");
-  updateHud();
-  // Check the completed objective before new palace obstacles can spawn.
-  if(checkEnd(true))return;
-  spreadChocolateIfNeeded();updateHud();
-}
-const activeVfxMeshes=new Set();
-const VFX_MESH_LIMIT=72;
-const vfxMaterials={};
-function getVfxMaterial(key,color,alpha=1){
-  if(vfxMaterials[key])return vfxMaterials[key];
-  const mat=new BABYLON.StandardMaterial("royalVfx_"+key,scene);
-  mat.diffuseColor=color;mat.emissiveColor=color.scale(1.25);mat.specularColor=new BABYLON.Color3(.9,.95,1);
-  mat.specularPower=64;mat.alpha=alpha;mat.disableLighting=false;
-  vfxMaterials[key]=mat;return mat;
-}
-function trackVfx(mesh,duration=420){
-  if(activeVfxMeshes.size>=VFX_MESH_LIMIT){
-    const oldest=activeVfxMeshes.values().next().value;
-    if(oldest){activeVfxMeshes.delete(oldest);if(!oldest.isDisposed?.())oldest.dispose();}
-  }
-  activeVfxMeshes.add(mesh);
-  const started=performance.now();
-  const observer=scene.onBeforeRenderObservable.add(()=>{
-    if(mesh.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);activeVfxMeshes.delete(mesh);return;}
-    const t=Math.min(1,(performance.now()-started)/duration);
-    if(t>=1){scene.onBeforeRenderObservable.remove(observer);activeVfxMeshes.delete(mesh);mesh.dispose();}
-  });
-  return observer;
-}
-function shockwaveAt(position,kind){
-  const colors={wrapped:new BABYLON.Color3(1,.48,.12),striped:new BABYLON.Color3(.12,.78,1),color:new BABYLON.Color3(.8,.28,1),bomb:new BABYLON.Color3(1,.48,.12),rocket:new BABYLON.Color3(.12,.78,1),ice:new BABYLON.Color3(.48,.88,1)};
-  const color=colors[kind]||new BABYLON.Color3(1,.78,.32);
-  // Two concentric rings create a layered impact without a costly full-screen post-process.
-  for(let layer=0;layer<2;layer++){
-    const ring=BABYLON.MeshBuilder.CreateTorus("royalShockwave",{diameter:1,thickness:layer?.022:.052,tessellation:40},scene);
-    ring.position=position.clone();ring.position.y+=.5+layer*.035;ring.rotation.x=Math.PI/2;
-    ring.scaling.setAll(.1);ring.isPickable=false;
-    const ringMat=new BABYLON.StandardMaterial("royalShockMaterial_"+kind,scene);
-    ringMat.diffuseColor=color;ringMat.emissiveColor=color.scale(1.25);ringMat.alpha=layer?.52:.9;ringMat.specularPower=64;ring.material=ringMat;
-    const started=performance.now(),duration=layer?480:360;
-    const observer=scene.onBeforeRenderObservable.add(()=>{
-      if(ring.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
-      const t=Math.min(1,(performance.now()-started)/duration),ease=1-Math.pow(1-t,2);
-      ring.scaling.setAll(.12+(layer?2.75:2.05)*ease);
-      ring.material.alpha=(layer?.52:.9)*(1-t);
-      if(t>=1){scene.onBeforeRenderObservable.remove(observer);ringMat.dispose();}
-    });
-    trackVfx(ring,duration+30);
-  }
-}
-function burstAt(position,type){
-  const safeType=Math.max(1,Math.min(TYPES,Number(type)||1));
-  const candyColor=palette[safeType-1].color;
-  const material=getVfxMaterial("sugar_"+safeType,candyColor);
-  // Compact premium pop: one expanding halo plus radial candy-glass fragments.
-  if(activeVfxMeshes.size<VFX_MESH_LIMIT-7){
-    const halo=BABYLON.MeshBuilder.CreateTorus("candyBurstHalo",{diameter:.58,thickness:.035,tessellation:32},scene);
-    halo.position=position.clone();halo.position.y+=.43;halo.rotation.x=Math.PI/2;
-    const haloMat=new BABYLON.StandardMaterial("candyBurstHaloMat_"+safeType,scene);
-    haloMat.diffuseColor=candyColor;haloMat.emissiveColor=candyColor.scale(1.35);haloMat.alpha=.82;halo.material=haloMat;halo.isPickable=false;
-    const started=performance.now(),duration=245;
-    const observer=scene.onBeforeRenderObservable.add(()=>{
-      if(halo.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);if(!haloMat.isDisposed?.())haloMat.dispose();return;}
-      const t=Math.min(1,(performance.now()-started)/duration);
-      halo.scaling.setAll(.55+t*1.35);haloMat.alpha=.82*(1-t);
-      if(t>=1){scene.onBeforeRenderObservable.remove(observer);if(!halo.isDisposed?.())halo.dispose();if(!haloMat.isDisposed?.())haloMat.dispose();}
-    });
-    trackVfx(halo,duration+40);
-  }
-  for(let i=0;i<7;i++){
-    if(activeVfxMeshes.size>=VFX_MESH_LIMIT)break;
-    const size=.045+Math.random()*.04;
-    const p=BABYLON.MeshBuilder.CreatePolyhedron("sugarShard",{type:1,size},scene);
-    p.position=position.clone();p.position.y+=.17+Math.random()*.08;p.material=material;p.isPickable=false;
-    const angle=Math.PI*2*i/7+(Math.random()-.5)*.24,dist=.38+Math.random()*.25;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.18+Math.random()*.42,Math.sin(angle)*dist));
-    p.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
-    trackVfx(p,320);
-    animate(p,target,270).then(()=>{if(!p.isDisposed?.())p.dispose();});
-  }
-}
-function iceImpactAt(position,remainingLayers){
-  const iceColor=new BABYLON.Color3(.48,.86,1);
-  shockwaveAt(position,"ice");
-  const shardMat=getVfxMaterial("ice_shards",iceColor,.92);
-  const count=remainingLayers>0?5:9;
-  for(let i=0;i<count;i++){
-    if(activeVfxMeshes.size>=VFX_MESH_LIMIT)break;
-    const shard=BABYLON.MeshBuilder.CreatePolyhedron("iceShard",{type:1,size:.045+Math.random()*.045},scene);
-    shard.position=position.clone();shard.position.y+=.23;shard.material=shardMat;shard.isPickable=false;
-    shard.rotation.set(Math.random()*2,Math.random()*2,Math.random()*2);
-    const angle=Math.PI*2*i/count+(Math.random()-.5)*.22,dist=.28+Math.random()*.26;
-    const target=position.add(new BABYLON.Vector3(Math.cos(angle)*dist,.12+Math.random()*.32,Math.sin(angle)*dist));
-    trackVfx(shard,remainingLayers>0?260:390);
-    animate(shard,target,remainingLayers>0?210:310).then(()=>{if(!shard.isDisposed?.())shard.dispose();});
-  }
-  // Brief cold flash communicates the layer damage even on small phone screens.
-  const flash=BABYLON.MeshBuilder.CreateDisc("iceImpactFlash",{radius:.38,tessellation:24},scene);
-  flash.position=position.clone();flash.position.y+=.42;flash.rotation.x=Math.PI/2;
-  const flashMat=new BABYLON.StandardMaterial("iceImpactFlashMaterial",scene);
-  flashMat.diffuseColor=new BABYLON.Color3(.72,.94,1);flashMat.emissiveColor=new BABYLON.Color3(.72,.94,1);flashMat.alpha=.5;flash.material=flashMat;flash.isPickable=false;
-  const started=performance.now(),observer=scene.onBeforeRenderObservable.add(()=>{
-    if(flash.isDisposed?.()){scene.onBeforeRenderObservable.remove(observer);return;}
-    const t=Math.min(1,(performance.now()-started)/190);flash.scaling.setAll(1+t*.7);flash.material.alpha=.5*(1-t);
-    if(t>=1){scene.onBeforeRenderObservable.remove(observer);flashMat.dispose();}
-  });
-  trackVfx(flash,220);
-}
-function updateHud(){
-  applyHeartRegen();
-  $("score").textContent=state.score.toLocaleString("en-US");
-  $("moves").textContent=state.moves;
-  $("heartCount").textContent=state.lives;
-  const objective=$("obstacleObjective");
-  if(objective){
-    objective.textContent="اكسر العوائق  "+Math.min(state.obstaclesCleared,state.obstacleGoal)+"/"+state.obstacleGoal;
-    objective.classList.toggle("objective-complete",state.obstaclesCleared>=state.obstacleGoal);
-    objective.setAttribute("aria-label","هدف المرحلة: تكسير "+Math.min(state.obstaclesCleared,state.obstacleGoal)+" من "+state.obstacleGoal+" عائق");
-  }
-  $("levelLabel").textContent="المستوى "+state.level;
-  $("targetScore").hidden=true;
-  const iceGoal=$("iceGoal");
-  if(iceGoal){iceGoal.hidden=state.iceRemaining<=0;iceGoal.textContent="❄️ "+state.iceRemaining;}
-  $("levelProgress").style.width="0%";
-  $("coinCount").textContent=state.coins;
-  $("stars").textContent=state.stars;
-  state.iceRemaining=countObstacles();
-  const ig=$("iceGoal");
-  if(ig){ig.hidden=true;ig.textContent="❄️ "+state.iceRemaining;}
-  const scorePanel=document.querySelector(".art-score");
-  if(scorePanel){
-    let goal= $("scoreGoal");
-    if(!goal){goal=document.createElement("small");goal.id="scoreGoal";scorePanel.insertBefore(goal,ig||null);}
-    goal.hidden=true;
-    let track=$("scoreProgressTrack");
-    if(!track){track=document.createElement("span");track.id="scoreProgressTrack";track.innerHTML='<i id="scoreProgressFill"></i>';scorePanel.appendChild(track);}
-    const fill=$("scoreProgressFill");
-    if(fill)fill.style.width="0%";
-  }
-  const db=$("difficultyBadge");
-  if(db){const cfg=getLevelConfig(state.level);db.textContent="المرحلة "+state.level+" • "+cfg.diffLabel;db.hidden=!cfg.diffLabel;}
-}
-function triggerCharacterResult(won){
-  for(const id of ["queen","dragon"]){
-    const el=$(id);if(!el)continue;
-    el.classList.remove("combo-1","combo-2","combo-3","celebrate","defeat");
-    void el.offsetWidth;
-    el.classList.add(won?"celebrate":"defeat");
-  }
-}
-// FIX: claimLevelReward is not defined in this file. If world-map.js doesn't expose it
-// (or it throws), checkEnd used to crash AFTER state.won=true, so input was blocked
-// and the win window never appeared => the game looked frozen. This wrapper never throws.
-function safeClaimLevelReward(level){
-  try{
-    if(typeof claimLevelReward==="function")return !!claimLevelReward(level);
-    if(typeof window.claimLevelReward==="function")return !!window.claimLevelReward(level);
-  }catch(e){console.error("claimLevelReward failed:",e);}
-  try{
-    const key="cmr_claimed_levels_v1";
-    const list=JSON.parse(localStorage.getItem(key)||"[]");
-    if(list.includes(level))return false;
-    list.push(level);localStorage.setItem(key,JSON.stringify(list));
-    return true;
-  }catch(e){return true;}
-}
-function checkEnd(force=false){
-  if(!state.levelReady||state.endModalShown)return false;
-  state.iceRemaining=countObstacles();
-  const won=state.obstacleGoal>0&&state.iceRemaining===0;
-  const lost=state.moves<=0;
-  if(!won&&!lost)return false;
-  // A completed objective or exhausted move counter is terminal even if an
-  // animation callback left the busy flag behind.
-  if(state.busy&&!force)return false;
-  state.busy=false;
-  state.won=true;
-  state.endModalShown=true;
-  const modal=$("resultModal"),title=$("resultTitle"),message=$("resultText"),button=$("resultButton"),next=$("nextBtn");
-  if(!modal||!title||!message||!button){
-    console.error("Result UI elements are missing; terminal state:",{won,lost,level:state.level,moves:state.moves,remaining:state.iceRemaining});
-    state.endModalShown=false;
-    return false;
-  }
-  try{
-    if(won){
-      state.obstaclesCleared=Math.max(state.obstaclesCleared,state.obstacleGoal);
-      state.lossHandled=false;
-      const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);
-      const rewardGranted=safeClaimLevelReward(state.level);
-      if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}
-      updateHud();
-      const rewardBag=$("rewardBag");
-      if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.style.display=rewardGranted?"block":"none";rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}
-      const starDisplay=modal.querySelector(".result-stars");
-      if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
-      title.textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
-      message.textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
-      if(next){next.disabled=false;next.textContent=state.replayMode?"العودة للخريطة":"المرحلة التالية";}
-      button.textContent=state.replayMode?"العودة للخريطة":"استمرار";
-      $("characterMessage").textContent="يا له من إنجاز رائع!";
-      triggerCharacterResult(true);playSfx("win");saveProgress(true);
-    }else{
-      if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;if(state.lives<5&&!state.lastHeartAt)state.lastHeartAt=Date.now();}
-      updateHud();
-      title.textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
-      message.textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت القلوب المتاحة. هيرجع قلب كل 30 دقيقة.";
-      button.textContent="إعادة المحاولة";
-      $("characterMessage").textContent="متستسلمش، جرب تاني!";
-      triggerCharacterResult(false);playSfx("lose");saveProgress(false);
-    }
-  }catch(error){
-    console.error("Result processing failed:",error);
-    title.textContent=won?"انتصار سحري!":"حاول مرة أخرى";
-    message.textContent=won?"اكتملت أهداف المرحلة!":"خلصت الحركات المتاحة.";
-    button.textContent=won?"استمرار":"إعادة المحاولة";
-  }
-  modal.classList.remove("hidden");
-  modal.style.display="grid";
-  modal.style.visibility="visible";
-  modal.style.opacity="1";
-  modal.style.pointerEvents="auto";
-  modal.style.zIndex="10000";
-  return true;
-}
-function ensureGuestIdentity(){
-  try{
-    let identity=JSON.parse(localStorage.getItem(PLAYER_KEY)||"null");
-    if(!identity||!identity.id){
-      const id=window.crypto&&crypto.randomUUID?crypto.randomUUID():"guest-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
-      identity={id,provider:"guest",createdAt:new Date().toISOString()};
-      localStorage.setItem(PLAYER_KEY,JSON.stringify(identity));
-    }
-    return identity;
-  }catch(e){return {id:"guest-session",provider:"guest"};}
-}
-function saveProgress(completed=false){if(state.replayMode)return;try{
-  const identity=ensureGuestIdentity();
-  const gridReady=Array.isArray(state.grid)&&state.grid.length===ROWS&&state.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(Boolean));
-  const grid=gridReady?state.grid.map(row=>row.map(item=>({type:item.type,special:item.special||null,ice:item.ice||0,obs:item.obs||null}))):null;
-  localStorage.setItem(SAVE_KEY,JSON.stringify({iceDurabilityVersion:2,playerId:identity.id,provider:identity.provider,level:state.level,target:state.target,moves:state.moves,score:state.score,coins:state.coins,stars:state.stars,obstacleGoal:state.obstacleGoal,obstaclesCleared:state.obstaclesCleared,hammer:state.hammer,rockets:state.rockets,colors:state.colors,paints:state.paints,extra:state.extra,lives:state.lives,grid,completed,lossHandled:state.lossHandled,lastHeartAt:state.lastHeartAt,iceRemaining:state.iceRemaining}));
-}catch(e){}}
-function loadProgress(){try{
-  const x=JSON.parse(localStorage.getItem(SAVE_KEY)||"{}");
-  const completed=!!x.completed;
-  const rawLevel=Number(x.level),savedLevel=Number.isFinite(rawLevel)?Math.min(1000000,Math.max(1,Math.floor(rawLevel)||1)):1;
-  state.level=savedLevel+(completed?1:0);state.resumeLevel=state.level;state.replayMode=false;
-  const rawTarget=Number(x.target),fallbackTarget=Math.round(1500*Math.pow(1.22,Math.min(savedLevel-1,1000)));
-   const savedTarget=Number.isFinite(rawTarget)?Math.min(1e12,Math.max(1500,rawTarget)):(Number.isFinite(fallbackTarget)?fallbackTarget:1e12);
-  state.target=0;
-  const defaultMoves=Math.max(18,25-Math.floor(state.level/4));
-  state.moves=completed?defaultMoves:(x.moves!==undefined&&Number.isFinite(Number(x.moves))?Math.max(0,Math.floor(Number(x.moves))):defaultMoves);
-  state.score=completed?0:Math.max(0,Math.floor(Number(x.score)||0));
-  state.lossHandled=!!x.lossHandled||Number(x.moves)===0;
-  state.coins=Number.isFinite(Number(x.coins))?Math.min(999999999,Math.max(0,Math.floor(Number(x.coins)))):500;
-  state.stars=Number.isFinite(Number(x.stars))?Math.min(999999999,Math.max(0,Math.floor(Number(x.stars)))):0;state.obstacleGoal=Math.max(0,Math.floor(Number(x.obstacleGoal)||0));state.obstaclesCleared=Math.max(0,Math.floor(Number(x.obstaclesCleared)||0));
-  state.lives=x.lives===undefined?5:Math.min(5,Math.max(0,Math.floor(Number(x.lives)||0)));
-  const savedHeartTime=Number(x.lastHeartAt);state.lastHeartAt=Number.isFinite(savedHeartTime)&&savedHeartTime>0?Math.min(Date.now(),savedHeartTime):Date.now();applyHeartRegen();
-  const hammerValue=Number(x.hammer),extraValue=Number(x.extra);
-  state.hammer=completed?3:(Number.isFinite(hammerValue)?Math.min(9,Math.max(0,Math.floor(hammerValue))):3);
-  state.rockets=completed?3:(Number.isFinite(Number(x.rockets))?Math.min(9,Math.max(0,Math.floor(Number(x.rockets)))):3);
-  state.colors=completed?3:(Number.isFinite(Number(x.colors))?Math.min(9,Math.max(0,Math.floor(Number(x.colors)))):3);
-  state.paints=completed?3:(Number.isFinite(Number(x.paints))?Math.min(9,Math.max(0,Math.floor(Number(x.paints)))):3);
-  state.extra=completed?2:(Number.isFinite(extraValue)?Math.min(10,Math.max(0,Math.floor(extraValue))):2);
-  const validGrid=Array.isArray(x.grid)&&x.grid.length===ROWS&&x.grid.every(row=>Array.isArray(row)&&row.length===COLS&&row.every(cell=>cell&&Number.isInteger(cell.type)&&cell.type>=1&&cell.type<=TYPES&&(cell.special===null||cell.special==="color"||cell.special==="striped"||cell.special==="wrapped")));
-  state.savedGrid=!completed&&validGrid?x.grid.map(row=>row.map(cell=>({type:cell.type,special:cell.special||null,ice:Math.max(0,Math.min(2,Number(cell.ice)||0))*(Number(x.iceDurabilityVersion)>=2?1:2),obs:cell.obs||null}))):null;
-}catch(e){state.level=1;state.target=1500;state.moves=25;state.score=0;state.coins=500;state.stars=0;state.lives=5;state.lastHeartAt=Date.now();state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;state.savedGrid=null;}}
-function restart(){applyHeartRegen();if(state.busy)return;if(state.lives<=0){say("مفيش قلوب متاحة. استنى استعادة قلب جديد.");return;}state.lossHandled=false;state.endModalShown=false;state.levelReady=false;state.score=0;state.moves=getLevelConfig(state.level).moves;state.obstacleGoal=0;state.obstaclesCleared=0;state.won=false;state.booster=null;
-  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");$("dragon").classList.remove("celebrate","defeat");clearSelection();$("resultModal").classList.add("hidden");$("nextBtn").disabled=true;buildGrid();state.levelReady=true;updateHud();saveProgress(false);$("characterMessage").textContent="بدّل الحلوى واجمع 3 أو أكثر!";}
-async function useHammer(cell){
-  if(state.won||state.busy)return;
-  const it=state.grid[cell.r][cell.c];if(!it)return;
-  state.busy=true;clearSelection();
-  try{
-    if(it.ice>0){damageIceAt(cell.r,cell.c,40);state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);refreshBoosterBadges();updateHud();await settle();return;}
-    burstAt(it.mesh.position,it.type);it.mesh.dispose();state.grid[cell.r][cell.c]=null;
-    state.score+=100;state.moves=Math.max(0,state.moves-1);state.hammer=Math.max(0,state.hammer-1);
-    refreshBoosterBadges();
-    state.booster=null;const hammerButton=$("hammerBtn")||$("bombBtn");if(hammerButton)hammerButton.classList.remove("active");
-    const replacement={type:rand(),special:null,mesh:null};
-    replacement.mesh=candyMesh(cell.r,cell.c,replacement.type,null);
-    replacement.mesh.position.y=5.5;state.grid[cell.r][cell.c]=replacement;
-    await animate(replacement.mesh,pos(cell.r,cell.c),220);await settle();
-  }catch(error){console.error("Hammer action failed:",error);say("حصلت مشكلة في المطرقة، جرّب تاني.");}
-  finally{state.busy=false;updateHud();checkEnd();if(!state.won&&state.moves>0&&!hasPossibleMove())shuffle();saveProgress(state.won);}
-}
-function hasPossibleMove(){
-  // Specials are valid only when a player can legally swap them with an adjacent,
-  // unlocked candy. A frozen/isolated special must not keep a dead board alive.
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    for(const [dr,dc] of [[0,1],[1,0]]){
-      const nr=r+dr,nc=c+dc;if(!inBounds(nr,nc))continue;
-      const a=state.grid[r][c],b=state.grid[nr][nc];
-      if(!a||!b||isCellLocked(a)||isCellLocked(b))continue;
-      // Swapping a special activates it by design, even without a 3+ match.
-      if(a.special||b.special)return true;
-      state.grid[r][c]=b;state.grid[nr][nc]=a;
-      const valid=findMatches().size>0;
-      state.grid[r][c]=a;state.grid[nr][nc]=b;
-      if(valid)return true;
-    }
-  }
-  return false;
-}
-function shuffle(){
-  if(state.busy||state.won||state.grid.flat().some(it=>!it))return;
-  clearSelection();
-  const items=state.grid.flat(),original=items.map(it=>it.type);
-  let playable=false;
-  // A small bounded search prevents a dead-board recovery from freezing mobile devices.
-  for(let attempt=0;attempt<36&&!playable;attempt++){
-    const values=original.slice();
-    for(let i=values.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[values[i],values[j]]=[values[j],values[i]];}
-    for(let i=0;i<items.length;i++)items[i].type=values[i];
-    playable=findMatches().size===0&&hasPossibleMove();
-  }
-  // Build a fresh match-free board if random permutations did not yield a legal move quickly.
-  if(!playable){
-    for(let attempt=0;attempt<12&&!playable;attempt++){
-      const fresh=Array.from({length:ROWS},()=>Array(COLS).fill(0));
-      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-        let type=rand(),tries=0;
-        while(tries++<24&&((c>1&&fresh[r][c-1]===type&&fresh[r][c-2]===type)||(r>1&&fresh[r-1][c]===type&&fresh[r-2][c]===type)))type=rand();
-        fresh[r][c]=type;
-      }
-      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)state.grid[r][c].type=fresh[r][c];
-      playable=findMatches().size===0&&hasPossibleMove();
-    }
-  }
-  // Deterministically create a legal match if random shuffles and fresh boards fail.
-  // Search all four orientations of the classic A-B-A plus adjacent-A swap pattern.
-  if(!playable){
-    const base=items.map(item=>item.type),patterns=[];
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS-2;c++){
-      const line=[[r,c],[r,c+1],[r,c+2]],middle=line[1];
-      if(r<ROWS-1)patterns.push({line,middle,neighbor:[r+1,c+1]});
-      if(r>0)patterns.push({line,middle,neighbor:[r-1,c+1]});
-    }
-    for(let c=0;c<COLS;c++)for(let r=0;r<ROWS-2;r++){
-      const line=[[r,c],[r+1,c],[r+2,c]],middle=line[1];
-      if(c<COLS-1)patterns.push({line,middle,neighbor:[r+1,c+1]});
-      if(c>0)patterns.push({line,middle,neighbor:[r+1,c-1]});
-    }
-    let forced=null;
-    outer:for(const pattern of patterns){
-      const cells=[...pattern.line,pattern.neighbor];
-      if(cells.some(([r,c])=>isCellLocked(state.grid[r][c])))continue;
-      const [r1,c1]=pattern.line[0],[rm,cm]=pattern.middle,[r3,c3]=pattern.line[2],[rn,cn]=pattern.neighbor;
-      for(let a=1;a<=TYPES;a++)for(let b=1;b<=TYPES;b++){
-        if(a===b)continue;
-        for(let i=0;i<items.length;i++)items[i].type=base[i];
-        state.grid[r1][c1].type=a;state.grid[rm][cm].type=b;state.grid[r3][c3].type=a;state.grid[rn][cn].type=a;
-        if(findMatches().size!==0)continue;
-        state.grid[rm][cm].type=a;state.grid[rn][cn].type=b;
-        const legal=findMatches().size>0;
-        state.grid[rm][cm].type=b;state.grid[rn][cn].type=a;
-        if(legal){forced={r1,c1,rm,cm,r3,c3,rn,cn,a,b};break outer;}
-      }
-    }
-    for(let i=0;i<items.length;i++)items[i].type=base[i];
-    if(forced){
-      const {r1,c1,rm,cm,r3,c3,rn,cn,a,b}=forced;
-      state.grid[r1][c1].type=a;state.grid[rm][cm].type=b;state.grid[r3][c3].type=a;state.grid[rn][cn].type=a;
-      playable=findMatches().size===0&&hasPossibleMove();
-    }
-  }
-  if(!playable){
-    for(let i=0;i<items.length;i++)items[i].type=original[i];
-    say("تعذر إعادة ترتيب اللوحة بحركة متاحة. جرّب تاني.");
+  const Core = window.CMRCore;
+  if (!Core) {
+    console.error("[CMR] game-core.js must be loaded before game.js");
     return;
   }
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const it=state.grid[r][c];
-    if(it.mesh&&!it.mesh.isDisposed?.())it.mesh.dispose();
-    it.mesh=candyMesh(r,c,it.type,it.special,it.ice||0);
-  }
-  say("اتخلطت الحلوى! تقدر تكمل اللعب.");
-  saveProgress(false);
-}
-function nextLevel(){
-  if(!state.won)return;
-  if(state.replayMode){
-    state.level=state.resumeLevel;state.replayMode=false;state.won=false;state.busy=false;
-    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
-    $("nextBtn").textContent="المرحلة التالية";$("resultButton").textContent="استمرار";
-    for(const row of state.grid)for(const item of row)if(item?.mesh&&!item.mesh.isDisposed?.())item.mesh.dispose();
-    state.grid=[];state.savedGrid=null;updateHud();window.CMRShowWorldMap?.();return;
-  }
-  state.lossHandled=false;state.levelReady=false;state.endModalShown=false;state.level++;state.target=0;state.moves=Math.max(18,25-Math.floor(state.level/4));state.score=0;state.won=false;state.hammer=3;state.rockets=3;state.colors=3;state.paints=3;state.extra=2;
-  const hammerButton=$("hammerBtn")||$("bombBtn");
-  if(hammerButton){const count=hammerButton.querySelector("small");if(count)count.textContent=state.hammer;hammerButton.disabled=false;}
-  refreshBoosterBadges();
-  const movesButton=$("movesBtn");
-  if(movesButton){const count=movesButton.querySelector("small");if(count)count.textContent=state.extra;movesButton.disabled=false;}
-  $("resultButton").textContent="استمرار";$("queen").classList.remove("celebrate");
-  $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
-  for(const row of state.grid)for(const item of row)if(item?.mesh)item.mesh.dispose();
-  state.grid=[];state.savedGrid=null;state.selected=null;updateHud();saveProgress(false);$("characterMessage").textContent="مستوى جديد وتحدٍ أكبر!";
-  window.CMRShowWorldMap?.();
-}
 
-function refreshBoosterBadges(){
-  const set=(id,value)=>{const el=$(id);if(!el)return;const count=el.querySelector("small");if(count)count.textContent=value;el.disabled=value<=0;};
-  set("bombBtn",state.hammer);set("rocketBtn",state.rockets);set("colorBtn",state.colors);set("paintBtn",state.paints);
-  const moves=$("movesBtn");if(moves){const count=moves.querySelector("small");if(count)count.textContent=state.extra;moves.disabled=state.extra<=0;}
-}
-function ensureShop(){
-  if($("royalShop"))return;
-  const coinsButton=$("plusCoins");
-  if(!coinsButton)return;
-  const trigger=document.createElement("button");
-  trigger.id="shopOpenBtn";trigger.type="button";trigger.className="shop-open-btn";
-  trigger.setAttribute("aria-label","المتجر");trigger.textContent="🛍️";
-  coinsButton.insertAdjacentElement("afterend",trigger);
-  const modal=document.createElement("div");modal.id="royalShop";modal.className="royal-shop hidden";
-  modal.innerHTML='<div class="royal-shop-card" role="dialog" aria-modal="true" aria-labelledby="shopTitle"><button type="button" class="shop-close" aria-label="إغلاق">×</button><div class="shop-crown">♛</div><h2 id="shopTitle">المتجر الملكي</h2><p class="shop-wallet">رصيدك: <b id="shopCoins">0</b> ✦</p><div class="shop-items"><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>قنابل إضافية</b><small>+3 قنابل · بحد أقصى 9</small></div><button type="button" data-buy="hammer">150 ✦</button></article><article class="shop-item"><span class="shop-item-icon">💣</span><div><b>حركات إضافية</b><small>+2 استخدام · بحد أقصى 10</small></div><button type="button" data-buy="moves">120 ✦</button></article><article class="shop-item"><span class="shop-item-icon">❤️</span><div><b>قلب إضافي</b><small>+1 قلب · بحد أقصى 5</small></div><button type="button" data-buy="heart">180 ✦</button></article></div><p class="shop-note">المشتريات بالعملات داخل اللعبة فقط، بدون دفع حقيقي.</p></div>';
-  document.body.appendChild(modal);
-  const close=()=>modal.classList.add("hidden");
-  trigger.addEventListener("click",()=>{refreshShop();modal.classList.remove("hidden");});
-  const closeButton=modal.querySelector(".shop-close");
-  if(closeButton)closeButton.addEventListener("click",close);
-  modal.addEventListener("click",e=>{if(e.target===modal)close();});
-  modal.querySelectorAll("[data-buy]").forEach(btn=>btn.addEventListener("click",()=>{
-    const kind=btn.dataset.buy;
-    const offer={hammer:{cost:150,limit:9,amount:3},moves:{cost:120,limit:10,amount:2},heart:{cost:180,limit:5,amount:1}}[kind];
-    const current=kind==="hammer"?state.hammer:kind==="moves"?state.extra:state.lives;
-    if(current>=offer.limit){say(kind==="heart"?"قلوبك كاملة بالفعل!":"وصلت للحد الأقصى من المعززات.");return;}
-    if(state.coins<offer.cost){say("عملاتك مش كفاية للشراء ده.");return;}
-    state.coins-=offer.cost;
-    if(kind==="hammer")state.hammer=Math.min(offer.limit,state.hammer+offer.amount);
-    if(kind==="moves")state.extra=Math.min(offer.limit,state.extra+offer.amount);
-    if(kind==="heart"){state.lives=Math.min(5,state.lives+1);if(state.lives===5)state.lastHeartAt=Date.now();}
-    updateHud();refreshBoosterBadges();saveProgress(false);playSfx("coin");refreshShop();
-    say("تم الشراء بنجاح!");
-  }));
-}
-function refreshShop(){const wallet=$("shopCoins");if(wallet)wallet.textContent=state.coins.toLocaleString("en-US");}
+  const COLS = 7;
+  const ROWS = 8;
+  const SPACING = 1.0;
+  const TYPES = 6;
+  const CANDY_FIT = 0.88;
+  const SAVE_KEY = "cmr_reborn_v1";
+  const PLAYER_KEY = "cmr_player_identity_v1";
+  const CLAIMED_KEY = "cmr_claimed_levels_v1";
 
-function bindUI(){
-  ensureShop();
-  const bind=(id,handler)=>{const el=$(id);if(el)el.addEventListener("click",handler);};
-  bind("restartBtn",restart);
-  bind("nextBtn",nextLevel);
-  bind("resultButton",()=>{if(!state.won&&state.moves<=0)restart();else nextLevel();});
-  const toggleBooster=(id,kind,count)=>bind(id,()=>{
-    if(state.won||count()<=0)return;
-    state.booster=state.booster===kind?null:kind;
-    const mapping={paintBtn:"paint",bombBtn:"bomb",colorBtn:"color",rocketBtn:"rocket"};
-    for(const key of Object.keys(mapping)){const el=$(key);if(el)el.classList.toggle("active",state.booster===mapping[key]);}
-    const labels={bomb:"اختار حلوى لتحديد مركز انفجار 3×3",rocket:"اختار حلوى لمسح الصف والعمود",color:"اختار لون الحلوى اللي كرة الألوان هتمسحه",paint:"اختار حلوى وغيّر لونها للون حلوى مجاورة"};
-    say(state.booster?labels[kind]:"تم إلغاء المساعد");
-  });
-  toggleBooster("bombBtn","bomb",()=>state.hammer);toggleBooster("rocketBtn","rocket",()=>state.rockets);
-  toggleBooster("colorBtn","color",()=>state.colors);toggleBooster("paintBtn","paint",()=>state.paints);
-  bind("shuffleBtn",shuffle);
-  bind("movesBtn",()=>{if(state.won||state.extra<=0)return;state.extra--;state.moves+=5;refreshBoosterBadges();updateHud();saveProgress(false);say("+5 حركات إضافية!");});
-  bind("plusCoins",()=>{
-    const today=new Date().toISOString().slice(0,10),key="cmr_daily_reward_v1";
-    let claimed="";try{claimed=localStorage.getItem(key)||"";}catch(e){}
-    if(claimed===today){say("استلمت مكافأة النهارده بالفعل. ارجع بكرة!");return;}
-    state.coins+=100;try{localStorage.setItem(key,today);}catch(e){}
-    updateHud();saveProgress(false);playSfx("coin");say("مكافأة يومية: +100 عملة ذهبية!");
-  });
-  bind("soundBtn",()=>{
-    soundEnabled=!soundEnabled;const soundButton=$("soundBtn");soundButton.textContent=soundEnabled?"♫":"🔇";
-    if(soundEnabled)playSfx("tap");say(soundEnabled?"الصوت اتفتح":"الصوت اتقفل");
-  });
-}
-// FIX: if state.busy stays true for more than 8 seconds (stuck animation or
-// unexpected error), release the lock and re-settle the board.
-let busyWatchdogTimer=null;
-function startBusyWatchdog(){
-  if(busyWatchdogTimer)return;
-  let since=0;
-  busyWatchdogTimer=setInterval(()=>{
-    if(!state.busy){since=0;return;}
-    if(!since){since=Date.now();return;}
-    // Long cascades can legitimately take several seconds on slower phones.
-    // Resolve stalled animation promises, but never launch a second settle()
-    // while the original swap/settle chain is still running.
-    if(Date.now()-since<10000)return;
-    since=Date.now();
-    console.warn("Animation watchdog: resolving pending jobs and checking terminal state");
-    for(const job of Array.from(activeAnimations))job.resolve();
-    activeAnimations.clear();
-    if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
-    // If the last move or last obstacle was completed while an animation
-    // callback stalled, force the result screen instead of leaving gameplay locked.
-    if(state.levelReady&&(state.moves<=0||(state.obstacleGoal>0&&countObstacles()===0))){
-      checkEnd(true);
-    }
-  },1000);
-}
-function ensureBoardArtLayer(){
-  const frame=document.querySelector(".art-board-rim");
-  if(!frame)return null;
-  let img=frame.querySelector("#cmrFiftyBoardArt");
-  if(!img){
-    img=document.createElement("img");
-    img.id="cmrFiftyBoardArt";
-    img.alt="خلفية المرحلة";
-    img.decoding="async";
-    img.loading="eager";
-    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center;z-index:0;pointer-events:none;user-select:none;";
-    frame.insertBefore(img,frame.firstChild);
+  const palette = [
+    { name: "Ruby Heart", color: new BABYLON.Color3(0.96, 0.12, 0.31) },
+    { name: "Sun Drop", color: new BABYLON.Color3(1, 0.48, 0.055) },
+    { name: "Star Sugar", color: new BABYLON.Color3(1, 0.79, 0.12) },
+    { name: "Emerald Leaf", color: new BABYLON.Color3(0.12, 0.78, 0.38) },
+    { name: "Sky Diamond", color: new BABYLON.Color3(0.12, 0.61, 1) },
+    { name: "Violet Jelly", color: new BABYLON.Color3(0.68, 0.25, 0.96) },
+  ];
+
+  const OBSTACLE_DEFS = {
+    single_ice: { img: "1", hp: 1, adj: true, self: true, spread: false, reward: false },
+    double_ice: { img: "2", hp: 2, adj: true, self: true, spread: false, reward: false },
+    stone_wall: { img: "3", hp: 2, adj: true, self: false, spread: false, reward: false },
+    rope_net: { img: "4", hp: 2, adj: true, self: false, spread: false, reward: false },
+    vault: { img: "5", hp: 3, adj: true, self: false, spread: false, reward: true },
+    roots: { img: "6", hp: 2, adj: true, self: false, spread: true, reward: false },
+    golden_cage: { img: "7", hp: 2, adj: false, self: true, spread: false, reward: true },
+    iron_cage: { img: "8", hp: 2, adj: false, self: true, spread: false, reward: false },
+    whirlpool: { img: "9", hp: 1, adj: true, self: false, spread: false, reward: true },
+  };
+
+  const candyImages = {
+    1: "./01_star_gold.png",
+    2: "./02_heart_rainbow.png",
+    3: "./03_diamond_blue.png",
+    4: "./04_flower_purple.png",
+    5: "./05_crown_green.png",
+    6: "./06_lollipop_red.png",
+  };
+  const candyImageRatios = { 1: 1.01, 2: 0.99, 3: 0.84, 4: 1.24, 5: 1.0, 6: 1.02 };
+
+  const specialSpriteSources = {
+    wrapped: {
+      1: "./14_bag_gold.png",
+      2: "./15_bag_rainbow.png",
+      3: "./16_bag_diamond_blue.png",
+      4: "./17_bag_flower_purple.png",
+      5: "./18_bag_crown_green.png",
+      6: "./19_bag_lollipop_red.png",
+    },
+    color: "./13_chocolate_ball.png",
+    striped: {
+      1: "./21_rocket_crown_gold.png",
+      2: "./22_rocket_crown_rainbow.png",
+      3: "./23_rocket_diamond_blue.png",
+      4: "./24_rocket_flower_purple.png",
+      5: "./25_rocket_crown_green.png",
+      6: "./26_rocket_lollipop_red.png",
+    },
+  };
+
+  const STORE_DAILY_KEY = "cmr_store_daily_v1";
+  const stateMachine = Core.createGameStateMachine();
+  const heartGuard = Core.createHeartActionGuard();
+  const storeEngine = Core.createStoreEngine();
+
+  const state = {
+    grid: [],
+    savedGrid: null,
+    score: 0,
+    moves: 25,
+    level: 1,
+    highestUnlocked: 1,
+    resumeLevel: 1,
+    replayMode: false,
+    coins: 500,
+    gems: 25,
+    stars: 0,
+    lives: 5,
+    lastHeartAt: Date.now(),
+    selected: null,
+    lossHandled: false,
+    levelReady: false,
+    booster: null,
+    hammer: 3,
+    rockets: 3,
+    colors: 3,
+    paints: 3,
+    extra: 2,
+    iceRemaining: 0,
+    obstacleGoal: 0,
+    obstaclesCleared: 0,
+    obstacleGrowthTurns: 0,
+    settingsOpen: false,
+    settingsContext: "gameplay",
+    activeConfirmToken: null,
+    activeStoreCategory: "coins",
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const rand = () => 1 + Math.floor(Math.random() * TYPES);
+  const pos = (r, c) =>
+    new BABYLON.Vector3((c - (COLS - 1) / 2) * SPACING, 0, ((ROWS - 1) / 2 - r) * SPACING);
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+
+  let engine = null;
+  let scene = null;
+  let camera = null;
+  let canvas = null;
+  let renderLoop = null;
+  let toastTimer = null;
+  let heartTimer = null;
+  let busyWatchdogTimer = null;
+  let animationFrame = 0;
+  let gameInitialized = false;
+
+  const materials = [];
+  let shineSharedMaterial = null;
+  const spriteMaterials = {};
+  const spriteTextures = {};
+  const specialSpriteMaterials = {};
+  const specialSpriteTextures = {};
+  const specialRingSharedMaterials = {};
+  const iceStageTextures = {};
+  const iceStageMaterials = {};
+  const obstacleMaterials = {};
+  const candyTrim = {};
+  const activeAnimations = new Set();
+  const activeVfxMeshes = new Set();
+  const vfxMaterials = {};
+  const VFX_MESH_LIMIT = 64;
+
+  function playSfx(kind) {
+    const map = {
+      match: "match",
+      swap: "swap",
+      coin: "coin",
+      tap: "click",
+      win: "win",
+      lose: "lose",
+      bomb: "booster",
+      rocket: "booster",
+      color: "booster",
+      ice: "ice",
+      boss: "boss",
+    };
+    window.CMRAudio?.playSfx?.(map[kind] || kind || "click");
   }
-  const art=$("royalArtboard");
-  if(art)art.style.display="none";
-  const canvas=$("renderCanvas");
-  if(canvas){canvas.style.zIndex="1";canvas.style.background="transparent";}
-  return img;
-}
-async function loadFiftyBoardArt(level){
- try{
-  const img=ensureBoardArtLayer();if(!img)return;
-  if(typeof window.CMRGetBoardArtUrl!=="function")return;
-  const url=await window.CMRGetBoardArtUrl(level);
-  const stage=((Math.max(1,Number(level)||1)-1)%50)+1;
-  if(img.dataset.boardStage!==String(stage)){img.src=url;img.dataset.boardStage=String(stage);img.alt="تصميم لوحة المرحلة "+stage;}
- }catch(error){console.warn("[CMR 50 Boards] gameplay artwork load failed:",error);}
-}
-function setBoardBackground(level){
-   void loadFiftyBoardArt(level);
-  const current=Math.max(1,Math.floor(Number(level)||1));
-  const realm=Math.floor((current-1)/50)%4+1;
-  const house=((current-1)%50)+1;
-  const art=$("royalArtboard");
-  if(art){art.style.display="none";art.removeAttribute("src");}
-  const shell=document.querySelector(".game-shell");
-  if(shell)shell.style.background="linear-gradient(145deg,#35124f,#180b35 58%,#3b164e)";
-  const x=12+((house*17)%77),y=12+((house*23)%76),zoom=106+((house*7)%19);
-  document.documentElement.style.setProperty("--cmr-realm-render",`url("./assets/world-render-0${realm}.svg")`);
-  document.documentElement.style.setProperty("--cmr-realm-position",`${x}% ${y}%`);
-  document.documentElement.style.setProperty("--cmr-realm-zoom",`${zoom}% auto`);
-  document.documentElement.style.setProperty("--cmr-house-hue",((house-1)*29)%360+"deg");
-  document.documentElement.style.setProperty("--cmr-house-light",(.96+((house%7)*.012)).toFixed(2));
-  document.body.dataset.realm=String(realm);
-  document.body.dataset.house=String(house);
-}
-async function start(){
-  loadProgress();
-  state.levelReady=false;state.endModalShown=false;
-  const loading=$("loading");
-  if(loading){loading.style.display="grid";loading.textContent="جاري تجهيز الحلوى الملكية...";}
-  setupScene();
-  // Do not create placeholder 3D candies. Wait until the six supplied PNG
-  // textures are ready, then reveal the board with the correct artwork only.
-  await preloadCandyTextures();
-  bindUI();updateHud();startHeartClock();startBusyWatchdog();
-  if(loading)loading.style.display="none";
-  refreshBoosterBadges();
-  $("characterMessage").textContent="أهلاً بك! أنقذ مملكتي بالحلوى.";
-  // The first board is created only after a house is selected on the map.
-}
-let gameInitialized=false;
-window.CMRStartSelectedHouse=async(selectedLevel)=>{
-  // Reveal gameplay first; the hidden game shell was preventing the user from
-  // seeing the board whenever Babylon initialization failed.
-  document.body.classList.add("game-started");
-  window.CMRHideWorldMap?.();
-  try{
-    if(!gameInitialized){
-      await start();
-      gameInitialized=true;
+
+  function say(message) {
+    const el = $("toast");
+    if (!el) return;
+    el.textContent = String(message || "");
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  function syncPhaseAttributes() {
+    const shell = $("gameShell");
+    const phase = stateMachine.phase;
+    const meta = Core.getStageMeta(state.level);
+    if (shell) {
+      shell.dataset.phase = phase;
+      shell.dataset.level = String(state.level);
+      shell.dataset.palace = String(meta.palaceNumber);
+      shell.dataset.boss = String(meta.isBossStage);
+      shell.dataset.obstacles = String(state.iceRemaining);
+      shell.dataset.hearts = String(state.lives);
+      shell.dataset.moves = String(state.moves);
     }
-    const requested=Number.isFinite(Number(selectedLevel))?Math.max(1,Math.floor(Number(selectedLevel))):state.level;
-    state.resumeLevel=Math.max(state.resumeLevel||1,state.level);
-    state.replayMode=requested<state.resumeLevel;
-    state.level=requested;
-    setBoardBackground(requested);
-    state.target=0;
-    state.moves=Math.max(18,25-Math.floor(requested/4));
-    state.score=0;state.won=false;state.busy=false;state.lossHandled=false;state.levelReady=false;state.endModalShown=false;
-    state.booster=null;state.savedGrid=null;
-    $("resultModal").classList.add("hidden");$("nextBtn").disabled=true;
-    $("nextBtn").textContent=state.replayMode?"العودة للخريطة":"المرحلة التالية";
-    $("resultButton").textContent="استمرار";
-    buildGrid();state.levelReady=true;updateHud();refreshBoosterBadges();saveProgress(false);
-    return true;
-  }catch(error){
-    console.error("House game initialization failed:",error);
-    const detail=(error?.name?error.name+": ":"")+(error?.message||String(error)||"خطأ غير معروف");
-    const loading=document.getElementById("loading");
-    if(loading){
-      loading.style.display="grid";
-      loading.style.zIndex="5";
-      loading.style.padding="18px";
-      loading.style.textAlign="center";
-      loading.style.whiteSpace="normal";
-      loading.textContent="تعذر تجهيز اللوحة\n"+detail;
+    if (!document.body.classList.contains("map-open")) {
+      const startScreen = $("startScreen");
+      const loadingOverlay = $("loadingVideoOverlay");
+      const onStart = startScreen && !startScreen.classList.contains("hidden");
+      const onLoading = loadingOverlay && !loadingOverlay.classList.contains("hidden");
+      if (!onStart && !onLoading) {
+        if (state.settingsOpen) document.body.dataset.state = "paused";
+        else if (phase === Core.GAME_STATES.WON) document.body.dataset.state = "won";
+        else if (phase === Core.GAME_STATES.LOST) document.body.dataset.state = "lost";
+        else document.body.dataset.state = "playing";
+      }
     }
-    const diagnostic=document.getElementById("toast");
-    if(diagnostic){diagnostic.textContent="تعذر تشغيل اللعبة: "+detail;diagnostic.classList.add("show");}
+  }
+
+  function applyHeartRegen() {
+    const now = Date.now();
+    const interval = 30 * 60 * 1000;
+    if (state.lives >= Core.MAX_LIVES) {
+      state.lives = Core.MAX_LIVES;
+      state.lastHeartAt = now;
+      return;
+    }
+    if (!state.lastHeartAt || state.lastHeartAt > now) {
+      state.lastHeartAt = now;
+      return;
+    }
+    const gained = Math.floor((now - state.lastHeartAt) / interval);
+    if (gained > 0) {
+      state.lives = Math.min(Core.MAX_LIVES, state.lives + gained);
+      state.lastHeartAt =
+        state.lives >= Core.MAX_LIVES ? now : state.lastHeartAt + gained * interval;
+    }
+  }
+
+  function startHeartClock() {
+    if (heartTimer) clearInterval(heartTimer);
+    heartTimer = setInterval(() => {
+      const before = state.lives;
+      applyHeartRegen();
+      if (state.lives !== before) {
+        updateHud();
+        saveProgress(false);
+      }
+    }, 60000);
+  }
+
+  function isCellLocked(cell) {
+    return Boolean(cell && (cell.obs || cell.ice > 0));
+  }
+
+  function countObstacles() {
+    let n = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const it = state.grid[r]?.[c];
+        if (it && (it.obs || it.ice > 0)) n++;
+      }
+    }
+    return n;
+  }
+
+  // ---- Materials & Textures ----
+  function makeMaterial(type) {
+    const index = Math.max(1, Math.min(TYPES, Number(type) || 1));
+    if (materials[index]) return materials[index];
+    const mat = new BABYLON.StandardMaterial("candyMaterial_" + index, scene);
+    mat.diffuseColor = palette[index - 1].color.clone();
+    mat.emissiveColor = palette[index - 1].color.scale(0.18);
+    mat.specularColor = new BABYLON.Color3(0.82, 0.82, 0.82);
+    mat.specularPower = 48;
+    materials[index] = mat;
+    return mat;
+  }
+
+  function loadCandyTrim(type) {
+    return new Promise((resolve) => {
+      const src = candyImages[type];
+      if (!src) {
+        resolve();
+        return;
+      }
+      const img = new Image();
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      const timeout = setTimeout(finish, 4000);
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth;
+          const h = img.naturalHeight;
+          const sample = 96;
+          const scale = Math.min(1, sample / Math.max(w, h));
+          const sw = Math.max(1, Math.round(w * scale));
+          const sh = Math.max(1, Math.round(h * scale));
+          const cv = document.createElement("canvas");
+          cv.width = sw;
+          cv.height = sh;
+          const ctx = cv.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, sw, sh);
+            const d = ctx.getImageData(0, 0, sw, sh).data;
+            let x0 = sw,
+              y0 = sh,
+              x1 = -1,
+              y1 = -1;
+            for (let y = 0; y < sh; y++) {
+              for (let x = 0; x < sw; x++) {
+                if (d[(y * sw + x) * 4 + 3] > 35) {
+                  if (x < x0) x0 = x;
+                  if (x > x1) x1 = x;
+                  if (y < y0) y0 = y;
+                  if (y > y1) y1 = y;
+                }
+              }
+            }
+            if (x1 >= x0 && y1 >= y0) {
+              x1++;
+              y1++;
+              candyTrim[type] = {
+                u0: x0 / sw,
+                u1: x1 / sw,
+                v0: 1 - y1 / sh,
+                v1: 1 - y0 / sh,
+                ratio: (x1 - x0) / (y1 - y0),
+              };
+            }
+          }
+        } catch (err) {
+          console.warn("[CMR] Candy trim failed:", type, err);
+        }
+        clearTimeout(timeout);
+        finish();
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        finish();
+      };
+      img.src = src;
+    });
+  }
+
+  function candySpriteMaterial(type) {
+    if (spriteMaterials[type]) return spriteMaterials[type];
+    const mat = new BABYLON.StandardMaterial("candyArtworkMat_" + type, scene);
+    mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    mat.disableLighting = true;
+    mat.backFaceCulling = false;
+    mat.useAlphaFromDiffuseTexture = true;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+    const source = candyImages[type];
+    if (!source) {
+      spriteMaterials[type] = mat;
+      return mat;
+    }
+    const texture = new BABYLON.Texture(
+      source,
+      scene,
+      false,
+      true,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      () => {
+        texture.hasAlpha = true;
+        mat.diffuseTexture = texture;
+        mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);
+      }
+    );
+    texture.hasAlpha = true;
+    texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    mat.diffuseTexture = texture;
+    spriteTextures[type] = texture;
+    spriteMaterials[type] = mat;
+    return mat;
+  }
+
+  function specialSpriteMaterial(key, source) {
+    if (specialSpriteMaterials[key]) return specialSpriteMaterials[key];
+    const mat = new BABYLON.StandardMaterial("specialSpriteMat_" + key, scene);
+    mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    mat.disableLighting = true;
+    mat.backFaceCulling = false;
+    mat.useAlphaFromDiffuseTexture = true;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+    const texture = new BABYLON.Texture(
+      source,
+      scene,
+      false,
+      true,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      () => {
+        texture.hasAlpha = true;
+        mat.diffuseTexture = texture;
+        mat.markAsDirty(BABYLON.Material.TextureDirtyFlag);
+      }
+    );
+    texture.hasAlpha = true;
+    texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+    mat.diffuseTexture = texture;
+    specialSpriteTextures[key] = texture;
+    specialSpriteMaterials[key] = mat;
+    return mat;
+  }
+
+  function makeObstacleMaterial(type, hp) {
+    const t = OBSTACLE_DEFS[type] ? type : "single_ice";
+    const key = t + "_" + hp;
+    if (obstacleMaterials[key]) return obstacleMaterials[key];
+    const def = OBSTACLE_DEFS[t];
+    const mat = new BABYLON.StandardMaterial("obsMat_" + key, scene);
+    const dt = new BABYLON.DynamicTexture("obsTex_" + key, { width: 256, height: 256 }, scene, true);
+    dt.hasAlpha = true;
+    const ctx = dt.getContext();
+
+    // Immediate clean crystalline fallback before PNG finishes loading
+    ctx.clearRect(0, 0, 256, 256);
+    ctx.fillStyle = "rgba(155, 224, 255, 0.55)";
+    ctx.fillRect(14, 14, 228, 228);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.lineWidth = 8;
+    ctx.strokeRect(18, 18, 220, 220);
+    dt.update();
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      ctx.clearRect(0, 0, 256, 256);
+      ctx.drawImage(img, 8, 8, 240, 240);
+      if (hp < def.hp) {
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(46, 46);
+        ctx.lineTo(118, 126);
+        ctx.lineTo(82, 206);
+        ctx.stroke();
+      }
+      if (hp > 1) {
+        ctx.fillStyle = "#d82b59";
+        ctx.beginPath();
+        ctx.arc(206, 50, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fff3b8";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 34px Cairo, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(hp), 206, 52);
+      }
+      dt.update();
+    };
+    img.src = `./assets/packs/blockers/${def.img}.png`;
+
+    mat.diffuseTexture = dt;
+    mat.opacityTexture = dt;
+    mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+    mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    mat.disableLighting = true;
+    mat.alpha = t === "single_ice" || t === "double_ice" ? 0.86 : 0.96;
+    mat.useAlphaFromDiffuseTexture = true;
+    mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+    mat.backFaceCulling = false;
+    obstacleMaterials[key] = mat;
+    return mat;
+  }
+
+  async function preloadCandyTextures() {
+    await Promise.all(Object.keys(candyImages).map(loadCandyTrim));
+    await Promise.all(
+      Object.keys(candyImages).map(async (type) => {
+        candySpriteMaterial(Number(type));
+        const texture = spriteTextures[type];
+        if (!texture || texture.isReady()) return;
+        const started = Date.now();
+        while (!texture.isReady() && Date.now() - started < 3500) {
+          await wait(50);
+        }
+      })
+    );
+  }
+
+  function candyMesh(r, c, type, special, ice = 0, obsOverride = null) {
+    const root = new BABYLON.TransformNode("candyRoot_" + r + "_" + c, scene);
+    root.position = pos(r, c);
+    root.metadata = { r, c, candy: true };
+    root.isPickable = false;
+
+    // 3D fallback sphere kept until PNG sprite is ready
+    const body = BABYLON.MeshBuilder.CreateSphere(
+      "candy3D_" + r + "_" + c,
+      { diameter: SPACING * 0.78, segments: 18 },
+      scene
+    );
+    body.parent = root;
+    body.position.y = 0.16;
+    body.scaling.y = 0.48;
+    body.material = makeMaterial(type);
+    body.isPickable = true;
+    body.metadata = { r, c, candy: true };
+
+    const shine = BABYLON.MeshBuilder.CreateSphere(
+      "candyShine_" + r + "_" + c,
+      { diameter: SPACING * 0.14, segments: 10 },
+      scene
+    );
+    shine.parent = root;
+    shine.position = new BABYLON.Vector3(-0.12, 0.29, -0.11);
+    shine.scaling = new BABYLON.Vector3(1, 0.28, 0.62);
+    if (!shineSharedMaterial) {
+      shineSharedMaterial = new BABYLON.StandardMaterial("candyShineShared", scene);
+      shineSharedMaterial.diffuseColor = new BABYLON.Color3(1, 1, 1);
+      shineSharedMaterial.emissiveColor = new BABYLON.Color3(0.22, 0.22, 0.22);
+      shineSharedMaterial.alpha = 0.7;
+    }
+    shine.material = shineSharedMaterial;
+    shine.isPickable = false;
+
+    const artworkPath = candyImages[type];
+    if (artworkPath && !special) {
+      const trim = candyTrim[type];
+      const ratio = trim ? trim.ratio : candyImageRatios[type] || 1;
+      const maxSide = SPACING * CANDY_FIT;
+      const artworkWidth = ratio >= 1 ? maxSide : maxSide * ratio;
+      const artworkHeight = ratio >= 1 ? maxSide / ratio : maxSide;
+      const planeOpts = { width: artworkWidth, height: artworkHeight };
+      if (trim) {
+        planeOpts.frontUVs = new BABYLON.Vector4(trim.u0, trim.v0, trim.u1, trim.v1);
+      }
+      const artwork = BABYLON.MeshBuilder.CreatePlane(
+        "candyArtwork_" + r + "_" + c,
+        planeOpts,
+        scene
+      );
+      artwork.parent = root;
+      artwork.rotation.x = Math.PI / 2;
+      artwork.position = new BABYLON.Vector3(0, 0.36, 0);
+      artwork.material = candySpriteMaterial(type);
+      artwork.isPickable = false;
+      artwork.isVisible = false;
+      const texture = spriteTextures[type];
+      const revealArtwork = () => {
+        if (root.isDisposed?.()) return;
+        artwork.isVisible = true;
+        body.setEnabled(false);
+        shine.setEnabled(false);
+      };
+      const revealWhenReady = () => {
+        if (root.isDisposed?.()) return;
+        if (texture && texture.isReady()) {
+          revealArtwork();
+          return;
+        }
+        if (texture) setTimeout(revealWhenReady, 60);
+      };
+      revealWhenReady();
+    }
+
+    if (special) {
+      const ringKind =
+        special === "wrapped" ? "wrapped" : special === "color" ? "color" : "striped";
+      if (!specialRingSharedMaterials[ringKind]) {
+        const ringMat = new BABYLON.StandardMaterial("specialRingShared_" + ringKind, scene);
+        ringMat.diffuseColor =
+          ringKind === "wrapped"
+            ? new BABYLON.Color3(1, 0.72, 0.18)
+            : ringKind === "color"
+            ? new BABYLON.Color3(0.9, 0.55, 1)
+            : new BABYLON.Color3(0.25, 0.9, 1);
+        ringMat.emissiveColor = ringMat.diffuseColor.scale(0.75);
+        specialRingSharedMaterials[ringKind] = ringMat;
+      }
+      const ring = BABYLON.MeshBuilder.CreateTorus(
+        "specialRing_" + r + "_" + c,
+        { diameter: SPACING * 0.84, thickness: 0.048, tessellation: 24 },
+        scene
+      );
+      ring.parent = root;
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.14;
+      ring.material = specialRingSharedMaterials[ringKind];
+      ring.isPickable = false;
+
+      const specialSpritePath =
+        special === "wrapped"
+          ? specialSpriteSources.wrapped[type] || specialSpriteSources.wrapped[1]
+          : special === "color"
+          ? specialSpriteSources.color
+          : specialSpriteSources.striped[type] || specialSpriteSources.striped[1];
+
+      if (specialSpritePath) {
+        const spriteKey = special + "_" + type;
+        const art = BABYLON.MeshBuilder.CreatePlane(
+          "specialCandyArtwork_" + r + "_" + c,
+          { width: SPACING * 0.9, height: SPACING * 0.9 },
+          scene
+        );
+        art.parent = root;
+        art.rotation.x = Math.PI / 2;
+        art.position.y = 0.41;
+        art.material = specialSpriteMaterial(spriteKey, specialSpritePath);
+        art.isPickable = false;
+        art.isVisible = false;
+        const texture = specialSpriteTextures[spriteKey];
+        const revealSpecial = () => {
+          if (root.isDisposed?.()) return;
+          art.isVisible = true;
+          for (const child of root.getChildMeshes()) {
+            if (child !== art && child.name !== "iceOverlay" && !child.name.startsWith("iceCube")) {
+              child.setEnabled(false);
+            }
+          }
+        };
+        const revealSpecialWhenReady = () => {
+          if (root.isDisposed?.()) return;
+          if (texture && texture.isReady()) {
+            revealSpecial();
+            return;
+          }
+          if (texture) setTimeout(revealSpecialWhenReady, 60);
+        };
+        revealSpecialWhenReady();
+      }
+    }
+
+    const obs = obsOverride !== null ? obsOverride : state.grid[r]?.[c]?.obs || null;
+    if (ice > 0) {
+      const obsKey = obs || (ice >= 2 ? "double_ice" : "single_ice");
+      const obsMesh = BABYLON.MeshBuilder.CreatePlane(
+        "iceOverlay",
+        { width: SPACING * 0.9, height: SPACING * 0.9 },
+        scene
+      );
+      obsMesh.parent = root;
+      obsMesh.position.y = 0.48;
+      obsMesh.rotation.x = Math.PI / 2;
+      obsMesh.material = makeObstacleMaterial(obsKey, ice);
+      obsMesh.isPickable = false;
+      obsMesh.renderingGroupId = 2;
+    }
+
+    return root;
+  }
+
+  // ---- Animations (Guaranteed Non-Hanging) ----
+  function cancelAllAnimations() {
+    for (const job of Array.from(activeAnimations)) {
+      activeAnimations.delete(job);
+      try {
+        job.resolve();
+      } catch (_) {}
+    }
+    if (animationFrame) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = 0;
+    }
+  }
+
+  function runAnimations() {
+    animationFrame = 0;
+    const now = performance.now();
+    try {
+      for (const job of Array.from(activeAnimations)) {
+        if (!job.mesh || job.mesh.isDisposed?.()) {
+          activeAnimations.delete(job);
+          job.resolve();
+          continue;
+        }
+        const t = Math.max(0, Math.min(1, (now - job.begin) / job.duration));
+        const e = 1 - Math.pow(1 - t, 3);
+        BABYLON.Vector3.LerpToRef(job.start, job.target, e, job.mesh.position);
+        if (t >= 1) {
+          activeAnimations.delete(job);
+          job.resolve();
+        }
+      }
+    } catch (err) {
+      console.error("[CMR] Animation loop error:", err);
+      cancelAllAnimations();
+    }
+    if (activeAnimations.size) {
+      animationFrame = requestAnimationFrame(runAnimations);
+    }
+  }
+
+  function animate(mesh, target, duration = 165) {
+    return new Promise((resolve) => {
+      if (!mesh || mesh.isDisposed?.()) {
+        resolve();
+        return;
+      }
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      const job = {
+        mesh,
+        start: mesh.position.clone(),
+        target: target.clone(),
+        duration,
+        begin: performance.now(),
+        resolve: finish,
+      };
+      activeAnimations.add(job);
+      setTimeout(() => {
+        if (activeAnimations.delete(job) && mesh && !mesh.isDisposed?.()) {
+          mesh.position.copyFrom(target);
+        }
+        finish();
+      }, duration + 450);
+      if (!animationFrame) animationFrame = requestAnimationFrame(runAnimations);
+    });
+  }
+
+  // ---- Scene Setup (Exact 7x8 Orthographic Fit) ----
+  function setupScene() {
+    if (engine && scene) return;
+    if (!window.BABYLON || typeof BABYLON.Engine !== "function") {
+      throw new Error("مكتبة Babylon.js لم يتم تحميلها");
+    }
+    canvas = $("renderCanvas");
+    if (!canvas || typeof canvas.addEventListener !== "function") {
+      throw new Error("لوحة اللعب renderCanvas غير موجودة");
+    }
+    const isMobileViewport = window.matchMedia("(max-width: 900px)").matches;
+    engine = new BABYLON.Engine(
+      canvas,
+      true,
+      { alpha: true, preserveDrawingBuffer: false, stencil: false, antialias: !isMobileViewport },
+      false
+    );
+    engine.setHardwareScalingLevel(isMobileViewport ? 1.35 : 1);
+    engine.enableOfflineSupport = false;
+
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+    scene.skipPointerMovePicking = true;
+    scene.imageProcessingConfiguration.toneMappingEnabled = false;
+
+    // Exact 7 cols (-3.5..+3.5) × 8 rows (-4.0..+4.0) orthographic alignment
+    camera = new BABYLON.ArcRotateCamera(
+      "royalCamera",
+      -Math.PI / 2,
+      0.001,
+      14.0,
+      new BABYLON.Vector3(0, 0, 0),
+      scene
+    );
+    camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    camera.orthoLeft = -(COLS * SPACING) / 2;
+    camera.orthoRight = (COLS * SPACING) / 2;
+    camera.orthoTop = (ROWS * SPACING) / 2;
+    camera.orthoBottom = -(ROWS * SPACING) / 2;
+    camera.lowerRadiusLimit = 14.0;
+    camera.upperRadiusLimit = 14.0;
+    camera.inputs.clear();
+    camera.minZ = 0.1;
+    camera.maxZ = 60;
+
+    const hemi = new BABYLON.HemisphericLight("softbox", new BABYLON.Vector3(0, 1, -0.3), scene);
+    hemi.intensity = 1.05;
+    const key = new BABYLON.DirectionalLight("candyKey", new BABYLON.Vector3(-0.35, -1, 0.55), scene);
+    key.position = new BABYLON.Vector3(-4, 10, -6);
+    key.intensity = 0.95;
+
+    bindInput();
+
+    let lastRenderAt = 0;
+    renderLoop = () => {
+      if (document.hidden || document.body.classList.contains("map-open")) return;
+      const now = performance.now();
+      if (now - lastRenderAt < 1000 / 60) return;
+      lastRenderAt = now;
+      scene.render();
+    };
+    engine.runRenderLoop(renderLoop);
+
+    window.CMRPauseGameRender = () => {
+      if (engine && renderLoop) engine.stopRenderLoop(renderLoop);
+    };
+    window.CMRResumeGameRender = () => {
+      if (engine && renderLoop && !document.hidden) {
+        engine.runRenderLoop(renderLoop);
+        engine.resize();
+      }
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && engine) engine.resize();
+    });
+    window.addEventListener(
+      "resize",
+      () => {
+        if (engine) engine.resize();
+      },
+      { passive: true }
+    );
+    requestAnimationFrame(() => engine.resize());
+  }
+
+  // ---- Grid Generation & Obstacles ----
+  function randomType(r, c) {
+    const createsMatch = (t) =>
+      (c > 1 && state.grid[r][c - 1]?.type === t && state.grid[r][c - 2]?.type === t) ||
+      (r > 1 && state.grid[r - 1][c]?.type === t && state.grid[r - 2][c]?.type === t);
+    let t = rand();
+    let tries = 0;
+    while (tries < 12 && createsMatch(t)) {
+      t = rand();
+      tries++;
+    }
+    if (createsMatch(t)) {
+      for (let cand = 1; cand <= TYPES; cand++) {
+        if (!createsMatch(cand)) {
+          t = cand;
+          break;
+        }
+      }
+    }
+    return t;
+  }
+
+  function disposeGridMeshes() {
+    for (const row of state.grid) {
+      if (!Array.isArray(row)) continue;
+      for (const item of row) {
+        if (item?.mesh && !item.mesh.isDisposed?.()) {
+          item.mesh.dispose();
+        }
+      }
+    }
+  }
+
+  function buildGrid() {
+    disposeGridMeshes();
+    const cfg = Core.getLevelConfig(state.level);
+    const obsMap = new Map();
+
+    let initialMoves = cfg.moves;
+    try {
+      const testMovesParam = Number(new URLSearchParams(window.location.search).get("testMoves"));
+      if (Number.isFinite(testMovesParam) && testMovesParam >= 1 && testMovesParam <= 50) {
+        initialMoves = Math.floor(testMovesParam);
+      }
+    } catch (_) {}
+
+    state.moves = initialMoves;
+    state.obstacleGoal = cfg.obstacleCount;
+    state.obstaclesCleared = 0;
+    state.obstacleGrowthTurns = 0;
+
+    // Place obstacles cleanly avoiding all-edge lockups
+    const deck = Array.from({ length: cfg.obstacleCount }, (_, i) => cfg.obstacles[i % cfg.obstacles.length]);
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    for (let n = 0; n < deck.length; n++) {
+      let idx;
+      let tries = 0;
+      do {
+        idx = Math.floor(Math.random() * ROWS * COLS);
+        tries++;
+      } while (obsMap.has(idx) && tries < 100);
+      if (!obsMap.has(idx)) obsMap.set(idx, deck[n]);
+    }
+
+    state.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const type = randomType(r, c);
+        const obs = obsMap.get(r * COLS + c) || null;
+        const ice = obs ? OBSTACLE_DEFS[obs]?.hp || 1 : 0;
+        state.grid[r][c] = { type, special: null, ice, obs, mesh: null };
+        state.grid[r][c].mesh = candyMesh(r, c, type, null, ice, obs);
+      }
+    }
+    state.iceRemaining = countObstacles();
+    state.obstacleGoal = state.iceRemaining;
+
+    if (!hasPossibleMove()) {
+      ensurePlayableTypesInPlace();
+    }
+  }
+
+  function ensurePlayableTypesInPlace() {
+    const items = state.grid.flat().filter(Boolean);
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const vals = items.map((it) => it.type);
+      for (let i = vals.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [vals[i], vals[j]] = [vals[j], vals[i]];
+      }
+      for (let i = 0; i < items.length; i++) items[i].type = vals[i];
+      if (findMatches().size === 0 && hasPossibleMove()) {
+        rebuildGridMeshes();
+        return true;
+      }
+    }
     return false;
   }
-};
-window.addEventListener("DOMContentLoaded",()=>{
-  const facebookModal=$("facebookModal");
-  const bindOptional=(id,handler)=>{const element=$(id);if(element)element.addEventListener("click",handler);};
-  bindOptional("facebookLoginBtn",()=>{if(facebookModal)facebookModal.classList.remove("hidden");});
-  bindOptional("facebookCloseBtn",()=>{if(facebookModal)facebookModal.classList.add("hidden");});
-  bindOptional("facebookGuestBtn",()=>{if(facebookModal)facebookModal.classList.add("hidden");$("startGameBtn")?.click();});
-});
+
+  function rebuildGridMeshes() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const it = state.grid[r]?.[c];
+        if (!it) continue;
+        if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+        it.mesh = candyMesh(r, c, it.type, it.special || null, it.ice || 0, it.obs || null);
+      }
+    }
+  }
+
+  function damageIceAt(r, c, score = 25, source = "booster") {
+    const item = state.grid[r]?.[c];
+    if (!item || (item.ice <= 0 && !item.obs)) return false;
+    const obs = item.obs || (item.ice > 1 ? "double_ice" : "single_ice");
+    const def = OBSTACLE_DEFS[obs] || OBSTACLE_DEFS.single_ice;
+    if (source === "adj" && !def.adj) return false;
+    if (source === "self" && !def.self) return false;
+
+    const impactPosition = item.mesh?.position?.clone();
+    item.ice = Math.max(0, (Number(item.ice) || def.hp || 1) - 1);
+    if (obs === "double_ice" && item.ice === 1) item.obs = "single_ice";
+
+    if (item.ice === 0) {
+      state.obstaclesCleared = Math.min(state.obstacleGoal, state.obstaclesCleared + 1);
+      item.obs = null;
+      if (obs === "vault") {
+        state.coins += 75;
+        state.score += 125;
+        say("فتحت الخزنة الملكية! +75 عملة");
+      } else if (obs === "golden_cage") {
+        state.coins += 50;
+        state.score += 100;
+        say("فتحت القفص الذهبي! +50 عملة");
+      } else if (def.reward) {
+        const sp = ["striped", "wrapped", "color"];
+        item.special = sp[Math.floor(Math.random() * sp.length)];
+      }
+      if (obs === "whirlpool") {
+        const neighbours = [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]
+          .map(([dr, dc]) => [r + dr, c + dc])
+          .filter(
+            ([nr, nc]) =>
+              inBounds(nr, nc) &&
+              state.grid[nr]?.[nc] &&
+              !state.grid[nr][nc].obs &&
+              !(state.grid[nr][nc].ice > 0)
+          );
+        if (neighbours.length) {
+          const [nr, nc] = neighbours[Math.floor(Math.random() * neighbours.length)];
+          const victim = state.grid[nr][nc];
+          if (victim?.mesh && !victim.mesh.isDisposed?.()) {
+            burstAt(victim.mesh.position, victim.type);
+            victim.mesh.dispose();
+          }
+          state.grid[nr][nc] = null;
+          state.score += 80;
+        }
+      }
+    }
+
+    state.iceRemaining = countObstacles();
+    if (item.mesh && !item.mesh.isDisposed?.()) item.mesh.dispose();
+    item.mesh = candyMesh(r, c, item.type, item.special, item.ice, item.obs);
+    state.score += score;
+    if (impactPosition) {
+      iceImpactAt(impactPosition, item.ice);
+      playSfx("ice");
+    }
+    return true;
+  }
+
+  function spreadChocolateIfNeeded() {
+    // NEVER spread obstacles once the objective is already completed or terminal
+    if (stateMachine.isTerminal() || countObstacles() === 0) return;
+    const meta = Core.getStageMeta(state.level);
+    if (meta.palaceNumber < 3) return;
+    state.obstacleGrowthTurns = (state.obstacleGrowthTurns || 0) + 1;
+    if (state.obstacleGrowthTurns % 2 !== 0 || countObstacles() >= 20) return;
+    const cands = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const it = state.grid[r]?.[c];
+        if (it && it.obs === "roots") {
+          for (const [dr, dc] of [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+          ]) {
+            const nr = r + dr,
+              nc = c + dc,
+              nb = state.grid[nr]?.[nc];
+            if (inBounds(nr, nc) && nb && !nb.obs && !nb.ice) cands.push({ item: nb, r: nr, c: nc });
+          }
+        }
+      }
+    }
+    if (!cands.length) return;
+    const pick = cands[Math.floor(Math.random() * cands.length)];
+    pick.item.obs = "roots";
+    pick.item.ice = 1;
+    state.obstacleGoal++;
+    if (pick.item.mesh && !pick.item.mesh.isDisposed?.()) pick.item.mesh.dispose();
+    pick.item.mesh = candyMesh(pick.r, pick.c, pick.item.type, pick.item.special, 1, "roots");
+    state.iceRemaining = countObstacles();
+  }
+
+  // ---- Input Mapping (Exact Orthographic Cell Picking) ----
+  function cellScreenPos(r, c) {
+    const rect = canvas.getBoundingClientRect();
+    const cellW = rect.width / COLS;
+    const cellH = rect.height / ROWS;
+    return {
+      x: rect.left + (c + 0.5) * cellW,
+      y: rect.top + (r + 0.5) * cellH,
+    };
+  }
+
+  function pickCellAtClient(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (
+      clientX < rect.left ||
+      clientX > rect.right ||
+      clientY < rect.top ||
+      clientY > rect.bottom
+    ) {
+      return null;
+    }
+    const c = Math.floor(((clientX - rect.left) / rect.width) * COLS);
+    const r = Math.floor(((clientY - rect.top) / rect.height) * ROWS);
+    return inBounds(r, c) ? { r, c } : null;
+  }
+
+  function chooseNeighbour(cell, dx, dy) {
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      const nc = cell.c + (dx > 0 ? 1 : -1);
+      return inBounds(cell.r, nc) ? { r: cell.r, c: nc } : null;
+    }
+    const nr = cell.r + (dy > 0 ? 1 : -1);
+    return inBounds(nr, cell.c) ? { r: nr, c: cell.c } : null;
+  }
+
+  function canInteractWithBoard() {
+    return state.levelReady && !state.settingsOpen && stateMachine.canAcceptInput();
+  }
+
+  function bindInput() {
+    let gesture = null;
+    const reset = () => {
+      gesture = null;
+    };
+
+    canvas.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (!canInteractWithBoard()) return;
+        event.preventDefault();
+        const startCell = pickCellAtClient(event.clientX, event.clientY);
+        if (!startCell) return;
+        gesture = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          startCell,
+          swiped: false,
+        };
+        if (canvas.setPointerCapture) {
+          try {
+            canvas.setPointerCapture(event.pointerId);
+          } catch (_) {}
+        }
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "pointermove",
+      (event) => {
+        if (!gesture || gesture.swiped || event.pointerId !== gesture.pointerId) return;
+        event.preventDefault();
+        if (!canInteractWithBoard()) {
+          reset();
+          return;
+        }
+        const dx = event.clientX - gesture.startX;
+        const dy = event.clientY - gesture.startY;
+        if (Math.hypot(dx, dy) >= 14) {
+          gesture.swiped = true;
+          const next = chooseNeighbour(gesture.startCell, dx, dy);
+          const start = gesture.startCell;
+          gesture = null;
+          if (next) {
+            clearSelection();
+            void swap(start, next);
+          }
+        }
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener(
+      "pointerup",
+      (event) => {
+        if (!gesture || event.pointerId !== gesture.pointerId) return;
+        event.preventDefault();
+        const g = gesture;
+        gesture = null;
+        if (!canInteractWithBoard()) return;
+        if (!g.swiped) tapCell(g.startCell);
+      },
+      { passive: false }
+    );
+
+    canvas.addEventListener("pointercancel", reset, { passive: true });
+    canvas.addEventListener("lostpointercapture", reset, { passive: true });
+    window.addEventListener("blur", reset);
+  }
+
+  function select(cell) {
+    clearSelection();
+    state.selected = cell;
+    const item = state.grid[cell.r]?.[cell.c];
+    if (item?.mesh && !item.mesh.isDisposed?.()) item.mesh.scaling.setAll(1.1);
+    playSfx("tap");
+  }
+
+  function clearSelection() {
+    if (state.selected) {
+      const it = state.grid[state.selected.r]?.[state.selected.c];
+      if (it?.mesh && !it.mesh.isDisposed?.()) it.mesh.scaling.setAll(1);
+    }
+    state.selected = null;
+  }
+
+  function tapCell(cell) {
+    if (!canInteractWithBoard()) return;
+    if (state.booster) {
+      void useSelectedBooster(cell);
+      return;
+    }
+    if (state.selected) {
+      const previous = state.selected;
+      if (previous.r === cell.r && previous.c === cell.c) {
+        clearSelection();
+        return;
+      }
+      if (Math.abs(previous.r - cell.r) + Math.abs(previous.c - cell.c) === 1) {
+        clearSelection();
+        void swap(previous, cell);
+        return;
+      }
+    }
+    select(cell);
+  }
+
+  // ---- Core Match & Resolution Pipeline ----
+  function findMatches() {
+    return Core.findMatchesInGrid(state.grid, ROWS, COLS);
+  }
+
+  function findSpecialCandidate(matches) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!matches.has(r + "," + c)) continue;
+        const item = state.grid[r][c];
+        if (!item) continue;
+        let left = 0,
+          right = 0,
+          up = 0,
+          down = 0;
+        for (let x = c - 1; x >= 0 && state.grid[r][x] && !state.grid[r][x].special && state.grid[r][x].type === item.type; x--) left++;
+        for (let x = c + 1; x < COLS && state.grid[r][x] && !state.grid[r][x].special && state.grid[r][x].type === item.type; x++) right++;
+        for (let y = r - 1; y >= 0 && state.grid[y][c] && !state.grid[y][c].special && state.grid[y][c].type === item.type; y--) up++;
+        for (let y = r + 1; y < ROWS && state.grid[y][c] && !state.grid[y][c].special && state.grid[y][c].type === item.type; y++) down++;
+        if (left + right + 1 >= 3 && up + down + 1 >= 3) {
+          return { length: Math.max(left + right + 1, up + down + 1) + 2, type: "wrapped", cell: { r, c } };
+        }
+      }
+    }
+
+    let best = null;
+    const consider = (cells, type) => {
+      if (cells.length < 4) return;
+      if (
+        !best ||
+        cells.length > best.length ||
+        (cells.length === best.length && type === "color" && best.type !== "color")
+      ) {
+        best = { length: cells.length, type, cell: cells[Math.floor(cells.length / 2)] };
+      }
+    };
+
+    for (let r = 0; r < ROWS; r++) {
+      let c = 0;
+      while (c < COLS) {
+        const item = state.grid[r][c];
+        if (!item || !matches.has(r + "," + c)) {
+          c++;
+          continue;
+        }
+        const type = item.type;
+        let end = c + 1;
+        while (end < COLS && matches.has(r + "," + end) && state.grid[r][end]?.type === type) end++;
+        const cells = [];
+        for (let x = c; x < end; x++) cells.push({ r, c: x });
+        consider(cells, cells.length >= 5 ? "color" : "striped");
+        c = end;
+      }
+    }
+
+    for (let c = 0; c < COLS; c++) {
+      let r = 0;
+      while (r < ROWS) {
+        const item = state.grid[r][c];
+        if (!item || !matches.has(r + "," + c)) {
+          r++;
+          continue;
+        }
+        const type = item.type;
+        let end = r + 1;
+        while (end < ROWS && matches.has(end + "," + c) && state.grid[end][c]?.type === type) end++;
+        const cells = [];
+        for (let y = r; y < end; y++) cells.push({ r: y, c });
+        consider(cells, cells.length >= 5 ? "color" : "striped");
+        r = end;
+      }
+    }
+
+    return best;
+  }
+
+  function hasHoles() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!state.grid[r][c]) return true;
+      }
+    }
+    return false;
+  }
+
+  async function dropAndRefill() {
+    const falling = [];
+    for (let c = 0; c < COLS; c++) {
+      let write = ROWS - 1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        const it = state.grid[r][c];
+        if (it) {
+          if (write !== r) {
+            state.grid[write][c] = it;
+            state.grid[r][c] = null;
+            if (it.mesh) {
+              it.mesh.metadata = { r: write, c, candy: true };
+              falling.push(animate(it.mesh, pos(write, c), 155));
+            }
+          }
+          write--;
+        }
+      }
+      for (let r = write; r >= 0; r--) {
+        const type = rand();
+        const mesh = candyMesh(r, c, type, null, 0, null);
+        const target = pos(r, c);
+        const rowsAbove = write - r + 1;
+        mesh.position = new BABYLON.Vector3(target.x, 0.16, target.z + SPACING * (rowsAbove + 0.6));
+        state.grid[r][c] = { type, special: null, ice: 0, obs: null, mesh };
+        mesh.metadata = { r, c, candy: true };
+        falling.push(animate(mesh, target, Math.min(260, 150 + rowsAbove * 22)));
+      }
+    }
+    await Promise.all(falling);
+    await wait(55);
+  }
+
+  async function activateSpecial(a, b) {
+    const A = state.grid[a.r][a.c];
+    const B = state.grid[b.r][b.c];
+    if (A?.special || B?.special) {
+      const kind = A?.special || B?.special;
+      playSfx(kind === "wrapped" ? "bomb" : kind === "striped" ? "rocket" : "color");
+      if (A?.special === "wrapped") wrappedDetonationAt(a, A.type);
+      else if (A?.special === "striped") rocketSweepAt(a);
+      else if (A?.special === "color") colorChainAt(a, B?.type || null);
+      if (B?.special === "wrapped") wrappedDetonationAt(b, B.type);
+      else if (B?.special === "striped") rocketSweepAt(b);
+      else if (B?.special === "color") colorChainAt(b, A?.type || null);
+    }
+
+    const cells = new Set([a.r + "," + a.c, b.r + "," + b.c]);
+    const addCross = (cell) => {
+      for (let k = 0; k < COLS; k++) cells.add(cell.r + "," + k);
+      for (let k = 0; k < ROWS; k++) cells.add(k + "," + cell.c);
+    };
+
+    if (A?.special === "color" && B?.special === "color") {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) cells.add(r + "," + c);
+    } else if (A?.special === "wrapped" && B?.special === "wrapped") {
+      for (const center of [a, b]) {
+        for (let r = center.r - 2; r <= center.r + 2; r++) {
+          for (let c = center.c - 2; c <= center.c + 2; c++) {
+            if (inBounds(r, c)) cells.add(r + "," + c);
+          }
+        }
+      }
+    } else if (
+      (A?.special === "wrapped" && B?.special === "striped") ||
+      (B?.special === "wrapped" && A?.special === "striped")
+    ) {
+      const center = A.special === "wrapped" ? a : b;
+      for (let offset = -1; offset <= 1; offset++) {
+        for (let c = 0; c < COLS; c++) if (inBounds(center.r + offset, c)) cells.add(center.r + offset + "," + c);
+        for (let r = 0; r < ROWS; r++) if (inBounds(r, center.c + offset)) cells.add(r + "," + (center.c + offset));
+      }
+    } else if (A?.special === "wrapped" || B?.special === "wrapped") {
+      const center = A?.special === "wrapped" ? a : b;
+      for (let r = center.r - 1; r <= center.r + 1; r++) {
+        for (let c = center.c - 1; c <= center.c + 1; c++) {
+          if (inBounds(r, c)) cells.add(r + "," + c);
+        }
+      }
+    } else if (A?.special === "striped" && B?.special === "striped") {
+      addCross(a);
+      addCross(b);
+    } else if (A?.special === "color" || B?.special === "color") {
+      const other = A.special === "color" ? B : A;
+      const target = other?.type;
+      if (target) {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (state.grid[r][c]?.type === target) {
+              cells.add(r + "," + c);
+              if (other.special === "striped") addCross({ r, c });
+            }
+          }
+        }
+      }
+    } else {
+      if (A?.special === "striped") addCross(a);
+      if (B?.special === "striped") addCross(b);
+    }
+
+    for (const key of cells) {
+      const [r, c] = key.split(",").map(Number);
+      const it = state.grid[r]?.[c];
+      if (!it) continue;
+      if (it.ice > 0 || it.obs) {
+        damageIceAt(r, c, 25, "booster");
+      } else {
+        if (it.mesh && !it.mesh.isDisposed?.()) {
+          burstAt(it.mesh.position, it.type);
+          it.mesh.dispose();
+        }
+        state.grid[r][c] = null;
+        state.score += 60;
+      }
+    }
+    updateHud();
+    await wait(140);
+  }
+
+  function isObjectiveCompletedNow() {
+    state.iceRemaining = countObstacles();
+    return state.levelReady && state.obstacleGoal > 0 && state.iceRemaining === 0;
+  }
+
+  async function settle(actionToken) {
+    let chain = 0;
+    while (chain < 8) {
+      // Abort cleanly if stage changed, exited, or restarted mid-cascade
+      if (stateMachine.getToken() !== actionToken) return;
+
+      // Immediately stop cascades the instant all stage obstacles are cleared!
+      if (isObjectiveCompletedNow()) {
+        break;
+      }
+
+      if (hasHoles()) {
+        await dropAndRefill();
+        if (stateMachine.getToken() !== actionToken) return;
+      }
+
+      const matches = findMatches();
+      if (matches.size === 0) break;
+
+      chain++;
+      playSfx("match");
+
+      const matchedSpecials = [];
+      for (const key of matches) {
+        const [r, c] = key.split(",").map(Number);
+        const item = state.grid[r]?.[c];
+        if (item?.special) matchedSpecials.push({ r, c, item });
+      }
+      for (const { r, c, item } of matchedSpecials) {
+        if (item.special === "wrapped") {
+          for (let y = r - 1; y <= r + 1; y++) {
+            for (let x = c - 1; x <= c + 1; x++) if (inBounds(y, x)) matches.add(y + "," + x);
+          }
+          playSfx("bomb");
+          wrappedDetonationAt({ r, c }, item.type);
+        } else if (item.special === "striped") {
+          for (let x = 0; x < COLS; x++) matches.add(r + "," + x);
+          for (let y = 0; y < ROWS; y++) matches.add(y + "," + c);
+          playSfx("rocket");
+          rocketSweepAt({ r, c });
+        } else if (item.special === "color") {
+          for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) if (state.grid[y][x]?.type === item.type) matches.add(y + "," + x);
+          }
+          playSfx("color");
+          colorChainAt({ r, c }, item.type);
+        }
+      }
+
+      const remove = Array.from(matches).map((s) => s.split(",").map(Number));
+      const obstacleHitCells = new Map();
+      for (const key of matches) {
+        const [mr, mc] = key.split(",").map(Number);
+        const current = state.grid[mr]?.[mc];
+        if (current && (current.obs || current.ice > 0)) {
+          obstacleHitCells.set(mr + "," + mc, "self");
+        }
+        for (const [dr, dc] of [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]) {
+          const ir = mr + dr,
+            ic = mc + dc,
+            near = state.grid[ir]?.[ic];
+          if (inBounds(ir, ic) && near && (near.obs || near.ice > 0) && !obstacleHitCells.has(ir + "," + ic)) {
+            obstacleHitCells.set(ir + "," + ic, "adj");
+          }
+        }
+      }
+      for (const [key, source] of obstacleHitCells) {
+        const [ir, ic] = key.split(",").map(Number);
+        damageIceAt(ir, ic, 25, source);
+      }
+
+      const specialCandidate =
+        matchedSpecials.length === 0 && chain === 1 ? findSpecialCandidate(matches) : null;
+      const groupSpecial = specialCandidate?.type || null;
+      const keep = specialCandidate?.cell || null;
+
+      for (const [r, c] of remove) {
+        const it = state.grid[r]?.[c];
+        if (keep && r === keep.r && c === keep.c) continue;
+        if (it?.ice > 0 || it?.obs) {
+          if (!obstacleHitCells.has(r + "," + c)) damageIceAt(r, c, 25, "self");
+          if (state.grid[r]?.[c]?.ice > 0 || state.grid[r]?.[c]?.obs) continue;
+        }
+        if (it?.mesh && !it.mesh.isDisposed?.()) {
+          burstAt(it.mesh.position, it.type);
+          it.mesh.dispose();
+        }
+        state.grid[r][c] = null;
+        state.score += 60;
+      }
+
+      if (keep && state.grid[keep.r]?.[keep.c]) {
+        const it = state.grid[keep.r][keep.c];
+        it.special = groupSpecial;
+        if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+        it.mesh = candyMesh(keep.r, keep.c, it.type, groupSpecial, it.ice || 0, it.obs || null);
+      }
+
+      if (chain > 1) {
+        state.score += matches.size * 10;
+      }
+      triggerCharacterCombo(chain);
+      updateHud();
+
+      // Immediate stop on objective completion — no extra waiting or obstacle spreading!
+      if (isObjectiveCompletedNow()) {
+        break;
+      }
+
+      await wait(85);
+      if (stateMachine.getToken() !== actionToken) return;
+      await dropAndRefill();
+    }
+
+    if (stateMachine.getToken() !== actionToken) return;
+
+    // If objective is complete, skip stabilization reshuffles and obstacle spreading completely!
+    if (isObjectiveCompletedNow()) {
+      updateHud();
+      return;
+    }
+
+    if (findMatches().size > 0) {
+      ensurePlayableTypesInPlace();
+    } else if (chain > 1) {
+      say("سلسلة سحرية ×" + chain + "!");
+    }
+
+    // Only spread obstacles when objective is NOT yet completed and moves remain
+    if (state.moves > 0 && !isObjectiveCompletedNow()) {
+      spreadChocolateIfNeeded();
+    }
+    updateHud();
+  }
+
+  async function swap(a, b) {
+    if (!canInteractWithBoard() || !inBounds(a.r, a.c) || !inBounds(b.r, b.c)) return;
+    if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) return;
+    const A = state.grid[a.r]?.[a.c];
+    const B = state.grid[b.r]?.[b.c];
+    if (!A || !B || isCellLocked(A) || isCellLocked(B)) {
+      clearSelection();
+      playSfx("error");
+      return;
+    }
+
+    if (!stateMachine.beginResolving()) return;
+    const token = stateMachine.getToken();
+    syncPhaseAttributes();
+    clearSelection();
+    playSfx("swap");
+
+    try {
+      await Promise.all([animate(A.mesh, pos(b.r, b.c), 110), animate(B.mesh, pos(a.r, a.c), 110)]);
+      if (stateMachine.getToken() !== token) return;
+
+      state.grid[a.r][a.c] = B;
+      state.grid[b.r][b.c] = A;
+      if (A.mesh) A.mesh.metadata = { r: b.r, c: b.c, candy: true };
+      if (B.mesh) B.mesh.metadata = { r: a.r, c: a.c, candy: true };
+
+      if (A.special || B.special) {
+        state.moves = Math.max(0, state.moves - 1);
+        updateHud();
+        await activateSpecial(a, b);
+        if (stateMachine.getToken() !== token) return;
+        await settle(token);
+      } else if (findMatches().size === 0) {
+        await Promise.all([animate(A.mesh, pos(a.r, a.c), 110), animate(B.mesh, pos(b.r, b.c), 110)]);
+        if (stateMachine.getToken() !== token) return;
+        state.grid[a.r][a.c] = A;
+        state.grid[b.r][b.c] = B;
+        if (A.mesh) A.mesh.metadata = { r: a.r, c: a.c, candy: true };
+        if (B.mesh) B.mesh.metadata = { r: b.r, c: b.c, candy: true };
+      } else {
+        state.moves = Math.max(0, state.moves - 1);
+        updateHud();
+        await settle(token);
+      }
+    } catch (error) {
+      console.error("[CMR] Candy swap failed:", error);
+      say("حدث خطأ بسيط في الحركة، جرّب مرة أخرى.");
+    } finally {
+      if (stateMachine.getToken() === token) {
+        finalizeTurn();
+      }
+    }
+  }
+
+  async function useSelectedBooster(cell) {
+    if (!canInteractWithBoard() || !state.booster) return;
+    const kind = state.booster;
+    const counts = {
+      bomb: state.hammer,
+      rocket: state.rockets,
+      color: state.colors,
+      paint: state.paints,
+    };
+    if ((counts[kind] || 0) <= 0) {
+      say("نفد هذا المساعد. اختر مساعداً آخر.");
+      clearActiveBooster();
+      return;
+    }
+    const anchor = state.grid[cell.r]?.[cell.c];
+    if (!anchor) return;
+
+    if (!stateMachine.beginResolving()) return;
+    const token = stateMachine.getToken();
+    syncPhaseAttributes();
+    clearSelection();
+
+    try {
+      if (kind === "paint") {
+        const neighbors = [
+          [cell.r - 1, cell.c],
+          [cell.r + 1, cell.c],
+          [cell.r, cell.c - 1],
+          [cell.r, cell.c + 1],
+        ].filter(([r, c]) => inBounds(r, c) && state.grid[r][c] && !state.grid[r][c].special);
+        const target = neighbors.find(([r, c]) => state.grid[r][c].type !== anchor.type);
+        if (!target) {
+          say("اختر حلوى بجوار لون مختلف.");
+          stateMachine.finishResolvingToPlaying();
+          syncPhaseAttributes();
+          return;
+        }
+        const newType = state.grid[target[0]][target[1]].type;
+        if (anchor.mesh && !anchor.mesh.isDisposed?.()) anchor.mesh.dispose();
+        anchor.type = newType;
+        anchor.special = null;
+        anchor.mesh = candyMesh(cell.r, cell.c, newType, null, anchor.ice || 0, anchor.obs || null);
+        state.paints--;
+        state.score += 40;
+        state.moves = Math.max(0, state.moves - 1);
+        playSfx("booster");
+        say("تم تغيير لون الحلوى!");
+      } else {
+        const cells = new Set();
+        if (kind === "bomb") {
+          for (let r = cell.r - 1; r <= cell.r + 1; r++) {
+            for (let c = cell.c - 1; c <= cell.c + 1; c++) if (inBounds(r, c)) cells.add(r + "," + c);
+          }
+        } else if (kind === "rocket") {
+          for (let c = 0; c < COLS; c++) cells.add(cell.r + "," + c);
+          for (let r = 0; r < ROWS; r++) cells.add(r + "," + cell.c);
+        } else if (kind === "color") {
+          const targetType = anchor.type;
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) if (state.grid[r][c]?.type === targetType) cells.add(r + "," + c);
+          }
+        }
+        if (anchor.mesh) shockwaveAt(anchor.mesh.position, kind);
+        playSfx(kind);
+        for (const key of cells) {
+          const [r, c] = key.split(",").map(Number);
+          const it = state.grid[r]?.[c];
+          if (!it) continue;
+          if (it.ice > 0 || it.obs) {
+            damageIceAt(r, c, 40, "booster");
+            continue;
+          }
+          if (it.mesh && !it.mesh.isDisposed?.()) {
+            burstAt(it.mesh.position, it.type);
+            it.mesh.dispose();
+          }
+          state.grid[r][c] = null;
+          state.score += kind === "color" ? 75 : 85;
+        }
+        if (kind === "bomb") state.hammer--;
+        if (kind === "rocket") state.rockets--;
+        if (kind === "color") state.colors--;
+        state.moves = Math.max(0, state.moves - 1);
+        say(
+          kind === "bomb"
+            ? "انفجار القنبلة!"
+            : kind === "rocket"
+            ? "الصاروخ مسح الصف والعمود!"
+            : "عجلة الألوان مسحت نفس اللون!"
+        );
+      }
+
+      clearActiveBooster();
+      refreshBoosterBadges();
+      updateHud();
+      await wait(80);
+      if (stateMachine.getToken() !== token) return;
+      await settle(token);
+    } catch (error) {
+      console.error("[CMR] Booster failed:", error);
+      say("تعذر استخدام المساعد، جرّب مجدداً.");
+    } finally {
+      if (stateMachine.getToken() === token) {
+        finalizeTurn();
+      }
+    }
+  }
+
+  function clearActiveBooster() {
+    state.booster = null;
+    for (const id of ["paintBtn", "bombBtn", "colorBtn", "rocketBtn"]) {
+      const btn = $(id);
+      if (btn) btn.classList.remove("active");
+    }
+  }
+
+  function finalizeTurn() {
+    state.iceRemaining = countObstacles();
+    updateHud();
+
+    const outcome = stateMachine.evaluateOutcome({
+      levelReady: state.levelReady,
+      obstacleGoal: state.obstacleGoal,
+      remainingObstacles: state.iceRemaining,
+      movesLeft: state.moves,
+    });
+
+    if (outcome === Core.GAME_STATES.WON) {
+      cancelAllAnimations();
+      showOutcomeModal(true);
+      return;
+    }
+
+    if (outcome === Core.GAME_STATES.LOST) {
+      cancelAllAnimations();
+      showOutcomeModal(false);
+      return;
+    }
+
+    stateMachine.finishResolvingToPlaying();
+    syncPhaseAttributes();
+
+    if (state.moves > 0 && !hasPossibleMove()) {
+      shuffle(true);
+    }
+    saveProgress(false);
+  }
+
+  function hasPossibleMove() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        for (const [dr, dc] of [
+          [0, 1],
+          [1, 0],
+        ]) {
+          const nr = r + dr,
+            nc = c + dc;
+          if (!inBounds(nr, nc)) continue;
+          const a = state.grid[r][c],
+            b = state.grid[nr][nc];
+          if (!a || !b || isCellLocked(a) || isCellLocked(b)) continue;
+          if (a.special || b.special) return true;
+          state.grid[r][c] = b;
+          state.grid[nr][nc] = a;
+          const valid = findMatches().size > 0;
+          state.grid[r][c] = a;
+          state.grid[nr][nc] = b;
+          if (valid) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function findFirstValidMove() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        for (const [dr, dc] of [
+          [0, 1],
+          [1, 0],
+        ]) {
+          const nr = r + dr,
+            nc = c + dc;
+          if (!inBounds(nr, nc)) continue;
+          const a = state.grid[r]?.[c],
+            b = state.grid[nr]?.[nc];
+          if (!a || !b || isCellLocked(a) || isCellLocked(b)) continue;
+          if (a.special || b.special) return { from: { r, c }, to: { r: nr, c: nc } };
+          state.grid[r][c] = b;
+          state.grid[nr][nc] = a;
+          const valid = findMatches().size > 0;
+          state.grid[r][c] = a;
+          state.grid[nr][nc] = b;
+          if (valid) return { from: { r, c }, to: { r: nr, c: nc } };
+        }
+      }
+    }
+    return null;
+  }
+
+  function shuffle(silent = false) {
+    if (!canInteractWithBoard() && !silent) return;
+    if (stateMachine.isTerminal() || state.grid.flat().some((it) => !it)) return;
+    clearSelection();
+    const ok = ensurePlayableTypesInPlace();
+    if (!ok) {
+      // Deterministic safe pattern fallback
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          state.grid[r][c].type = randomType(r, c);
+        }
+      }
+      rebuildGridMeshes();
+    }
+    if (!silent) {
+      playSfx("swap");
+      say("تم خلط الحلوى بنجاح!");
+    }
+    saveProgress(false);
+  }
+
+  // ---- VFX (Lightweight Mobile-Friendly Pools) ----
+  function getVfxMaterial(key, color, alpha = 1) {
+    if (vfxMaterials[key]) return vfxMaterials[key];
+    const mat = new BABYLON.StandardMaterial("royalVfx_" + key, scene);
+    mat.diffuseColor = color;
+    mat.emissiveColor = color.scale(1.2);
+    mat.specularColor = new BABYLON.Color3(0.9, 0.95, 1);
+    mat.specularPower = 64;
+    mat.alpha = alpha;
+    vfxMaterials[key] = mat;
+    return mat;
+  }
+
+  function trackVfx(mesh, duration = 380) {
+    if (activeVfxMeshes.size >= VFX_MESH_LIMIT) {
+      const oldest = activeVfxMeshes.values().next().value;
+      if (oldest) {
+        activeVfxMeshes.delete(oldest);
+        if (!oldest.isDisposed?.()) oldest.dispose();
+      }
+    }
+    activeVfxMeshes.add(mesh);
+    const started = performance.now();
+    const observer = scene.onBeforeRenderObservable.add(() => {
+      if (mesh.isDisposed?.()) {
+        scene.onBeforeRenderObservable.remove(observer);
+        activeVfxMeshes.delete(mesh);
+        return;
+      }
+      if (performance.now() - started >= duration) {
+        scene.onBeforeRenderObservable.remove(observer);
+        activeVfxMeshes.delete(mesh);
+        mesh.dispose();
+      }
+    });
+  }
+
+  function beamBetween(from, to, color, duration = 260) {
+    if (activeVfxMeshes.size >= VFX_MESH_LIMIT) return;
+    const start = from.clone();
+    start.y += 0.52;
+    const end = to.clone();
+    end.y += 0.52;
+    const beam = BABYLON.MeshBuilder.CreateTube(
+      "royalEnergyBeam",
+      { path: [start, end], radius: 0.028, tessellation: 6, cap: BABYLON.Mesh.CAP_ROUND },
+      scene
+    );
+    const mat = new BABYLON.StandardMaterial("royalEnergyBeamMat", scene);
+    mat.diffuseColor = color;
+    mat.emissiveColor = color.scale(1.6);
+    mat.alpha = 0.9;
+    beam.material = mat;
+    beam.isPickable = false;
+    const started = performance.now();
+    const observer = scene.onBeforeRenderObservable.add(() => {
+      if (beam.isDisposed?.()) {
+        scene.onBeforeRenderObservable.remove(observer);
+        if (!mat.isDisposed?.()) mat.dispose();
+        return;
+      }
+      const t = Math.min(1, (performance.now() - started) / duration);
+      mat.alpha = 0.9 * (1 - t);
+      if (t >= 1) {
+        scene.onBeforeRenderObservable.remove(observer);
+        if (!mat.isDisposed?.()) mat.dispose();
+      }
+    });
+    trackVfx(beam, duration + 40);
+  }
+
+  function shockwaveAt(position, kind) {
+    const colors = {
+      wrapped: new BABYLON.Color3(1, 0.48, 0.12),
+      striped: new BABYLON.Color3(0.12, 0.78, 1),
+      color: new BABYLON.Color3(0.8, 0.28, 1),
+      bomb: new BABYLON.Color3(1, 0.48, 0.12),
+      rocket: new BABYLON.Color3(0.12, 0.78, 1),
+      ice: new BABYLON.Color3(0.48, 0.88, 1),
+    };
+    const color = colors[kind] || new BABYLON.Color3(1, 0.78, 0.32);
+    const ring = BABYLON.MeshBuilder.CreateTorus(
+      "royalShockwave",
+      { diameter: 0.95, thickness: 0.05, tessellation: 28 },
+      scene
+    );
+    ring.position = position.clone();
+    ring.position.y += 0.5;
+    ring.rotation.x = Math.PI / 2;
+    ring.scaling.setAll(0.15);
+    ring.isPickable = false;
+    const ringMat = new BABYLON.StandardMaterial("royalShockMat_" + kind, scene);
+    ringMat.diffuseColor = color;
+    ringMat.emissiveColor = color.scale(1.25);
+    ringMat.alpha = 0.88;
+    ring.material = ringMat;
+    const started = performance.now();
+    const duration = 340;
+    const observer = scene.onBeforeRenderObservable.add(() => {
+      if (ring.isDisposed?.()) {
+        scene.onBeforeRenderObservable.remove(observer);
+        return;
+      }
+      const t = Math.min(1, (performance.now() - started) / duration);
+      const ease = 1 - Math.pow(1 - t, 2);
+      ring.scaling.setAll(0.15 + 2.0 * ease);
+      ring.material.alpha = 0.88 * (1 - t);
+      if (t >= 1) {
+        scene.onBeforeRenderObservable.remove(observer);
+        ringMat.dispose();
+      }
+    });
+    trackVfx(ring, duration + 30);
+  }
+
+  function rocketSweepAt(cell) {
+    const origin = pos(cell.r, cell.c);
+    shockwaveAt(origin, "rocket");
+    const cyan = new BABYLON.Color3(0.16, 0.82, 1);
+    beamBetween(pos(cell.r, 0), pos(cell.r, COLS - 1), cyan, 260);
+    beamBetween(pos(0, cell.c), pos(ROWS - 1, cell.c), cyan, 260);
+  }
+
+  function wrappedDetonationAt(cell, type) {
+    const origin = pos(cell.r, cell.c);
+    shockwaveAt(origin, "wrapped");
+    burstAt(origin, type);
+  }
+
+  function colorChainAt(originCell, targetType) {
+    const origin = pos(originCell.r, originCell.c);
+    shockwaveAt(origin, "color");
+    const beamColor = targetType
+      ? palette[Math.max(1, Math.min(TYPES, targetType)) - 1].color
+      : new BABYLON.Color3(0.84, 0.42, 1);
+    let emitted = 0;
+    for (let r = 0; r < ROWS && emitted < 14; r++) {
+      for (let c = 0; c < COLS && emitted < 14; c++) {
+        const item = state.grid[r]?.[c];
+        if (!item || (targetType && item.type !== targetType) || (r === originCell.r && c === originCell.c)) continue;
+        beamBetween(origin, pos(r, c), beamColor, 240);
+        emitted++;
+      }
+    }
+  }
+
+  function burstAt(position, type) {
+    const safeType = Math.max(1, Math.min(TYPES, Number(type) || 1));
+    const candyColor = palette[safeType - 1].color;
+    const material = getVfxMaterial("sugar_" + safeType, candyColor);
+    for (let i = 0; i < 5; i++) {
+      if (activeVfxMeshes.size >= VFX_MESH_LIMIT) break;
+      const p = BABYLON.MeshBuilder.CreatePolyhedron("sugarShard", { type: 1, size: 0.055 }, scene);
+      p.position = position.clone();
+      p.position.y += 0.2;
+      p.material = material;
+      p.isPickable = false;
+      const angle = (Math.PI * 2 * i) / 5 + (Math.random() - 0.5) * 0.25;
+      const dist = 0.36 + Math.random() * 0.22;
+      const target = position.add(
+        new BABYLON.Vector3(Math.cos(angle) * dist, 0.2 + Math.random() * 0.32, Math.sin(angle) * dist)
+      );
+      trackVfx(p, 280);
+      animate(p, target, 240).then(() => {
+        if (!p.isDisposed?.()) p.dispose();
+      });
+    }
+  }
+
+  function iceImpactAt(position, remainingLayers) {
+    const iceColor = new BABYLON.Color3(0.48, 0.86, 1);
+    shockwaveAt(position, "ice");
+    const shardMat = getVfxMaterial("ice_shards", iceColor, 0.9);
+    const count = remainingLayers > 0 ? 4 : 6;
+    for (let i = 0; i < count; i++) {
+      if (activeVfxMeshes.size >= VFX_MESH_LIMIT) break;
+      const shard = BABYLON.MeshBuilder.CreatePolyhedron("iceShard", { type: 1, size: 0.05 }, scene);
+      shard.position = position.clone();
+      shard.position.y += 0.24;
+      shard.material = shardMat;
+      shard.isPickable = false;
+      const angle = (Math.PI * 2 * i) / count;
+      const dist = 0.3 + Math.random() * 0.22;
+      const target = position.add(new BABYLON.Vector3(Math.cos(angle) * dist, 0.16, Math.sin(angle) * dist));
+      trackVfx(shard, 280);
+      animate(shard, target, 220).then(() => {
+        if (!shard.isDisposed?.()) shard.dispose();
+      });
+    }
+  }
+
+  // ---- Character Reactions ----
+  function triggerCharacterCombo(chain) {
+    const tier = chain >= 3 ? 3 : chain === 2 ? 2 : 1;
+    const msg = $("characterMessage");
+    if (msg) msg.textContent = tier === 3 ? "قوة سحرية هائلة!" : tier === 2 ? "كومبو رائع!" : "ممتاز!";
+    window.CMRCharacters?.react?.("combo-" + tier);
+    if (chain >= 2) {
+      window.Dragon3DCharacter?.playCelebrate?.();
+    }
+  }
+
+  function triggerCharacterResult(won) {
+    window.CMRCharacters?.react?.(won ? "celebrate" : "defeat");
+    if (won) window.Dragon3DCharacter?.playCelebrate?.();
+  }
+
+  // ---- HUD & Background Assignment ----
+  function setBoardBackground(level) {
+    const meta = Core.getStageMeta(level);
+    // Remove any legacy inner-board art duplicate
+    const legacyArt = $("cmrFiftyBoardArt");
+    if (legacyArt) legacyArt.remove();
+
+    const art = $("royalArtboard");
+    if (art) {
+      art.style.display = "block";
+      if (art.getAttribute("src") !== meta.boardImagePath) {
+        art.src = meta.boardImagePath;
+      }
+      art.alt = `خلفية ${meta.palace.name} — المرحلة ${meta.stageInPalace}`;
+    }
+
+    document.body.dataset.palace = String(meta.palaceNumber);
+    document.body.dataset.stage = String(meta.globalStage);
+    document.body.dataset.boss = String(meta.isBossStage);
+    syncPhaseAttributes();
+  }
+
+  function updateHud() {
+    applyHeartRegen();
+    state.iceRemaining = countObstacles();
+    const meta = Core.getStageMeta(state.level);
+    const cfg = Core.getLevelConfig(state.level);
+
+    const scoreEl = $("score");
+    if (scoreEl) scoreEl.textContent = state.score.toLocaleString("en-US");
+    const movesEl = $("moves");
+    if (movesEl) movesEl.textContent = String(state.moves);
+    const heartEl = $("heartCount");
+    if (heartEl) heartEl.textContent = String(state.lives);
+    const coinEl = $("coinCount");
+    if (coinEl) coinEl.textContent = state.coins.toLocaleString("en-US");
+    const gemEl = $("gemCount");
+    if (gemEl) gemEl.textContent = state.gems.toLocaleString("en-US");
+    const starsEl = $("stars");
+    if (starsEl) starsEl.textContent = String(state.stars);
+    const levelLabelEl = $("levelLabel");
+    if (levelLabelEl) levelLabelEl.textContent = `المرحلة ${state.level}`;
+
+    const objective = $("obstacleObjective");
+    if (objective) {
+      const done = Math.min(state.obstaclesCleared, state.obstacleGoal);
+      objective.textContent = `اكسر العوائق ${done}/${state.obstacleGoal}`;
+      objective.classList.toggle("objective-complete", state.obstacleGoal > 0 && state.iceRemaining === 0);
+    }
+
+    const db = $("difficultyBadge");
+    if (db) {
+      if (meta.isBossStage) {
+        db.textContent = `👑 ${meta.bossName} · القصر ${meta.palaceNumber}`;
+        db.classList.add("is-boss");
+      } else {
+        db.textContent = `القصر ${meta.palaceNumber} · مرحلة ${meta.stageInPalace} (${cfg.diffLabel})`;
+        db.classList.remove("is-boss");
+      }
+      db.hidden = false;
+    }
+
+    syncMenuUI();
+    syncPhaseAttributes();
+  }
+
+  function refreshBoosterBadges() {
+    const set = (id, value) => {
+      const el = $(id);
+      if (!el) return;
+      const count = el.querySelector("small");
+      if (count) count.textContent = String(value);
+      el.disabled = value <= 0;
+    };
+    set("bombBtn", state.hammer);
+    set("rocketBtn", state.rockets);
+    set("colorBtn", state.colors);
+    set("paintBtn", state.paints);
+  }
+
+  // ---- Victory / Defeat Modal (Guaranteed Single Display, Zero Freeze) ----
+  function safeClaimLevelReward(level) {
+    try {
+      const list = JSON.parse(localStorage.getItem(CLAIMED_KEY) || "[]");
+      if (list.includes(level)) return false;
+      list.push(level);
+      localStorage.setItem(CLAIMED_KEY, JSON.stringify(list));
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  const CONFETTI_COLORS = [
+    "#ffd86b",
+    "#ff4d8d",
+    "#38bdf8",
+    "#4ade80",
+    "#c084fc",
+    "#fb923c",
+    "#fde047",
+    "#f43f5e",
+    "#2dd4bf",
+    "#ffffff",
+  ];
+
+  function clearVictoryConfetti() {
+    const container = $("victoryConfetti");
+    if (container) container.textContent = "";
+    const modal = $("resultModal");
+    if (modal) {
+      modal.classList.remove("is-victory", "is-defeat");
+    }
+  }
+
+  function triggerVictoryConfetti() {
+    const container = $("victoryConfetti");
+    const modal = $("resultModal");
+    if (!container || !modal) return;
+
+    container.textContent = "";
+    modal.classList.remove("is-victory", "is-defeat");
+    void modal.offsetWidth;
+    modal.classList.add("is-victory");
+
+    const isNarrow = window.matchMedia("(max-width: 600px)").matches;
+    const count = isNarrow ? 52 : 76;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const frag = document.createDocumentFragment();
+
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement("span");
+      const shapeRoll = i % 6;
+      piece.className =
+        shapeRoll === 0
+          ? "confetti-piece is-star"
+          : shapeRoll === 1
+          ? "confetti-piece is-circle"
+          : shapeRoll === 2
+          ? "confetti-piece is-ribbon"
+          : "confetti-piece";
+
+      // Launch from 3 festive emitters (left cannon, center burst, right cannon)
+      const originRoll = i % 3;
+      const ox = originRoll === 0 ? "18%" : originRoll === 1 ? "50%" : "82%";
+      const oy = originRoll === 1 ? "42%" : "58%";
+
+      const angle =
+        originRoll === 0
+          ? -Math.PI * 0.12 - Math.random() * Math.PI * 0.52
+          : originRoll === 2
+          ? -Math.PI * 0.36 - Math.random() * Math.PI * 0.52
+          : (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+
+      const spreadX = Math.min(vw * 0.58, 480);
+      const spreadY = Math.min(vh * 0.48, 360);
+      const power = 0.55 + Math.random() * 0.85;
+      const tx = Math.cos(angle) * spreadX * power;
+      const ty = Math.sin(angle) * spreadY * power - (65 + Math.random() * 110);
+      const fallY = vh * 0.52 + Math.random() * 240;
+      const drift = (Math.random() - 0.5) * 120;
+      const rot = (Math.random() > 0.5 ? 1 : -1) * (420 + Math.random() * 680);
+      const waveDelay = i >= Math.floor(count * 0.65) ? 0.45 + Math.random() * 0.35 : Math.random() * 0.24;
+      const dur = 2.0 + Math.random() * 1.45;
+
+      const size =
+        shapeRoll === 0
+          ? 14 + Math.random() * 7
+          : shapeRoll === 1
+          ? 8 + Math.random() * 5
+          : shapeRoll === 2
+          ? 7 + Math.random() * 4
+          : 9 + Math.random() * 6;
+      const height =
+        shapeRoll === 2
+          ? size * (2.2 + Math.random() * 0.9)
+          : shapeRoll >= 3
+          ? size * (1.45 + Math.random() * 0.55)
+          : size;
+
+      piece.style.setProperty("--ox", ox);
+      piece.style.setProperty("--oy", oy);
+      piece.style.setProperty("--tx", `${tx.toFixed(1)}px`);
+      piece.style.setProperty("--ty", `${ty.toFixed(1)}px`);
+      piece.style.setProperty("--fall-y", `${fallY.toFixed(1)}px`);
+      piece.style.setProperty("--drift", `${drift.toFixed(1)}px`);
+      piece.style.setProperty("--rot", `${rot.toFixed(0)}deg`);
+      piece.style.setProperty("--dur", `${dur.toFixed(2)}s`);
+      piece.style.setProperty("--delay", `${waveDelay.toFixed(2)}s`);
+      piece.style.setProperty("--spin-dur", `${(0.45 + Math.random() * 0.55).toFixed(2)}s`);
+      piece.style.setProperty("--w", `${size.toFixed(1)}px`);
+      piece.style.setProperty("--h", `${height.toFixed(1)}px`);
+      piece.style.setProperty("--color", CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
+      frag.appendChild(piece);
+    }
+
+    container.appendChild(frag);
+  }
+
+  function hideResultModal() {
+    clearVictoryConfetti();
+    const modal = $("resultModal");
+    const winView = $("victoryView");
+    const lossView = $("defeatView");
+    if (winView) winView.classList.add("hidden");
+    if (lossView) lossView.classList.add("hidden");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  function showOutcomeModal(won) {
+    const modal = $("resultModal");
+    const winView = $("victoryView");
+    const lossView = $("defeatView");
+    const title = $("resultTitle");
+    const message = $("resultText");
+    const starsEl = $("resultStars");
+    const defeatSubtext = $("defeatSubtext");
+    const meta = Core.getStageMeta(state.level);
+
+    if (!modal || !winView || !lossView) {
+      console.error("[CMR] Result modal elements missing");
+      return;
+    }
+
+    const activeToast = $("toast");
+    if (activeToast) activeToast.classList.remove("show");
+
+    try {
+      if (won) {
+        state.obstaclesCleared = state.obstacleGoal;
+        state.lossHandled = false;
+        const earnedStars = state.moves >= 12 ? 3 : state.moves >= 6 ? 2 : 1;
+        const rewardGranted = safeClaimLevelReward(state.level);
+        const coinReward = meta.isBossStage ? 250 : 150;
+        const gemReward = meta.isBossStage ? 5 : 2;
+        if (rewardGranted) {
+          state.stars += earnedStars;
+          state.coins += coinReward;
+          state.gems += gemReward;
+        }
+        state.highestUnlocked = Math.max(
+          state.highestUnlocked,
+          Math.min(Core.TOTAL_STAGES, state.level + 1)
+        );
+        updateHud();
+        saveProgress(true);
+
+        winView.classList.remove("hidden");
+        lossView.classList.add("hidden");
+        modal.classList.remove("is-defeat");
+
+        if (title) {
+          title.textContent = meta.isBossStage
+            ? `هزمت ${meta.bossName}!`
+            : `المرحلة ${meta.stageInPalace} مكتملة · ${meta.palace.name}`;
+        }
+        if (starsEl) starsEl.textContent = "⭐".repeat(earnedStars) + "☆".repeat(3 - earnedStars);
+        if (message) {
+          message.textContent = rewardGranted
+            ? `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · المكافأة: +${coinReward} عملة و+${gemReward} جوهرة · النقاط: ${state.score.toLocaleString("en-US")}`
+            : `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · النقاط: ${state.score.toLocaleString("en-US")} (تم استلام مكافأة المرحلة سابقاً)`;
+        }
+
+        triggerCharacterResult(true);
+        playSfx("win");
+      } else {
+        if (!state.lossHandled) {
+          state.lives = Math.max(0, state.lives - 1);
+          state.lossHandled = true;
+          if (state.lives < Core.MAX_LIVES && !state.lastHeartAt) {
+            state.lastHeartAt = Date.now();
+          }
+        }
+        updateHud();
+        saveProgress(false);
+
+        winView.classList.add("hidden");
+        lossView.classList.remove("hidden");
+        modal.classList.remove("is-victory");
+        modal.classList.add("is-defeat");
+
+        const remainingObs = countObstacles();
+        if (defeatSubtext) {
+          defeatSubtext.textContent =
+            state.lives > 0
+              ? `تبقى ${remainingObs} عوائق · قلوبك المتبقية: ${state.lives}/${Core.MAX_LIVES}`
+              : `تبقى ${remainingObs} عوائق · نفدت قلوبك! استخدم المساعدة أو المتجر لاستعادة القلوب.`;
+        }
+
+        triggerCharacterResult(false);
+        playSfx("lose");
+      }
+    } catch (err) {
+      console.error("[CMR] Result modal error:", err);
+    }
+
+    syncPhaseAttributes();
+    modal.classList.remove("hidden");
+    if (won) {
+      triggerVictoryConfetti();
+    } else {
+      clearVictoryConfetti();
+      modal.classList.add("is-defeat");
+    }
+  }
+
+  // ---- Player Profile & Local Persistence ----
+  function ensureGuestIdentity() {
+    try {
+      let identity = JSON.parse(localStorage.getItem(PLAYER_KEY) || "null");
+      if (!identity || !identity.id) {
+        const id =
+          window.crypto && crypto.randomUUID
+            ? crypto.randomUUID()
+            : "guest-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        identity = {
+          id,
+          provider: "guest",
+          displayName: "لاعب ضيف",
+          email: "",
+          createdAt: new Date().toISOString(),
+        };
+        localStorage.setItem(PLAYER_KEY, JSON.stringify(identity));
+      }
+      if (!identity.displayName) {
+        identity.displayName = identity.provider === "account" ? "لاعب ملكي" : "لاعب ضيف";
+      }
+      return identity;
+    } catch (_) {
+      return { id: "guest-session", provider: "guest", displayName: "لاعب ضيف", email: "" };
+    }
+  }
+
+  function savePlayerProfile(displayName, email = "") {
+    const cleanName = String(displayName || "").trim();
+    const cleanEmail = String(email || "").trim();
+    const current = ensureGuestIdentity();
+    const updated = {
+      ...current,
+      provider: "account",
+      displayName: cleanName,
+      email: cleanEmail,
+      signedInAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(PLAYER_KEY, JSON.stringify(updated));
+    } catch (_) {}
+    syncMenuUI();
+    saveProgress(false);
+    return updated;
+  }
+
+  function setGuestProfile() {
+    const current = ensureGuestIdentity();
+    const updated = {
+      ...current,
+      provider: "guest",
+      displayName: "لاعب ضيف",
+      email: "",
+    };
+    try {
+      localStorage.setItem(PLAYER_KEY, JSON.stringify(updated));
+    } catch (_) {}
+    syncMenuUI();
+    saveProgress(false);
+    return updated;
+  }
+
+  function syncMenuUI() {
+    const profile = ensureGuestIdentity();
+    const nameEl = $("menuPlayerName");
+    const heartsEl = $("menuHearts");
+    const gemsEl = $("menuGems");
+    const coinsEl = $("menuCoins");
+    const loginBtnLabel = $("loginMenuBtn")?.querySelector("span");
+
+    if (nameEl) nameEl.textContent = profile.displayName || "لاعب ضيف";
+    if (heartsEl) heartsEl.textContent = String(state.lives);
+    if (gemsEl) gemsEl.textContent = state.gems.toLocaleString("en-US");
+    if (coinsEl) coinsEl.textContent = state.coins.toLocaleString("en-US");
+    if (loginBtnLabel) {
+      loginBtnLabel.textContent = profile.provider === "account" ? "حسابي" : "تسجيل الدخول";
+    }
+  }
+
+  function saveProgress(completed = false) {
+    try {
+      const identity = ensureGuestIdentity();
+      localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify({
+          version: 4,
+          playerId: identity.id,
+          provider: identity.provider,
+          displayName: identity.displayName,
+          level: state.level,
+          highestUnlocked: Math.max(state.highestUnlocked, state.level),
+          coins: state.coins,
+          gems: state.gems,
+          stars: state.stars,
+          lives: state.lives,
+          lastHeartAt: state.lastHeartAt,
+          hammer: state.hammer,
+          rockets: state.rockets,
+          colors: state.colors,
+          paints: state.paints,
+          extra: state.extra,
+          completed: Boolean(completed),
+        })
+      );
+      window.CMRRefreshWorldMap?.();
+    } catch (_) {}
+  }
+
+  function loadProgress() {
+    try {
+      const x = JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
+      const rawUnlocked = Math.floor(Number(x.highestUnlocked) || Number(x.level) || 1);
+      const completed = Boolean(x.completed);
+      const effectiveUnlocked = completed
+        ? Math.max(rawUnlocked, Math.floor(Number(x.level) || 1) + 1)
+        : rawUnlocked;
+      state.highestUnlocked = Core.clampStage(effectiveUnlocked);
+      state.level = state.highestUnlocked;
+      state.resumeLevel = state.highestUnlocked;
+      state.coins = Number.isFinite(Number(x.coins)) ? Math.max(0, Math.floor(Number(x.coins))) : 500;
+      state.gems = Number.isFinite(Number(x.gems)) ? Math.max(0, Math.floor(Number(x.gems))) : 25;
+      state.stars = Number.isFinite(Number(x.stars)) ? Math.max(0, Math.floor(Number(x.stars))) : 0;
+      state.lives =
+        x.lives === undefined
+          ? Core.MAX_LIVES
+          : Math.min(Core.MAX_LIVES, Math.max(0, Math.floor(Number(x.lives) || 0)));
+      const savedHeartTime = Number(x.lastHeartAt);
+      state.lastHeartAt =
+        Number.isFinite(savedHeartTime) && savedHeartTime > 0
+          ? Math.min(Date.now(), savedHeartTime)
+          : Date.now();
+      applyHeartRegen();
+      const maxStock = Core.MAX_BOOSTER_STOCK || 25;
+      state.hammer = Number.isFinite(Number(x.hammer))
+        ? Math.min(maxStock, Math.max(0, Math.floor(Number(x.hammer))))
+        : 3;
+      state.rockets = Number.isFinite(Number(x.rockets))
+        ? Math.min(maxStock, Math.max(0, Math.floor(Number(x.rockets))))
+        : 3;
+      state.colors = Number.isFinite(Number(x.colors))
+        ? Math.min(maxStock, Math.max(0, Math.floor(Number(x.colors))))
+        : 3;
+      state.paints = Number.isFinite(Number(x.paints))
+        ? Math.min(maxStock, Math.max(0, Math.floor(Number(x.paints))))
+        : 3;
+      state.extra = Number.isFinite(Number(x.extra)) ? Math.min(10, Math.max(0, Math.floor(Number(x.extra)))) : 2;
+    } catch (_) {
+      state.highestUnlocked = 1;
+      state.level = 1;
+      state.coins = 500;
+      state.gems = 25;
+      state.stars = 0;
+      state.lives = Core.MAX_LIVES;
+      state.lastHeartAt = Date.now();
+    }
+    syncMenuUI();
+  }
+
+  // ---- Stage Lifecycle: Launch, Restart, Next Stage, Exit to Map ----
+  function startFreshBoardForCurrentLevel() {
+    cancelAllAnimations();
+    clearSelection();
+    clearActiveBooster();
+    hideResultModal();
+    closeConfirmModal(false);
+    closeSettingsModal();
+
+    stateMachine.resetToPlaying();
+    state.lossHandled = false;
+    state.levelReady = false;
+    state.score = 0;
+
+    const meta = Core.getStageMeta(state.level);
+    setBoardBackground(state.level);
+    buildGrid();
+    state.levelReady = true;
+
+    refreshBoosterBadges();
+    updateHud();
+    saveProgress(false);
+
+    if (meta.isBossStage) {
+      playSfx("boss");
+      say(`👑 مواجهة ${meta.bossName} في ${meta.palace.name}!`);
+    }
+  }
+
+  function restartFromResultModal() {
+    applyHeartRegen();
+    if (state.lives <= 0) {
+      say("لا توجد قلوب متاحة حالياً. انتظر استعادة قلب أو اشترِ من المتجر.");
+      return;
+    }
+    startFreshBoardForCurrentLevel();
+  }
+
+  function advanceToNextStage() {
+    if (state.level >= Core.TOTAL_STAGES) {
+      exitToWorldMap();
+      return;
+    }
+    state.level = Core.clampStage(state.level + 1);
+    state.highestUnlocked = Math.max(state.highestUnlocked, state.level);
+    state.hammer = Math.max(state.hammer, 3);
+    state.rockets = Math.max(state.rockets, 3);
+    state.colors = Math.max(state.colors, 3);
+    state.paints = Math.max(state.paints, 3);
+    startFreshBoardForCurrentLevel();
+  }
+
+  function exitToWorldMap() {
+    cancelAllAnimations();
+    clearSelection();
+    clearActiveBooster();
+    hideResultModal();
+    closeConfirmModal(false);
+    closeSettingsModal();
+    stateMachine.resetToPlaying();
+    state.levelReady = false;
+    saveProgress(false);
+    window.CMRShowWorldMap?.();
+  }
+
+  // ---- Gameplay Settings & Heart Confirmation Flow ----
+  function syncAudioUI() {
+    const audio = window.CMRAudio;
+    if (!audio) return;
+    const s = audio.getSettings();
+
+    const musicBtn = $("musicToggleBtn");
+    const musicIcon = $("musicStateIcon");
+    const musicSlider = $("musicVolumeSlider");
+    const musicVal = $("musicVolumeValue");
+
+    if (musicBtn) {
+      musicBtn.setAttribute("aria-pressed", String(s.musicEnabled));
+      const img = musicBtn.querySelector("img");
+      const txt = musicBtn.querySelector(".toggle-text");
+      if (img) {
+        img.src = s.musicEnabled
+          ? "./assets/packs/images/toggle_on_normal.png"
+          : "./assets/packs/images/toggle_off_normal.png";
+      }
+      if (txt) txt.textContent = s.musicEnabled ? "تشغيل" : "إيقاف";
+    }
+    if (musicIcon) {
+      musicIcon.src = s.musicEnabled
+        ? "./assets/packs/buttons/icon_volume.png"
+        : "./assets/packs/buttons/icon_mute.png";
+    }
+    if (musicSlider) musicSlider.value = String(Math.round(s.musicVolume * 100));
+    if (musicVal) musicVal.textContent = Math.round(s.musicVolume * 100) + "%";
+
+    const sfxBtn = $("sfxToggleBtn");
+    const sfxIcon = $("sfxStateIcon");
+    const sfxSlider = $("sfxVolumeSlider");
+    const sfxVal = $("sfxVolumeValue");
+
+    if (sfxBtn) {
+      sfxBtn.setAttribute("aria-pressed", String(s.sfxEnabled));
+      const img = sfxBtn.querySelector("img");
+      const txt = sfxBtn.querySelector(".toggle-text");
+      if (img) {
+        img.src = s.sfxEnabled
+          ? "./assets/packs/images/toggle_on_normal.png"
+          : "./assets/packs/images/toggle_off_normal.png";
+      }
+      if (txt) txt.textContent = s.sfxEnabled ? "تشغيل" : "إيقاف";
+    }
+    if (sfxIcon) {
+      sfxIcon.src = s.sfxEnabled
+        ? "./assets/packs/buttons/icon_volume.png"
+        : "./assets/packs/buttons/icon_mute.png";
+    }
+    if (sfxSlider) sfxSlider.value = String(Math.round(s.sfxVolume * 100));
+    if (sfxVal) sfxVal.textContent = Math.round(s.sfxVolume * 100) + "%";
+  }
+
+  function openSettingsModal(context = "gameplay") {
+    if (context === "gameplay") {
+      if (document.body.classList.contains("map-open")) return;
+      if (stateMachine.isTerminal()) return;
+    }
+    state.settingsOpen = true;
+    state.settingsContext = context;
+    syncAudioUI();
+
+    const isGameplay = context === "gameplay";
+    const restartBtn = $("settingsRestartBtn");
+    const exitBtn = $("settingsExitBtn");
+    const resumeBtnLabel = $("settingsResumeBtn")?.querySelector("span");
+    const modalTitle = $("settingsModalTitle");
+
+    if (restartBtn) restartBtn.hidden = !isGameplay;
+    if (exitBtn) exitBtn.hidden = !isGameplay;
+    if (resumeBtnLabel) resumeBtnLabel.textContent = isGameplay ? "متابعة اللعب" : "حفظ وإغلاق";
+    if (modalTitle) modalTitle.textContent = isGameplay ? "إعدادات اللعب" : "الإعدادات";
+
+    const modal = $("settingsModal");
+    if (modal) modal.classList.remove("hidden");
+    syncPhaseAttributes();
+  }
+
+  function closeSettingsModal() {
+    state.settingsOpen = false;
+    const modal = $("settingsModal");
+    if (modal) modal.classList.add("hidden");
+    syncPhaseAttributes();
+  }
+
+  function openHeartConfirmation(actionType) {
+    applyHeartRegen();
+    if (actionType === "restart" && state.lives <= 0) {
+      say("لا توجد قلوب متاحة لإعادة المرحلة حالياً.");
+      return;
+    }
+
+    const token = heartGuard.openConfirmation(actionType);
+    state.activeConfirmToken = token;
+
+    const modal = $("confirmActionModal");
+    const title = $("confirmTitle");
+    const msg = $("confirmMessage");
+    const heartsPreview = $("confirmHeartsPreview");
+    const yesBtn = $("confirmYesBtn");
+
+    const isRestart = actionType === "restart";
+    if (title) {
+      title.textContent = isRestart ? "تأكيد إعادة المرحلة" : "تأكيد الخروج من المرحلة";
+    }
+    if (msg) {
+      msg.textContent = isRestart
+        ? "هل أنت متأكد من إعادة المرحلة؟ سيتم خصم قلب واحد عند التأكيد."
+        : "هل أنت متأكد من الخروج إلى خريطة القصور؟ سيتم خصم قلب واحد عند التأكيد.";
+    }
+    if (heartsPreview) {
+      const after = Math.max(0, state.lives - 1);
+      heartsPreview.textContent = `القلوب الحالية: ${state.lives} ← بعد التأكيد: ${after}`;
+    }
+    if (yesBtn) {
+      yesBtn.disabled = false;
+    }
+    if (modal) {
+      modal.classList.remove("hidden");
+    }
+  }
+
+  function closeConfirmModal(cancelGuard = true) {
+    if (cancelGuard) {
+      heartGuard.cancelConfirmation();
+      state.activeConfirmToken = null;
+    }
+    const modal = $("confirmActionModal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  function handleConfirmYes() {
+    const yesBtn = $("confirmYesBtn");
+    if (yesBtn) yesBtn.disabled = true;
+
+    const result = heartGuard.confirmAndDeduct(state.lives, state.activeConfirmToken);
+    state.activeConfirmToken = null;
+
+    if (!result.allowed) {
+      closeConfirmModal(false);
+      return;
+    }
+
+    // Atomic single heart deduction synced with HUD and persistent storage
+    state.lives = result.nextLives;
+    if (state.lives < Core.MAX_LIVES && !state.lastHeartAt) {
+      state.lastHeartAt = Date.now();
+    }
+    updateHud();
+    saveProgress(false);
+
+    closeConfirmModal(false);
+    closeSettingsModal();
+
+    if (result.actionType === "restart") {
+      say("تم خصم قلب واحد وإعادة المرحلة.");
+      startFreshBoardForCurrentLevel();
+    } else if (result.actionType === "exit") {
+      say("تم خصم قلب واحد والعودة إلى خريطة القصور.");
+      exitToWorldMap();
+    }
+  }
+
+  // ---- Complete 6-Category In-Game Store ----
+  function readStoreDailyClaims() {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_DAILY_KEY) || "{}");
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeStoreDailyClaims(claims) {
+    try {
+      localStorage.setItem(STORE_DAILY_KEY, JSON.stringify(claims));
+    } catch (_) {}
+  }
+
+  function getInventorySnapshot() {
+    return {
+      coins: state.coins,
+      gems: state.gems,
+      lives: state.lives,
+      hammer: state.hammer,
+      rockets: state.rockets,
+      colors: state.colors,
+      paints: state.paints,
+    };
+  }
+
+  function applyInventorySnapshot(inv) {
+    state.coins = inv.coins;
+    state.gems = inv.gems;
+    state.lives = inv.lives;
+    if (state.lives >= Core.MAX_LIVES) state.lastHeartAt = Date.now();
+    state.hammer = inv.hammer;
+    state.rockets = inv.rockets;
+    state.colors = inv.colors;
+    state.paints = inv.paints;
+    updateHud();
+    refreshBoosterBadges();
+    saveProgress(false);
+    refreshShop();
+  }
+
+  function applyRewardedAdGrant(reward) {
+    if (!reward) return;
+    if (reward.extraMoves && stateMachine.phase === Core.GAME_STATES.LOST) {
+      state.moves += reward.extraMoves;
+      state.lossHandled = false;
+      stateMachine.resetToPlaying();
+      hideResultModal();
+      updateHud();
+      saveProgress(false);
+      playSfx("coin");
+      say(`تمت إضافة +${reward.extraMoves} حركات إضافية! تابع اللعب الآن!`);
+      return;
+    }
+    const nextInv = Core.applyRewardToInventory(getInventorySnapshot(), reward);
+    applyInventorySnapshot(nextInv);
+    playSfx("coin");
+  }
+
+  function renderStoreCategories() {
+    const tabsEl = $("shopCategoryTabs");
+    if (!tabsEl) return;
+    tabsEl.innerHTML = Core.STORE_CATEGORIES.map(
+      (cat) => `
+        <button
+          type="button"
+          role="tab"
+          aria-selected="${cat.id === state.activeStoreCategory}"
+          class="shop-cat-tab ${cat.id === state.activeStoreCategory ? "active" : ""}"
+          data-shop-cat="${cat.id}"
+        >
+          <img src="${cat.icon}" alt="">
+          <span>${cat.label}</span>
+        </button>
+      `
+    ).join("");
+
+    tabsEl.querySelectorAll("[data-shop-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.activeStoreCategory = btn.dataset.shopCat || "coins";
+        renderStoreCategories();
+        renderStoreProducts();
+      });
+    });
+  }
+
+  function renderStoreProducts() {
+    const grid = $("shopGrid");
+    if (!grid) return;
+
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const dailyClaims = readStoreDailyClaims();
+    const items = Core.STORE_ITEMS.filter((item) => item.category === state.activeStoreCategory);
+
+    grid.innerHTML = items
+      .map((item) => {
+        const isAd = item.currency === "rewarded_ad";
+        const isDaily = item.currency === "free_daily";
+        const claimedToday = isDaily && dailyClaims[item.id] === todayKey;
+        const cantAfford =
+          (item.currency === "coins" && state.coins < item.price) ||
+          (item.currency === "gems" && state.gems < item.price);
+        const heartsFull = Boolean(item.requiresMissingHearts && state.lives >= Core.MAX_LIVES);
+
+        let priceHtml = "";
+        if (isAd) {
+          priceHtml = `<span class="price-tag is-ad">🎬 شاهد إعلاناً</span>`;
+        } else if (isDaily) {
+          priceHtml = `<span class="price-tag is-free">${claimedToday ? "تم الاستلام اليوم" : "مجاني يومياً"}</span>`;
+        } else if (item.currency === "gems") {
+          priceHtml = `<span class="price-tag is-gems"><img src="./assets/packs/buttons/icon_gem.png" alt=""> ${item.price} جوهرة</span>`;
+        } else {
+          priceHtml = `<span class="price-tag is-coins"><img src="./assets/packs/buttons/icon_coin.png" alt=""> ${item.price.toLocaleString("en-US")} عملة</span>`;
+        }
+
+        const btnLabel = isAd
+          ? "شاهد الإعلان"
+          : claimedToday
+          ? "مُستلَم"
+          : heartsFull
+          ? "القلوب ممتلئة"
+          : isDaily
+          ? "استلم مجاناً"
+          : "شراء الآن";
+
+        return `
+          <article class="shop-product-card ${isAd ? "is-ad-card" : ""}" data-item-id="${item.id}">
+            ${item.badge ? `<span class="shop-item-badge">${item.badge}</span>` : ""}
+            <div class="shop-product-media">
+              <img src="${item.image}" alt="${item.name}">
+            </div>
+            <div class="shop-product-body">
+              <h3>${item.name}</h3>
+              <p>${item.description}</p>
+            </div>
+            <div class="shop-product-footer">
+              ${priceHtml}
+              <button
+                type="button"
+                class="shop-buy-btn ${isAd ? "is-ad-btn" : ""} ${cantAfford || heartsFull || claimedToday ? "is-muted" : ""}"
+                data-store-buy="${item.id}"
+                aria-label="${btnLabel}: ${item.name}"
+              >
+                ${btnLabel}
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    grid.querySelectorAll("[data-store-buy]").forEach((btn) => {
+      btn.addEventListener("click", () => handleStorePurchase(btn.dataset.storeBuy, btn));
+    });
+  }
+
+  function handleStorePurchase(itemId, btnEl) {
+    const item = Core.getStoreItemById(itemId);
+    if (!item) return;
+
+    if (item.currency === "rewarded_ad") {
+      if (item.requiresMissingHearts && state.lives >= Core.MAX_LIVES) {
+        say("قلوبك ممتلئة بالفعل (5/5)!");
+        return;
+      }
+      window.CMRAdManager?.openRewardedAdModal?.(item.adPlacement, (reward) => {
+        applyRewardedAdGrant(reward);
+      });
+      return;
+    }
+
+    if (btnEl) btnEl.disabled = true;
+    const dailyClaims = readStoreDailyClaims();
+    const res = storeEngine.purchase(getInventorySnapshot(), itemId, {
+      dailyClaims,
+      minGapMs: 380,
+    });
+
+    if (!res.ok) {
+      say(res.message);
+      setTimeout(() => {
+        if (btnEl) btnEl.disabled = false;
+      }, 260);
+      return;
+    }
+
+    if (res.claimedDate) {
+      dailyClaims[itemId] = res.claimedDate;
+      writeStoreDailyClaims(dailyClaims);
+    }
+
+    applyInventorySnapshot(res.inventory);
+    playSfx("coin");
+    say(res.message);
+  }
+
+  function refreshShop() {
+    applyHeartRegen();
+    const coinsEl = $("shopCoins");
+    const gemsEl = $("shopGems");
+    const heartsEl = $("shopHearts");
+    if (coinsEl) coinsEl.textContent = state.coins.toLocaleString("en-US");
+    if (gemsEl) gemsEl.textContent = state.gems.toLocaleString("en-US");
+    if (heartsEl) heartsEl.textContent = `${state.lives}/${Core.MAX_LIVES}`;
+
+    const setText = (id, val) => {
+      const el = $(id);
+      if (el) el.textContent = String(val);
+    };
+    setText("invBomb", state.hammer);
+    setText("invRocket", state.rockets);
+    setText("invColor", state.colors);
+    setText("invPaint", state.paints);
+
+    renderStoreCategories();
+    renderStoreProducts();
+  }
+
+  function openStoreModal(categoryId) {
+    if (categoryId && Core.STORE_CATEGORIES.some((c) => c.id === categoryId)) {
+      state.activeStoreCategory = categoryId;
+    }
+    refreshShop();
+    const modal = $("royalShop");
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  function closeStoreModal() {
+    const modal = $("royalShop");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  // ---- Login Modal ----
+  function openLoginModal() {
+    const modal = $("loginModal");
+    const nameInput = $("loginDisplayName");
+    const emailInput = $("loginEmail");
+    const statusBanner = $("loginStatusBanner");
+    const errorEl = $("loginErrorText");
+    const signOutBtn = $("loginSignOutBtn");
+    const profile = ensureGuestIdentity();
+
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.classList.add("hidden");
+    }
+    if (nameInput) {
+      nameInput.value = profile.provider === "account" ? profile.displayName || "" : "";
+    }
+    if (emailInput) {
+      emailInput.value = profile.email || "";
+    }
+    if (statusBanner) {
+      statusBanner.textContent =
+        profile.provider === "account"
+          ? `مسجل الدخول حالياً باسم: ${profile.displayName} — جميع مراحل ومقتنيات حسابك محفوظة.`
+          : "سجّل اسمك الملكي لحفظ تقدمك ومخزونك على هذا الجهاز.";
+    }
+    if (signOutBtn) {
+      signOutBtn.classList.toggle("hidden", profile.provider !== "account");
+    }
+    if (modal) modal.classList.remove("hidden");
+  }
+
+  function closeLoginModal() {
+    const modal = $("loginModal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  // ---- Shell-Wide UI Bindings (Active immediately on Main Start Screen) ----
+  let shellUiBound = false;
+  function bindShellModals() {
+    if (shellUiBound) return;
+    shellUiBound = true;
+
+    const bind = (id, handler) => {
+      const el = $(id);
+      if (el) el.addEventListener("click", handler);
+    };
+
+    // Main Start Screen buttons (Login, Settings, Store, Profile chip)
+    bind("loginMenuBtn", openLoginModal);
+    bind("menuProfileChip", openLoginModal);
+    bind("menuSettingsBtn", () => openSettingsModal("menu"));
+    bind("menuShopBtn", () => openStoreModal("coins"));
+
+    // Login modal controls
+    bind("loginCloseBtn", closeLoginModal);
+    bind("loginAsGuestBtn", () => {
+      setGuestProfile();
+      closeLoginModal();
+      say("أنت تلعب الآن كضيف مع حفظ التقدم تلقائياً.");
+      window.CMRLaunchGame?.();
+    });
+    bind("loginSignOutBtn", () => {
+      setGuestProfile();
+      closeLoginModal();
+      say("تم تسجيل الخروج والعودة إلى وضع الضيف.");
+    });
+
+    const loginModal = $("loginModal");
+    if (loginModal) {
+      loginModal.addEventListener("click", (e) => {
+        if (e.target === loginModal) closeLoginModal();
+      });
+    }
+
+    const loginForm = $("loginForm");
+    if (loginForm) {
+      loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const nameInput = $("loginDisplayName");
+        const emailInput = $("loginEmail");
+        const errorEl = $("loginErrorText");
+        const name = String(nameInput?.value || "").trim();
+        const email = String(emailInput?.value || "").trim();
+
+        if (name.length < 2) {
+          if (errorEl) {
+            errorEl.textContent = "يرجى إدخال اسم لا يقل عن حرفين.";
+            errorEl.classList.remove("hidden");
+          }
+          nameInput?.focus();
+          return;
+        }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          if (errorEl) {
+            errorEl.textContent = "يرجى إدخال بريد إلكتروني صحيح أو تركه فارغاً.";
+            errorEl.classList.remove("hidden");
+          }
+          emailInput?.focus();
+          return;
+        }
+
+        if (errorEl) errorEl.classList.add("hidden");
+        savePlayerProfile(name, email);
+        closeLoginModal();
+        playSfx("coin");
+        say(`أهلاً بك يا ${name}! تم حفظ حسابك بنجاح.`);
+      });
+    }
+
+    // Store modal controls
+    const shopModal = $("royalShop");
+    if (shopModal) {
+      const closeBtn = shopModal.querySelector(".shop-close");
+      if (closeBtn) closeBtn.addEventListener("click", closeStoreModal);
+      shopModal.addEventListener("click", (e) => {
+        if (e.target === shopModal) closeStoreModal();
+      });
+    }
+    bind("shopOpenBtn", () => openStoreModal());
+
+    // Settings Modal Controls (work from Menu, World Map, and Gameplay)
+    bind("settingsBtn", () => openSettingsModal("gameplay"));
+    bind("settingsCloseBtn", closeSettingsModal);
+    bind("settingsResumeBtn", closeSettingsModal);
+    bind("settingsRestartBtn", () => openHeartConfirmation("restart"));
+    bind("settingsExitBtn", () => openHeartConfirmation("exit"));
+
+    // Confirmation Modal
+    bind("confirmYesBtn", handleConfirmYes);
+    bind("confirmCancelBtn", () => closeConfirmModal(true));
+
+    // Audio Controls inside Settings Modal
+    bind("musicToggleBtn", () => {
+      const s = window.CMRAudio?.getSettings?.();
+      if (!s) return;
+      window.CMRAudio.setMusicEnabled(!s.musicEnabled);
+      syncAudioUI();
+    });
+    bind("sfxToggleBtn", () => {
+      const s = window.CMRAudio?.getSettings?.();
+      if (!s) return;
+      window.CMRAudio.setSfxEnabled(!s.sfxEnabled);
+      syncAudioUI();
+    });
+
+    const musicSlider = $("musicVolumeSlider");
+    if (musicSlider) {
+      musicSlider.addEventListener("input", () => {
+        const val = Number(musicSlider.value) / 100;
+        window.CMRAudio?.setMusicVolume?.(val);
+        const out = $("musicVolumeValue");
+        if (out) out.textContent = Math.round(val * 100) + "%";
+      });
+    }
+    const sfxSlider = $("sfxVolumeSlider");
+    if (sfxSlider) {
+      sfxSlider.addEventListener("input", () => {
+        const val = Number(sfxSlider.value) / 100;
+        window.CMRAudio?.setSfxVolume?.(val);
+        const out = $("sfxVolumeValue");
+        if (out) out.textContent = Math.round(val * 100) + "%";
+      });
+    }
+
+    // Victory Transparent PNG Hotspots
+    bind("winNextBtn", () => {
+      playSfx("tap");
+      advanceToNextStage();
+    });
+    bind("winReplayBtn", () => {
+      playSfx("tap");
+      startFreshBoardForCurrentLevel();
+    });
+    bind("winMapBtn", () => {
+      playSfx("tap");
+      exitToWorldMap();
+    });
+
+    // Defeat Transparent PNG Hotspots + Help Button
+    bind("lossWatchAdBtn", () => {
+      playSfx("tap");
+      window.CMRAdManager?.openRewardedAdModal?.("extra_moves", (reward) => {
+        applyRewardedAdGrant(reward);
+      });
+    });
+    bind("lossRetryBtn", () => {
+      playSfx("tap");
+      restartFromResultModal();
+    });
+    bind("lossMapBtn", () => {
+      playSfx("tap");
+      exitToWorldMap();
+    });
+    bind("lossHelpBtn", () => {
+      playSfx("tap");
+      openStoreModal(state.lives <= 0 ? "hearts" : "boosters");
+    });
+
+    // Escape key closes open modals cleanly
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const adModal = $("rewardedAdModal");
+      if (adModal && !adModal.classList.contains("hidden")) {
+        window.CMRAdManager?.closeAdModal?.();
+        return;
+      }
+      const confirmModal = $("confirmActionModal");
+      if (confirmModal && !confirmModal.classList.contains("hidden")) {
+        closeConfirmModal(true);
+        return;
+      }
+      if (shopModal && !shopModal.classList.contains("hidden")) {
+        closeStoreModal();
+        return;
+      }
+      if (loginModal && !loginModal.classList.contains("hidden")) {
+        closeLoginModal();
+        return;
+      }
+      if (state.settingsOpen) {
+        closeSettingsModal();
+      } else if (
+        !document.body.classList.contains("map-open") &&
+        state.levelReady &&
+        !stateMachine.isTerminal()
+      ) {
+        openSettingsModal("gameplay");
+      }
+    });
+  }
+
+  // ---- Gameplay-Only UI Bindings ----
+  let gameplayUiBound = false;
+  function bindUI() {
+    bindShellModals();
+    if (gameplayUiBound) return;
+    gameplayUiBound = true;
+
+    const bind = (id, handler) => {
+      const el = $(id);
+      if (el) el.addEventListener("click", handler);
+    };
+
+    // Boosters
+    const toggleBooster = (id, kind, getCount) =>
+      bind(id, () => {
+        if (!canInteractWithBoard() || getCount() <= 0) return;
+        state.booster = state.booster === kind ? null : kind;
+        const mapping = { paintBtn: "paint", bombBtn: "bomb", colorBtn: "color", rocketBtn: "rocket" };
+        for (const key of Object.keys(mapping)) {
+          const el = $(key);
+          if (el) el.classList.toggle("active", state.booster === mapping[key]);
+        }
+        const labels = {
+          bomb: "اختر حلوى لتفجير مساحة 3×3",
+          rocket: "اختر حلوى لمسح الصف والعمود",
+          color: "اختر حلوى لمسح كل القطع من نفس اللون",
+          paint: "اختر حلوى لتغيير لونها إلى لون مجاور",
+        };
+        say(state.booster ? labels[kind] : "تم إلغاء المساعد");
+      });
+
+    toggleBooster("bombBtn", "bomb", () => state.hammer);
+    toggleBooster("rocketBtn", "rocket", () => state.rockets);
+    toggleBooster("colorBtn", "color", () => state.colors);
+    toggleBooster("paintBtn", "paint", () => state.paints);
+    bind("shuffleBtn", () => shuffle(false));
+
+    // Daily Coin Bonus button in gameplay HUD
+    bind("plusCoins", () => {
+      handleStorePurchase("offer_daily_gift");
+    });
+  }
+
+  // ---- Stalled Animation Watchdog ----
+  function startBusyWatchdog() {
+    if (busyWatchdogTimer) return;
+    let resolvingSince = 0;
+    busyWatchdogTimer = setInterval(() => {
+      if (stateMachine.phase !== Core.GAME_STATES.RESOLVING) {
+        resolvingSince = 0;
+        return;
+      }
+      if (!resolvingSince) {
+        resolvingSince = Date.now();
+        return;
+      }
+      if (Date.now() - resolvingSince < 7000) return;
+      resolvingSince = Date.now();
+      console.warn("[CMR] Watchdog resolving stalled animations");
+      cancelAllAnimations();
+      finalizeTurn();
+    }, 1000);
+  }
+
+  // ---- Init & External Launch Entrypoint ----
+  async function start() {
+    loadProgress();
+    state.levelReady = false;
+    const loading = $("loading");
+    if (loading) {
+      loading.style.display = "grid";
+      loading.textContent = "جاري تجهيز لوحة الحلوى...";
+    }
+    setupScene();
+    await preloadCandyTextures();
+    bindUI();
+    updateHud();
+    startHeartClock();
+    startBusyWatchdog();
+    if (loading) loading.style.display = "none";
+    refreshBoosterBadges();
+  }
+
+  window.CMRStartSelectedHouse = async (selectedLevel) => {
+    document.body.classList.add("game-started");
+    window.CMRHideWorldMap?.();
+    try {
+      if (!gameInitialized) {
+        await start();
+        gameInitialized = true;
+      }
+      const requested = Core.clampStage(selectedLevel || state.level);
+      state.level = requested;
+      state.replayMode = requested < state.highestUnlocked;
+      startFreshBoardForCurrentLevel();
+      window.Dragon3DCharacter?.resume?.();
+      if (engine) requestAnimationFrame(() => engine.resize());
+      return true;
+    } catch (error) {
+      console.error("[CMR] Stage launch failed:", error);
+      const loading = $("loading");
+      if (loading) {
+        loading.style.display = "grid";
+        loading.textContent = "تعذر تجهيز اللوحة. حاول مجدداً.";
+      }
+      say("تعذر فتح المرحلة.");
+      return false;
+    }
+  };
+
+  window.CMRStore = {
+    open: openStoreModal,
+    close: closeStoreModal,
+    refresh: refreshShop,
+  };
+
+  // Expose clean diagnostic/interaction API for verification & cross-module sync
+  window.CMRGame = {
+    getState: () => ({
+      phase: stateMachine.phase,
+      level: state.level,
+      highestUnlocked: state.highestUnlocked,
+      moves: state.moves,
+      lives: state.lives,
+      score: state.score,
+      coins: state.coins,
+      gems: state.gems,
+      stars: state.stars,
+      hammer: state.hammer,
+      rockets: state.rockets,
+      colors: state.colors,
+      paints: state.paints,
+      obstacleGoal: state.obstacleGoal,
+      obstaclesRemaining: countObstacles(),
+      obstaclesCleared: state.obstaclesCleared,
+      settingsOpen: state.settingsOpen,
+      meta: Core.getStageMeta(state.level),
+      profile: ensureGuestIdentity(),
+    }),
+    getObstacleCells: () => {
+      const cells = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const it = state.grid[r]?.[c];
+          if (it && (it.obs || it.ice > 0)) {
+            cells.push({ r, c, obs: it.obs, hp: it.ice, screen: cellScreenPos(r, c) });
+          }
+        }
+      }
+      return cells;
+    },
+    getCellScreenPos: cellScreenPos,
+    findFirstValidMove,
+    openSettings: openSettingsModal,
+    closeSettings: closeSettingsModal,
+    openLogin: openLoginModal,
+    setGuestProfile,
+    syncMenuUI,
+    exitToMap: exitToWorldMap,
+  };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    loadProgress();
+    bindShellModals();
+    syncAudioUI();
+  });
 })();

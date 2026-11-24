@@ -1,0 +1,35 @@
+area,name,category,size_1x,size_2x,states,nine_slice
+UI,bar_fill_lime,bars,126x30,252x60,-,horizontal only
+UI,bar_fill_red,bars,131x30,262x60,-,horizontal only
+UI,bar_frame,bars,163x56,326x112,-,horizontal only
+UI,btn_close_round,buttons,106x105,212x210,normal;hover;pressed;disabled;focused,fixed size
+UI,btn_round_orange,buttons,118x119,236x238,normal;hover;pressed;disabled;focused,fixed size
+UI,btn_wide_lime,buttons,183x98,366x196,normal;hover;pressed;disabled;focused,horizontal only
+UI,slot_empty,controls,103x102,206x204,normal;hover;pressed;disabled;focused,horizontal and vertical
+UI,toggle_off,controls,125x85,250x170,normal;hover;pressed;disabled;focused,fixed size
+UI,toggle_on,controls,124x85,248x170,normal;hover;pressed;disabled;focused,fixed size
+UI,coin_plate,panels,144x63,288x126,-,horizontal only
+UI,inner_panel,panels,111x108,222x216,-,horizontal and vertical
+UI,ribbon_long_orange,panels,254x100,508x200,-,fixed size
+UI,title_plate,panels,178x86,356x172,-,horizontal only
+UI,window_frame_red,panels,227x172,454x344,-,horizontal and vertical
+Icons coloured,coin,currency_and_keys,62x64,124x128,-,fixed size
+Icons white,coin,currency_and_keys,62x64,124x128,-,fixed size
+Icons coloured,gem_blue,currency_and_keys,64x62,128x124,-,fixed size
+Icons white,gem_blue,currency_and_keys,64x62,128x124,-,fixed size
+Icons coloured,bolt,currency_and_keys,45x64,90x128,-,fixed size
+Icons white,bolt,currency_and_keys,45x64,90x128,-,fixed size
+Icons coloured,heart,currency_and_keys,64x60,128x120,-,fixed size
+Icons white,heart,currency_and_keys,64x60,128x120,-,fixed size
+Icons coloured,key,currency_and_keys,50x64,100x128,-,fixed size
+Icons white,key,currency_and_keys,50x64,100x128,-,fixed size
+Icons coloured,chest_gold,rewards_and_awards,64x57,128x114,-,fixed size
+Icons white,chest_gold,rewards_and_awards,64x57,128x114,-,fixed size
+Icons coloured,gift_box,rewards_and_awards,59x64,118x128,-,fixed size
+Icons white,gift_box,rewards_and_awards,59x64,118x128,-,fixed size
+Icons coloured,trophy,rewards_and_awards,64x62,128x124,-,fixed size
+Icons white,trophy,rewards_and_awards,64x62,128x124,-,fixed size
+Icons coloured,crown,rewards_and_awards,64x60,128x120,-,fixed size
+Icons white,crown,rewards_and_awards,64x60,128x120,-,fixed size
+Icons coloured,gold_star,rewards_and_awards,64x64,128x128,-,fixed size
+Icons white,gold_star,rewards_and_awards,64x64,128x128,-,fixed size

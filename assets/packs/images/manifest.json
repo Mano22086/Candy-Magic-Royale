@@ -1,0 +1,198 @@
+{
+ "bar_fill_lime": {
+  "category": "bars",
+  "size_1x": [
+   126,
+   30
+  ],
+  "size_2x": [
+   252,
+   60
+  ],
+  "states": false,
+  "recolour": false,
+  "nine_slice": "horizontal only"
+ },
+ "bar_fill_red": {
+  "category": "bars",
+  "size_1x": [
+   131,
+   30
+  ],
+  "size_2x": [
+   262,
+   60
+  ],
+  "states": false,
+  "recolour": false,
+  "nine_slice": "horizontal only"
+ },
+ "bar_frame": {
+  "category": "bars",
+  "size_1x": [
+   163,
+   56
+  ],
+  "size_2x": [
+   326,
+   112
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "horizontal only"
+ },
+ "btn_close_round": {
+  "category": "buttons",
+  "size_1x": [
+   106,
+   105
+  ],
+  "size_2x": [
+   212,
+   210
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "fixed size"
+ },
+ "btn_round_orange": {
+  "category": "buttons",
+  "size_1x": [
+   118,
+   119
+  ],
+  "size_2x": [
+   236,
+   238
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "fixed size"
+ },
+ "btn_wide_lime": {
+  "category": "buttons",
+  "size_1x": [
+   183,
+   98
+  ],
+  "size_2x": [
+   366,
+   196
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "horizontal only"
+ },
+ "coin_plate": {
+  "category": "panels",
+  "size_1x": [
+   144,
+   63
+  ],
+  "size_2x": [
+   288,
+   126
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "horizontal only"
+ },
+ "inner_panel": {
+  "category": "panels",
+  "size_1x": [
+   111,
+   108
+  ],
+  "size_2x": [
+   222,
+   216
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "horizontal and vertical"
+ },
+ "ribbon_long_orange": {
+  "category": "panels",
+  "size_1x": [
+   254,
+   100
+  ],
+  "size_2x": [
+   508,
+   200
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "fixed size"
+ },
+ "slot_empty": {
+  "category": "controls",
+  "size_1x": [
+   103,
+   102
+  ],
+  "size_2x": [
+   206,
+   204
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "horizontal and vertical"
+ },
+ "title_plate": {
+  "category": "panels",
+  "size_1x": [
+   178,
+   86
+  ],
+  "size_2x": [
+   356,
+   172
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "horizontal only"
+ },
+ "toggle_off": {
+  "category": "controls",
+  "size_1x": [
+   125,
+   85
+  ],
+  "size_2x": [
+   250,
+   170
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "fixed size"
+ },
+ "toggle_on": {
+  "category": "controls",
+  "size_1x": [
+   124,
+   85
+  ],
+  "size_2x": [
+   248,
+   170
+  ],
+  "states": true,
+  "recolour": true,
+  "nine_slice": "fixed size"
+ },
+ "window_frame_red": {
+  "category": "panels",
+  "size_1x": [
+   227,
+   172
+  ],
+  "size_2x": [
+   454,
+   344
+  ],
+  "states": false,
+  "recolour": true,
+  "nine_slice": "horizontal and vertical"
+ }
+}

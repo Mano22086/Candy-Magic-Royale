@@ -1,79 +1,305 @@
+/* Candy Magic Royale — Main Menu & Loading Video Flow
+ * Plays supplied loading video ./assets/packs/images/4_5877503749181675068.mp4
+ * once to full completion (no infinite loop) with live progress bar and safe fallback.
+ */
 (() => {
-"use strict";
-if (window.__CMR_USER_PACKS_V2__) return;
-window.__CMR_USER_PACKS_V2__ = true;
-const urls=[], sounds={}; let packs=null, busy=false, loadingVideoPromise=Promise.resolve();
-const style=document.createElement("style");
-style.textContent=".start-screen.cinematic-ready .start-button.cmr-play-loading{opacity:1!important;background:linear-gradient(180deg,#fff0a9,#ffd16c 52%,#ee9b48)!important;color:#54265f!important;box-shadow:0 5px 0 #a75b45,0 8px 20px #09001888!important}.start-screen.cinematic-ready .start-button.cmr-play-loading span{opacity:1!important}.cmr-play-loading{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:58px!important;padding:0!important;overflow:hidden!important;pointer-events:none!important;background:#080408!important;border:1px solid #ffb329!important;box-shadow:0 0 18px #ff9d1c66!important}.cmr-play-video{display:block;width:100%;height:58px;object-fit:cover;object-position:center;border-radius:14px;background:#080408}.start-screen.cinematic-ready .start-button.cmr-play-loading{background:#080408!important;box-shadow:0 0 18px #ff9d1c66!important}.cmr-play-loading .cmr-play-label{position:absolute;inset:auto 0 2px;z-index:2;font:800 9px Cairo,system-ui;color:#fff;text-shadow:0 1px 3px #000;text-align:center}.start-button.cmr-pack-button{background:var(--cmr-user-start) center/100% 100% no-repeat!important;border:0!important}.facebook-button.cmr-pack-button{background:var(--cmr-user-menu) center/100% 100% no-repeat!important;border:0!important}.primary-button.cmr-pack-button{background:var(--cmr-user-next) center/100% 100% no-repeat!important;border:0!important}.soft-button.cmr-pack-button{background:var(--cmr-user-back) center/100% 100% no-repeat!important;border:0!important}.cmr-user-icon{width:23px;height:23px;object-fit:contain;vertical-align:middle}";
-document.head.appendChild(style);
-function progress(n,msg){const b=document.getElementById("startGameBtn");if(b)b.setAttribute("aria-label",msg||("تحميل "+Math.round(n)+"%"));}
-function showLoadingVideo(url){
- const b=document.getElementById("startGameBtn");if(!b||!url)return;
- const v=document.createElement("video");v.className="cmr-play-video";v.autoplay=true;v.muted=true;v.loop=false;v.playsInline=true;v.preload="auto";v.src=url;v.setAttribute("aria-label","جاري تحميل موارد اللعبة");
- loadingVideoPromise=new Promise(resolve=>{
-  let settled=false;const done=()=>{if(settled)return;settled=true;v.pause();try{if(Number.isFinite(v.duration))v.currentTime=Math.max(0,v.duration-.04)}catch(_){}resolve();};
-  v.addEventListener("ended",done,{once:true});v.addEventListener("error",done,{once:true});
-  setTimeout(done,5000);
- });
- b.replaceChildren(v);v.play().catch(()=>{});
+  "use strict";
+  if (window.__CMR_LAUNCH_FLOW_V3__) return;
+  window.__CMR_LAUNCH_FLOW_V3__ = true;
 
-}
-async function getZip(name){const r=await fetch("./"+encodeURIComponent(name),{cache:"force-cache"});if(!r.ok)throw Error("فشل تحميل "+name);return JSZip.loadAsync(await r.arrayBuffer());}
-function file(zip,names){for(const n of names){const f=zip.file(n);if(f)return f;}const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&names.includes(p.split("/").pop()));return p?zip.file(p):null;}
-async function img(zip,names){const f=file(zip,names);if(!f)return null;const u=URL.createObjectURL(await f.async("blob"));urls.push(u);const im=new Image();im.src=u;try{await im.decode();}catch(_){}return u;}
-async function snd(zip,key,pattern){const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&pattern.test(p.split("/").pop()));if(!p)return;const u=URL.createObjectURL(await zip.file(p).async("blob"));urls.push(u);const a=new Audio(u);a.preload="auto";a.volume=.55;sounds[key]=a;}
-async function prepare(){
- if(packs)return packs;
- if(!window.JSZip)throw Error("مكتبة فك الحزم غير جاهزة");
- progress(5,"تحميل حزم اللعبة...");
- const [bz,sz,iz]=await Promise.all([getZip("ازرار كاندي.zip"),getZip("اصوات كاندي.zip"),getZip("صور كاندي.zip")]);
- const loadingVideoFile=file(iz,["4_5877503749181675068.mp4"]);if(loadingVideoFile){const loadingVideoUrl=URL.createObjectURL(await loadingVideoFile.async("blob"));urls.push(loadingVideoUrl);showLoadingVideo(loadingVideoUrl);}else console.warn("[CMR] loading video was not found in صور كاندي.zip");
- progress(45,"تجهيز الصور والأصوات بالتوازي...");
- const buttonNames={start:["btn_start.png","btn_play.png"],menu:["btn_menu.png","btn_options.png"],next:["btn_next.png","btn_continue.png"],back:["btn_back.png","btn_quit.png"],sound:["icon_volume.png"],mute:["icon_mute.png"],coinIcon:["icon_coin.png"],heartIcon:["icon_heart.png"],gemIcon:["icon_gem.png"],settingsIcon:["icon_settings.png"],homeIcon:["icon_home.png"],trophyIcon:["icon_trophy.png"],refreshIcon:["icon_refresh.png"]};
- const imageNames={wide:["btn_wide_lime_normal.png"],round:["btn_round_orange_normal.png"],panel:["inner_panel.png"],title:["title_plate.png"],coin:["currency_coin.png","coin.png"],heart:["heart.png"],gem:["currency_gem.png","gem_blue.png"],crown:["crown.png"],star:["gold_star.png"],chest:["chest_gold.png"]};
- const bPairs=await Promise.all(Object.entries(buttonNames).map(async([k,n])=>[k,await img(bz,n)]));
- const iPairs=await Promise.all(Object.entries(imageNames).map(async([k,n])=>[k,await img(iz,n)]));
- await Promise.all([
-  snd(sz,"click",/UI_Click_Bubble_Pop_V06\.(wav|mp3|ogg)$/i),
-  snd(sz,"confirm",/UI_Confirm_Bubble_Double_Pop_V01\.(wav|mp3|ogg)$/i),
-  snd(sz,"cancel",/UI_Cancel_Back_V02\.(wav|mp3|ogg)$/i),
-  snd(sz,"reward",/UI_Reward_Coin_Pickup_V03\.(wav|mp3|ogg)$/i),
-  snd(sz,"win",/UI_Level_Complete_V02\.(wav|mp3|ogg)$/i),
-  snd(sz,"achievement",/UI_Achievement_Unlocked_V01\.(wav|mp3|ogg)$/i)
- ]);
- const b=Object.fromEntries(bPairs),i=Object.fromEntries(iPairs);
- const vars=[];if(b.start)vars.push("--cmr-user-start:url('"+b.start+"')");if(b.menu)vars.push("--cmr-user-menu:url('"+b.menu+"')");if(b.next)vars.push("--cmr-user-next:url('"+b.next+"')");if(b.back)vars.push("--cmr-user-back:url('"+b.back+"')");document.documentElement.style.cssText+=";"+vars.join(";");
- const start=document.getElementById("startGameBtn"),menu=document.getElementById("facebookLoginBtn");
- if(start&&b.start)start.classList.add("cmr-pack-button");if(menu&&b.menu)menu.classList.add("cmr-pack-button");
- document.querySelectorAll(".primary-button").forEach(x=>{if(b.next)x.classList.add("cmr-pack-button")});
- document.querySelectorAll(".soft-button").forEach(x=>{if(b.back)x.classList.add("cmr-pack-button")});
- function addIcon(selector,url){if(!url)return;const el=document.querySelector(selector);if(!el||el.querySelector(".cmr-user-icon"))return;const im=new Image();im.className="cmr-user-icon";im.src=url;im.alt="";el.prepend(im);}
- addIcon("#soundBtn",b.sound);addIcon("#plusCoins",b.coinIcon);
- window.CMR_USER_ART=i;
- window.CMR_USER_SOUNDS={play(name){const a=sounds[name]||sounds.click;if(a){try{a.currentTime=0;const p=a.play();if(p)p.catch(()=>{});}catch(_){}}}};
- document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("button,[role=button],.wm-house,.wm-realm");if(!t||t.disabled)return;const id=(t.id+" "+t.className).toLowerCase();const k=/next|resultbutton/.test(id)?"win":/retry|back|close|cancel/.test(id)?"cancel":/coin|chest|shop|house|realm/.test(id)?"reward":"click";window.CMR_USER_SOUNDS.play(k);},true);
- packs={buttons:b,images:i,sounds:Object.keys(sounds)};progress(68,"الحزم الأساسية جاهزة");return packs;
-}
-async function preloadCore(){
- const paths=["01_star_gold.png","02_heart_rainbow.png","03_diamond_blue.png","04_flower_purple.png","05_crown_green.png","06_lollipop_red.png","ice_cube_realistic_4k.png","ice_cube_stylized_4k.png","Candy-Magic-Royale-50-Boards-HD.zip","Match3_GEMS_hAIpng256px_Free_Starter_Pack_95pcs.zip"];
- let done=0;
- await Promise.all(paths.map(async path=>{try{const r=await fetch("./"+encodeURIComponent(path),{cache:"force-cache"});if(r.ok)await r.arrayBuffer();}catch(_){}finally{done++;progress(68+done/paths.length*29,"تحميل موارد اللعبة "+done+"/"+paths.length);}}));
-}
-function showError(err){const note=document.getElementById("playDiagnostic")||document.createElement("div");note.id="playDiagnostic";note.style.cssText="position:fixed;z-index:99999;left:12px;right:12px;bottom:12px;padding:12px;background:#3b123f;color:white;border:2px solid #ffd36e;border-radius:12px;text-align:center;font:700 13px Cairo,sans-serif";note.textContent="تعذر تجهيز اللعبة: "+(err&&err.message?err.message:err);document.body.appendChild(note);}
-async function launch(e){
- if(busy)return;busy=true;if(e){e.preventDefault();e.stopPropagation();}
- const b=document.getElementById("startGameBtn"),fb=document.getElementById("facebookLoginBtn");if(!b)return;
- b.disabled=true;b.classList.add("cmr-play-loading");b.innerHTML='<span class="cmr-play-label">بنجهز المملكة...</span>';if(fb)fb.hidden=true;
- try{
-  progress(2,"تحميل حزم اللعبة...");
-  await Promise.all([prepare(),preloadCore()]);
-  await loadingVideoPromise;
-  progress(99,"بنفتح خريطة المملكة...");
-  if(typeof window.CMRShowWorldMap!=="function")throw Error("خريطة المملكة لم تجهز");
-  window.CMRShowWorldMap();const map=document.getElementById("worldMap");if(!map)throw Error("تعذر إنشاء الخريطة");
-  map.classList.remove("hidden");document.body.classList.add("map-open");progress(100,"المملكة جاهزة!");
-  await new Promise(r=>setTimeout(r,180));document.getElementById("startScreen")?.remove();
- }catch(err){console.error("[CMR loading]",err);busy=false;b.disabled=false;b.classList.remove("cmr-play-loading");b.innerHTML='<span class="button-label">PLAY</span><span class="button-arrow">✦</span>';if(fb)fb.hidden=false;showError(err);}
-}
-document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#startGameBtn")&&!busy)void launch(e);},true);
+  const LOADING_VIDEO_SRC = "./assets/packs/images/4_5877503749181675068.mp4";
+  const CORE_ASSETS = [
+    "./01_star_gold.png",
+    "./02_heart_rainbow.png",
+    "./03_diamond_blue.png",
+    "./04_flower_purple.png",
+    "./05_crown_green.png",
+    "./06_lollipop_red.png",
+    "./ice_cube_realistic_4k.png",
+    "./ice_cube_stylized_4k.png",
+    "./assets/Picsart_26-11-17_02-37-45-792.png",
+    "./assets/Picsart_26-11-17_02-38-02-164.png",
+  ];
+
+  let launching = false;
+  let preloaded = false;
+
+  function setProgress(percent, label) {
+    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    const fill = document.getElementById("loadingProgressFill");
+    const pct = document.getElementById("loadingProgressPercent");
+    const txt = document.getElementById("loadingProgressText");
+    if (fill) fill.style.width = clamped + "%";
+    if (pct) pct.textContent = clamped + "%";
+    if (txt && label) txt.textContent = label;
+  }
+
+  async function preloadCoreAssets() {
+    if (preloaded) {
+      setProgress(100, "المملكة جاهزة!");
+      return;
+    }
+    let done = 0;
+    await Promise.all(
+      CORE_ASSETS.map(
+        (src) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            let settled = false;
+            const finish = () => {
+              if (settled) return;
+              settled = true;
+              done++;
+              setProgress(15 + (done / CORE_ASSETS.length) * 80, "جاري تجهيز مملكة الحلوى...");
+              resolve();
+            };
+            const timer = setTimeout(finish, 3000);
+            img.onload = () => {
+              clearTimeout(timer);
+              finish();
+            };
+            img.onerror = () => {
+              clearTimeout(timer);
+              finish();
+            };
+            img.src = src;
+          })
+      )
+    );
+    preloaded = true;
+  }
+
+  function playLoadingVideoOnce(videoEl) {
+    return new Promise((resolve) => {
+      if (!videoEl) {
+        resolve();
+        return;
+      }
+
+      let settled = false;
+      let startedPlayback = false;
+      let fallbackTimer = null;
+      let maxDurationTimer = null;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(fallbackTimer);
+        clearTimeout(maxDurationTimer);
+        videoEl.removeEventListener("ended", onEnded);
+        videoEl.removeEventListener("error", onError);
+        videoEl.removeEventListener("playing", onPlaying);
+        videoEl.removeEventListener("timeupdate", onTimeUpdate);
+        try {
+          videoEl.pause();
+        } catch (_) {}
+        resolve();
+      };
+
+      const onEnded = () => {
+        setProgress(100, "المملكة جاهزة!");
+        finish();
+      };
+
+      const onError = () => {
+        // Video unavailable or unsupported codec — gracefully fall back to progress bar
+        videoEl.classList.add("is-fallback");
+        setTimeout(finish, 900);
+      };
+
+      const onPlaying = () => {
+        startedPlayback = true;
+        clearTimeout(fallbackTimer);
+        const durMs =
+          Number.isFinite(videoEl.duration) && videoEl.duration > 0
+            ? Math.ceil(videoEl.duration * 1000) + 1200
+            : 7500;
+        clearTimeout(maxDurationTimer);
+        maxDurationTimer = setTimeout(finish, Math.min(12000, durMs));
+      };
+
+      const onTimeUpdate = () => {
+        if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+          const pct = Math.min(99, Math.round((videoEl.currentTime / videoEl.duration) * 100));
+          setProgress(pct, "جاري فتح بوابات القصور...");
+        }
+      };
+
+      videoEl.loop = false;
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      videoEl.currentTime = 0;
+      if (!videoEl.getAttribute("src")) {
+        videoEl.src = LOADING_VIDEO_SRC;
+      }
+
+      videoEl.addEventListener("ended", onEnded);
+      videoEl.addEventListener("error", onError);
+      videoEl.addEventListener("playing", onPlaying);
+      videoEl.addEventListener("timeupdate", onTimeUpdate);
+
+      // Safety timer: if autoplay/playback never starts (e.g., restricted device), complete cleanly
+      fallbackTimer = setTimeout(() => {
+        if (!startedPlayback) {
+          onError();
+        }
+      }, 2400);
+
+      // Absolute upper bound so loading screen can NEVER get stuck
+      maxDurationTimer = setTimeout(finish, 9500);
+
+      try {
+        videoEl.load();
+        const playPromise = videoEl.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {
+            onError();
+          });
+        }
+      } catch (_) {
+        onError();
+      }
+    });
+  }
+
+  function showLaunchError(message) {
+    const toast = document.getElementById("toast");
+    if (toast) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+  }
+
+  async function launchGame(options = {}) {
+    if (launching) return;
+    launching = true;
+
+    const skipVideo = Boolean(options.skipVideo);
+    const startScreen = document.getElementById("startScreen");
+    const overlay = document.getElementById("loadingVideoOverlay");
+    const videoEl = document.getElementById("loadingProgressVideo");
+    const startBtn = document.getElementById("startGameBtn");
+
+    window.CMRAudio?.unlock?.();
+    if (startBtn) {
+      startBtn.disabled = true;
+      startBtn.blur?.();
+    }
+
+    try {
+      if (!skipVideo && overlay) {
+        document.body.dataset.state = "loading";
+        overlay.classList.remove("hidden");
+        setProgress(5, "جاري تحميل عالم الحلوى...");
+
+        // Wait for BOTH the loading video to play to completion AND core assets to preload
+        await Promise.all([playLoadingVideoOnce(videoEl), preloadCoreAssets()]);
+        setProgress(100, "أهلاً بك في مملكة الحلوى!");
+        await new Promise((r) => setTimeout(r, 180));
+      } else {
+        await preloadCoreAssets();
+      }
+
+      if (typeof window.CMRShowWorldMap !== "function") {
+        throw new Error("خريطة الممالك غير جاهزة");
+      }
+
+      // Pause intro video to free mobile CPU/memory
+      const introVideo = document.getElementById("startCinematicVideo");
+      if (introVideo) {
+        try {
+          introVideo.pause();
+        } catch (_) {}
+      }
+
+      if (overlay) overlay.classList.add("hidden");
+      if (startScreen) startScreen.classList.add("hidden");
+
+      if (options.autostartStage) {
+        await window.CMRStartSelectedHouse?.(options.autostartStage);
+      } else {
+        window.CMRShowWorldMap();
+      }
+    } catch (err) {
+      console.error("[CMR launch]", err);
+      if (overlay) overlay.classList.add("hidden");
+      if (startBtn) startBtn.disabled = false;
+      launching = false;
+      showLaunchError("تعذر تشغيل اللعبة، حاول مرة أخرى.");
+      return;
+    }
+
+    launching = false;
+    if (startBtn) startBtn.disabled = false;
+  }
+
+  function showMainMenu() {
+    const startScreen = document.getElementById("startScreen");
+    const overlay = document.getElementById("loadingVideoOverlay");
+    window.CMRHideWorldMap?.();
+    window.CMRPauseGameRender?.();
+    if (overlay) overlay.classList.add("hidden");
+    if (startScreen) startScreen.classList.remove("hidden");
+    document.body.classList.remove("map-open");
+    document.body.dataset.state = "title";
+    window.CMRGame?.syncMenuUI?.();
+  }
+
+  function isAnyModalOpen() {
+    const modals = document.querySelectorAll(".modal:not(.hidden)");
+    return modals.length > 0;
+  }
+
+  function initMenu() {
+    document.body.dataset.state = "title";
+    const startBtn = document.getElementById("startGameBtn");
+    if (startBtn) {
+      startBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void launchGame();
+      });
+    }
+
+    const guestBtn = document.getElementById("guestPlayBtn");
+    if (guestBtn) {
+      guestBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.CMRGame?.setGuestProfile?.();
+        void launchGame();
+      });
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (document.body.dataset.state !== "title") return;
+      if (isAnyModalOpen()) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        void launchGame();
+      }
+    });
+
+    // Support ?autostart=1 (or ?autostart=stage) for direct testing
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const auto = params.get("autostart");
+      if (auto === "1" || auto === "map") {
+        void launchGame({ skipVideo: true });
+      } else if (auto === "stage" || auto === "play") {
+        const st = Number(params.get("stage")) || 1;
+        void launchGame({ skipVideo: true, autostartStage: st });
+      }
+    } catch (_) {}
+  }
+
+  window.CMRLaunchGame = launchGame;
+  window.CMRShowMainMenu = showMainMenu;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMenu, { once: true });
+  } else {
+    initMenu();
+  }
 })();

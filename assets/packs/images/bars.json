@@ -1,0 +1,36 @@
+{
+ "bar_frame_1x": {
+  "canvas": [
+   163,
+   56
+  ],
+  "channel": [
+   13.6,
+   13.5,
+   149.4,
+   43.4
+  ],
+  "channel_height": 29.8
+ },
+ "bar_frame_2x": {
+  "canvas": [
+   326,
+   112
+  ],
+  "channel": [
+   27.3,
+   27.1,
+   298.7,
+   86.8
+  ],
+  "channel_height": 59.7
+ },
+ "recipe": [
+  "1. Stretch bar_frame horizontally with its 9-slice margins (see nine_slice.json).",
+  "2. The channel is the dark inner rounded rectangle: channel = [x0, y0, x1, y1] in the unstretched file; x1 moves right by (new width - file width).",
+  "3. Scale an outline-free fill (bar_fill_red, bar_fill_lime or bar_fill_blue) to the channel height, then to channel width x percent (9-slice its left and right caps; scale the whole strip when it is narrower than its caps).",
+  "4. Clip the fill to the channel; round the right end of partial fills with radius = channel height / 2.",
+  "5. Draw the fill over the dark channel and under nothing else."
+ ],
+ "composed_files": "UI/<variant>/<1x|2x>/bars_composed/bar_<red|lime|blue>_<000|025|050|075|100>.png, 240 px (1x) or 480 px (2x) wide"
+}
