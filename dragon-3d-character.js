@@ -1,4 +1,3 @@
-```javascript
 /**
  * Candy Magic Royale - Lightweight All-in-One Suite (v9 — ~15 KB, ZERO base64)
  * Loads all 50 HD board backgrounds (`board_01..50`) + exact Win 3 (`win3.jpg`)
@@ -567,4 +566,3 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => mount().catch(console.warn));
   else mount().catch(console.warn);
 })();
-```
