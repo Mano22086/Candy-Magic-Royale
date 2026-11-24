@@ -1306,31 +1306,14 @@ function startBusyWatchdog(){
     if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
   },1000);
 }
-const BOARD_ART_ZIP_URL="./Candy-Magic-Royale-50-Boards-HD.zip";
-let boardArtZipPromise=null,boardArtFiles=null;
-const boardArtUrls=new Map();
-function ensureBoardArtLayer(){
- const rim=document.querySelector(".board-rim");if(!rim)return null;
- let img=document.getElementById("cmrFiftyBoardArt");
- if(!img){img=document.createElement("img");img.id="cmrFiftyBoardArt";img.alt="";img.setAttribute("aria-hidden","true");img.style.cssText="position:absolute;inset:5px;width:calc(100% - 10px);height:calc(100% - 10px);object-fit:cover;opacity:.28;pointer-events:none;z-index:0;border-radius:18px;";rim.insertBefore(img,rim.firstChild);}
- const canvasEl=document.getElementById("renderCanvas");if(canvasEl){canvasEl.style.zIndex="1";canvasEl.style.background="transparent";}
- return img;
-}
 async function loadFiftyBoardArt(level){
  try{
   const img=ensureBoardArtLayer();if(!img)return;
-  if(!boardArtZipPromise)boardArtZipPromise=fetch(BOARD_ART_ZIP_URL).then(r=>{if(!r.ok)throw Error("50-board archive HTTP "+r.status);return r.arrayBuffer();}).then(b=>JSZip.loadAsync(b)).then(zip=>{
-   boardArtFiles=Object.keys(zip.files).filter(p=>!zip.files[p].dir&&/\.(png|jpe?g|webp)$/i.test(p)&&!/(thumb|preview|readme|license)/i.test(p.split("/").pop())).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:"base"}));
-   if(!boardArtFiles.length)throw Error("No board images found in 50-board archive");
-   console.info("[CMR 50 Boards] indexed",boardArtFiles.length,"images");return zip;
-  });
-  const zip=await boardArtZipPromise;if(!boardArtFiles||!boardArtFiles.length)return;
-  const palaceStage=((Math.max(1,Number(level)||1)-1)%50);
-  const path=boardArtFiles[palaceStage%boardArtFiles.length];
-  let url=boardArtUrls.get(path);
-  if(!url){const blob=await zip.file(path).async("blob");url=URL.createObjectURL(blob);boardArtUrls.set(path,url);}
-  if(img.dataset.boardPath!==path){img.src=url;img.dataset.boardPath=path;img.alt="تصميم لوحة المرحلة "+(palaceStage+1);}
- }catch(error){console.warn("[CMR 50 Boards] artwork load failed; standard board frame remains:",error);}
+  if(typeof window.CMRGetBoardArtUrl!=="function")return;
+  const url=await window.CMRGetBoardArtUrl(level);
+  const stage=((Math.max(1,Number(level)||1)-1)%50)+1;
+  if(img.dataset.boardStage!==String(stage)){img.src=url;img.dataset.boardStage=String(stage);img.alt="تصميم لوحة المرحلة "+stage;}
+ }catch(error){console.warn("[CMR 50 Boards] gameplay artwork load failed:",error);}
 }
 function setBoardBackground(level){
    void loadFiftyBoardArt(level);
