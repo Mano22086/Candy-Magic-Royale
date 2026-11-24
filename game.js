@@ -1021,31 +1021,64 @@ function safeClaimLevelReward(level){
     return true;
   }catch(e){return true;}
 }
-function checkEnd(){
-  if(!state.levelReady||state.busy||state.endModalShown)return;
-  // Derive completion from the live board, not only the historical counter.
-  // This recovers safely if a special-candy chain or a restored save desynchronizes the counter.
+function checkEnd(force=false){
+  if(!state.levelReady||state.endModalShown)return false;
   state.iceRemaining=countObstacles();
-  if(state.obstacleGoal>0&&state.iceRemaining===0&&!state.won){
-    state.obstaclesCleared=Math.max(state.obstaclesCleared,state.obstacleGoal);
-    state.lossHandled=false;state.won=true;state.endModalShown=true;const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);const rewardGranted=safeClaimLevelReward(state.level);if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}updateHud();const rewardBag=$("rewardBag");if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}const starDisplay=$("resultModal").querySelector(".result-stars");if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
-    $("resultTitle").textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
-    $("resultModal").classList.remove("hidden");$("nextBtn").disabled=false;
-    if(state.replayMode){$("nextBtn").textContent="العودة للخريطة";$("resultButton").textContent="العودة للخريطة";}
-    else{$("nextBtn").textContent="المرحلة التالية";$("resultButton").textContent="استمرار";}
-    $("characterMessage").textContent="يا له من إنجاز رائع!";$("resultText").textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
-    triggerCharacterResult(true);playSfx("win");saveProgress(true);
-  }else if(state.moves<=0&&!state.won){
-    state.won=true;state.endModalShown=true;
-    if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;if(state.lives<5&&!state.lastHeartAt)state.lastHeartAt=Date.now();}
-    updateHud();
-    $("resultTitle").textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
-    $("resultText").textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت القلوب المتاحة. هيرجع قلب كل 30 دقيقة.";
-    $("resultModal").classList.remove("hidden");$("resultButton").textContent="إعادة المحاولة";
-    $("characterMessage").textContent="متستسلمش، جرب تاني!";
-    triggerCharacterResult(false);playSfx("lose");
-    saveProgress(false);
+  const won=state.obstacleGoal>0&&state.iceRemaining===0;
+  const lost=state.moves<=0;
+  if(!won&&!lost)return false;
+  // A completed objective or exhausted move counter is terminal even if an
+  // animation callback left the busy flag behind.
+  if(state.busy&&!force)return false;
+  state.busy=false;
+  state.won=true;
+  state.endModalShown=true;
+  const modal=$("resultModal"),title=$("resultTitle"),message=$("resultText"),button=$("resultButton"),next=$("nextBtn");
+  if(!modal||!title||!message||!button){
+    console.error("Result UI elements are missing; terminal state:",{won,lost,level:state.level,moves:state.moves,remaining:state.iceRemaining});
+    state.endModalShown=false;
+    return false;
   }
+  try{
+    if(won){
+      state.obstaclesCleared=Math.max(state.obstaclesCleared,state.obstacleGoal);
+      state.lossHandled=false;
+      const earnedStars=state.moves>=15?3:(state.moves>=8?2:1);
+      const rewardGranted=safeClaimLevelReward(state.level);
+      if(rewardGranted){state.stars+=earnedStars;state.coins+=80;}
+      updateHud();
+      const rewardBag=$("rewardBag");
+      if(rewardBag){rewardBag.hidden=!rewardGranted;rewardBag.src="./"+["14_bag_gold.png","15_bag_rainbow.png","16_bag_diamond_blue.png","17_bag_flower_purple.png","18_bag_crown_green.png","19_bag_lollipop_red.png","20_bag_lightning_purple.png"][(state.level-1)%7];}
+      const starDisplay=modal.querySelector(".result-stars");
+      if(starDisplay)starDisplay.textContent="⭐".repeat(earnedStars)+"☆".repeat(3-earnedStars);
+      title.textContent=rewardGranted?"انتصار سحري!":"أحسنت!";
+      message.textContent=rewardGranted?"أنقذت حدائق السكر وجمعت "+state.score+" نقطة، وحصلت على "+earnedStars+" نجوم ومكافأة 80 عملة.":"أنقذت حدائق السكر وجمعت "+state.score+" نقطة. مكافأة المستوى والنجوم اتصرفت قبل كده.";
+      if(next){next.disabled=false;next.textContent=state.replayMode?"العودة للخريطة":"المرحلة التالية";}
+      button.textContent=state.replayMode?"العودة للخريطة":"استمرار";
+      $("characterMessage").textContent="يا له من إنجاز رائع!";
+      triggerCharacterResult(true);playSfx("win");saveProgress(true);
+    }else{
+      if(!state.lossHandled){state.lives=Math.max(0,state.lives-1);state.lossHandled=true;if(state.lives<5&&!state.lastHeartAt)state.lastHeartAt=Date.now();}
+      updateHud();
+      title.textContent=state.lives>0?"حاول مرة أخرى":"انتهت القلوب!";
+      message.textContent=state.lives>0?"خسرت محاولة واحدة. فاضلك "+state.lives+" قلوب.":"خلصت القلوب المتاحة. هيرجع قلب كل 30 دقيقة.";
+      button.textContent="إعادة المحاولة";
+      $("characterMessage").textContent="متستسلمش، جرب تاني!";
+      triggerCharacterResult(false);playSfx("lose");saveProgress(false);
+    }
+  }catch(error){
+    console.error("Result processing failed:",error);
+    title.textContent=won?"انتصار سحري!":"حاول مرة أخرى";
+    message.textContent=won?"اكتملت أهداف المرحلة!":"خلصت الحركات المتاحة.";
+    button.textContent=won?"استمرار":"إعادة المحاولة";
+  }
+  modal.classList.remove("hidden");
+  modal.style.display="grid";
+  modal.style.visibility="visible";
+  modal.style.opacity="1";
+  modal.style.pointerEvents="auto";
+  modal.style.zIndex="10000";
+  return true;
 }
 function ensureGuestIdentity(){
   try{
@@ -1302,12 +1335,17 @@ function startBusyWatchdog(){
     // Long cascades can legitimately take several seconds on slower phones.
     // Resolve stalled animation promises, but never launch a second settle()
     // while the original swap/settle chain is still running.
-    if(Date.now()-since<15000)return;
+    if(Date.now()-since<10000)return;
     since=Date.now();
-    console.warn("Animation watchdog: releasing pending animation jobs");
+    console.warn("Animation watchdog: resolving pending jobs and checking terminal state");
     for(const job of Array.from(activeAnimations))job.resolve();
     activeAnimations.clear();
     if(animationFrame){cancelAnimationFrame(animationFrame);animationFrame=0;}
+    // If the last move or last obstacle was completed while an animation
+    // callback stalled, force the result screen instead of leaving gameplay locked.
+    if(state.levelReady&&(state.moves<=0||(state.obstacleGoal>0&&countObstacles()===0))){
+      checkEnd(true);
+    }
   },1000);
 }
 function ensureBoardArtLayer(){
