@@ -2,7 +2,7 @@
 "use strict";
 if (window.__CMR_USER_PACKS_V2__) return;
 window.__CMR_USER_PACKS_V2__ = true;
-const urls=[], sounds={}; let packs=null, busy=false;
+const urls=[], sounds={}; let packs=null, busy=false, loadingVideoPromise=Promise.resolve();
 const style=document.createElement("style");
 style.textContent=".start-screen.cinematic-ready .start-button.cmr-play-loading{opacity:1!important;background:linear-gradient(180deg,#fff0a9,#ffd16c 52%,#ee9b48)!important;color:#54265f!important;box-shadow:0 5px 0 #a75b45,0 8px 20px #09001888!important}.start-screen.cinematic-ready .start-button.cmr-play-loading span{opacity:1!important}.cmr-play-loading{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:58px!important;padding:0!important;overflow:hidden!important;pointer-events:none!important;background:#080408!important;border:1px solid #ffb329!important;box-shadow:0 0 18px #ff9d1c66!important}.cmr-play-video{display:block;width:100%;height:58px;object-fit:cover;object-position:center;border-radius:14px;background:#080408}.start-screen.cinematic-ready .start-button.cmr-play-loading{background:#080408!important;box-shadow:0 0 18px #ff9d1c66!important}.cmr-play-loading .cmr-play-label{position:absolute;inset:auto 0 2px;z-index:2;font:800 9px Cairo,system-ui;color:#fff;text-shadow:0 1px 3px #000;text-align:center}.start-button.cmr-pack-button{background:var(--cmr-user-start) center/100% 100% no-repeat!important;border:0!important}.facebook-button.cmr-pack-button{background:var(--cmr-user-menu) center/100% 100% no-repeat!important;border:0!important}.primary-button.cmr-pack-button{background:var(--cmr-user-next) center/100% 100% no-repeat!important;border:0!important}.soft-button.cmr-pack-button{background:var(--cmr-user-back) center/100% 100% no-repeat!important;border:0!important}.cmr-user-icon{width:23px;height:23px;object-fit:contain;vertical-align:middle}";
 document.head.appendChild(style);
@@ -10,8 +10,13 @@ function progress(n,msg){const b=document.getElementById("startGameBtn");if(b)b.
 function showLoadingVideo(url){
  const b=document.getElementById("startGameBtn");if(!b||!url)return;
  const v=document.createElement("video");v.className="cmr-play-video";v.autoplay=true;v.muted=true;v.loop=false;v.playsInline=true;v.preload="auto";v.src=url;v.setAttribute("aria-label","جاري تحميل موارد اللعبة");
- v.addEventListener("ended",()=>{v.pause();try{v.currentTime=Math.max(0,v.duration-.04)}catch(_){}},{once:true});
+ loadingVideoPromise=new Promise(resolve=>{
+  let settled=false;const done=()=>{if(settled)return;settled=true;v.pause();try{if(Number.isFinite(v.duration))v.currentTime=Math.max(0,v.duration-.04)}catch(_){}resolve();};
+  v.addEventListener("ended",done,{once:true});v.addEventListener("error",done,{once:true});
+  setTimeout(done,5000);
+ });
  b.replaceChildren(v);v.play().catch(()=>{});
+
 }
 async function getZip(name){const r=await fetch("./"+encodeURIComponent(name),{cache:"force-cache"});if(!r.ok)throw Error("فشل تحميل "+name);return JSZip.loadAsync(await r.arrayBuffer());}
 function file(zip,names){for(const n of names){const f=zip.file(n);if(f)return f;}const p=Object.keys(zip.files).find(p=>!zip.files[p].dir&&names.includes(p.split("/").pop()));return p?zip.file(p):null;}
@@ -62,6 +67,7 @@ async function launch(e){
  try{
   progress(2,"تحميل حزم اللعبة...");
   await Promise.all([prepare(),preloadCore()]);
+  await loadingVideoPromise;
   progress(99,"بنفتح خريطة المملكة...");
   if(typeof window.CMRShowWorldMap!=="function")throw Error("خريطة المملكة لم تجهز");
   window.CMRShowWorldMap();const map=document.getElementById("worldMap");if(!map)throw Error("تعذر إنشاء الخريطة");
