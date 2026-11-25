@@ -1,0 +1,12 @@
+{
+  "appId": "com.candymagicroyale.game",
+  "appName": "Candy Magic Royale",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "AdMob": {
+      "testingDevices": [],
+      "initializeForTesting": true
+    }
+  }
+}

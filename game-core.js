@@ -24,120 +24,170 @@
     {
       index: 0,
       id: "royal_castle",
-      name: "قصر الحلوى الملكي",
+      name: "قصر الواحة الذهبية",
+      nameEn: "Golden Oasis Palace",
       tag: "القصر الأول",
-      description: "أبراج الحلوى البنفسجية والطرق الذهبية",
+      tagEn: "Palace 1",
+      description: "أبراج الذهب الأزرق وبوابات النيل الملكية",
+      descriptionEn: "Golden sapphire towers and royal Nile gates",
       icon: "👑",
-      castleArt: "./assets/castle-queen.svg",
-      accent: "#a855f7",
+      castleArt: "./assets/extracted/palaces/palace_01.png",
+      interiorMap: "./public/assets/aistudio/palace_01_golden_sapphire_a0994a8a.png",
+      mapPos: { x: 34.0, y: 91.5, scale: 1.04 },
+      accent: "#38bdf8",
       boardPrefix: "royal_castle",
       boardStart: 1,
     },
     {
       index: 1,
       id: "pharaoh_temple",
-      name: "معبد الفراعنة السحري",
+      name: "معبد الجوهرة البنفسجية",
+      nameEn: "Amethyst Orb Temple",
       tag: "القصر الثاني",
-      description: "أهرامات الكريستال ورمال الذهب المسحورة",
+      tagEn: "Palace 2",
+      description: "قباب السحر البنفسجي وتماثيل عنخ المضيئة",
+      descriptionEn: "Amethyst mystic domes and glowing Ankh shrines",
       icon: "🏺",
-      castleArt: "./assets/enchanted-castle.svg",
-      accent: "#f59e0b",
+      castleArt: "./assets/extracted/palaces/palace_02.png",
+      interiorMap: "./public/assets/aistudio/palace_02_amethyst_bastet_e5ed5399.png",
+      mapPos: { x: 75.2, y: 85.0, scale: 0.98 },
+      accent: "#a855f7",
       boardPrefix: "pharaoh_temple",
       boardStart: 6,
     },
     {
       index: 2,
       id: "crystal_forest",
-      name: "غابة الكريستال",
+      name: "هرم الفيروز الكريستالي",
+      nameEn: "Turquoise Sphinx Pyramid",
       tag: "القصر الثالث",
-      description: "أشجار السكر المضيئة وشلالات الزمرد",
+      tagEn: "Palace 3",
+      description: "أبو الهول الذهبي وشلالات الزمرد السحرية",
+      descriptionEn: "Golden sphinxes and emerald crystal cascades",
       icon: "🌿",
-      castleArt: "./assets/castle-chocolate.svg",
-      accent: "#10b981",
+      castleArt: "./assets/extracted/palaces/palace_03.png",
+      interiorMap: "./public/assets/aistudio/palace_03_emerald_sphinx_2c8e2b78.png",
+      mapPos: { x: 27.8, y: 78.6, scale: 1.0 },
+      accent: "#14b8a6",
       boardPrefix: "crystal_forest",
       boardStart: 11,
     },
     {
       index: 3,
       id: "ice_palace",
-      name: "قصر الجليد المتلألئ",
+      name: "قلعة الياقوت المشتعل",
+      nameEn: "Crimson Flame Citadel",
       tag: "القصر الرابع",
-      description: "شلالات متجمدة وبلورات الثلج الملكية",
-      icon: "❄️",
-      castleArt: "./assets/castle-ice.svg",
-      accent: "#38bdf8",
+      tagEn: "Palace 4",
+      description: "أبراج القرمزي الملكية وحراس النار الفرعونية",
+      descriptionEn: "Crimson royal spires and pharaoh fire guardians",
+      icon: "🔥",
+      castleArt: "./assets/extracted/palaces/palace_04.png",
+      interiorMap: "./public/assets/aistudio/palace_04_crimson_lava_10e1e8c3.png",
+      mapPos: { x: 28.4, y: 65.8, scale: 1.0 },
+      accent: "#ef4444",
       boardPrefix: "ice_palace",
       boardStart: 16,
     },
     {
       index: 4,
       id: "sky_kingdom",
-      name: "مملكة السماء والغيوم",
+      name: "قصر السماء واللازورد",
+      nameEn: "Sapphire Sky Palace",
       tag: "القصر الخامس",
-      description: "جسور الغيوم وقلاع السماء العالية",
+      tagEn: "Palace 5",
+      description: "قباب اللازورد السماوية وينابيع النقاء",
+      descriptionEn: "Azure sky domes and crystalline royal springs",
       icon: "☁️",
-      castleArt: "./assets/enchanted-castle.svg",
-      accent: "#60a5fa",
+      castleArt: "./assets/extracted/palaces/palace_05.png",
+      interiorMap: "./public/assets/aistudio/palace_05_azure_oasis_26b6d8d6.png",
+      mapPos: { x: 75.5, y: 59.6, scale: 1.0 },
+      accent: "#3b82f6",
       boardPrefix: "sky_kingdom",
       boardStart: 21,
     },
     {
       index: 5,
       id: "mermaid_reef",
-      name: "شعاب حوريات البحر",
+      name: "حصن الزمرد الغامض",
+      nameEn: "Obsidian Emerald Keep",
       tag: "القصر السادس",
-      description: "لآلئ المحيط المضيئة وشعاب المرجان",
-      icon: "🐚",
-      castleArt: "./assets/castle-ice.svg",
-      accent: "#14b8a6",
+      tagEn: "Palace 6",
+      description: "بوابات الزمرد المضيئة وأسرار القلعة الداكنة",
+      descriptionEn: "Glowing emerald portals and obsidian sanctums",
+      icon: "💚",
+      castleArt: "./assets/extracted/palaces/palace_06.png",
+      interiorMap: "./public/assets/aistudio/palace_06_obsidian_emerald_081b0959.png",
+      mapPos: { x: 27.9, y: 50.0, scale: 1.02 },
+      accent: "#22c55e",
       boardPrefix: "mermaid_reef",
       boardStart: 26,
     },
     {
       index: 6,
       id: "ruby_cavern",
-      name: "كهف الياقوت الأحمر",
+      name: "معبد الفرعون والشلالات",
+      nameEn: "Pharaoh Falls Sanctuary",
       tag: "القصر السابع",
-      description: "بلورات الياقوت المتوهجة وكنوز الأعماق",
+      tagEn: "Palace 7",
+      description: "تمثال الفرعون العظيم وشلالات الذهب المتدفقة",
+      descriptionEn: "Great Pharaoh monument and cascading sapphire falls",
       icon: "💎",
-      castleArt: "./assets/castle-chocolate.svg",
-      accent: "#f43f5e",
+      castleArt: "./assets/extracted/palaces/palace_07.png",
+      interiorMap: "./public/assets/aistudio/palace_07_pharaoh_sphinx_602cfc57.png",
+      mapPos: { x: 74.6, y: 41.0, scale: 0.98 },
+      accent: "#f59e0b",
       boardPrefix: "ruby_cavern",
       boardStart: 31,
     },
     {
       index: 7,
       id: "galaxy_observatory",
-      name: "مرصد المجرة السحري",
+      name: "قصر اللوتس الوردي",
+      nameEn: "Pink Lotus Jewel Palace",
       tag: "القصر الثامن",
-      description: "كواكب السكر ونجوم المجرة المتلألئة",
-      icon: "🌟",
-      castleArt: "./assets/castle-queen.svg",
-      accent: "#8b5cf6",
+      tagEn: "Palace 8",
+      description: "زهرة اللوتس المتوهجة وحدائق الياقوت الوردي",
+      descriptionEn: "Radiant lotus crown and rose jewel gardens",
+      icon: "🌸",
+      castleArt: "./assets/extracted/palaces/palace_08.png",
+      interiorMap: "./public/assets/aistudio/palace_08_pink_lotus_98dcc7c0.png",
+      mapPos: { x: 29.5, y: 31.2, scale: 1.0 },
+      accent: "#ec4899",
       boardPrefix: "galaxy_observatory",
       boardStart: 36,
     },
     {
       index: 8,
       id: "sakura_garden",
-      name: "حديقة أزهار الساكورا",
+      name: "قصر عين حورس الليلي",
+      nameEn: "Eye of Horus Observatory",
       tag: "القصر التاسع",
-      description: "أزهار الكرز الوردية وجسور الحدائق الهادئة",
-      icon: "🌸",
-      castleArt: "./assets/enchanted-castle.svg",
-      accent: "#ec4899",
+      tagEn: "Palace 9",
+      description: "هلال الليل السحري وبلورات النجوم الزرقاء",
+      descriptionEn: "Midnight crescent spires and starlight crystals",
+      icon: "🌙",
+      castleArt: "./assets/extracted/palaces/palace_09.png",
+      interiorMap: "./public/assets/aistudio/palace_09_midnight_horus_1c613bd3.png",
+      mapPos: { x: 75.2, y: 23.0, scale: 1.02 },
+      accent: "#6366f1",
       boardPrefix: "sakura_garden",
       boardStart: 41,
     },
     {
       index: 9,
       id: "autumn_village",
-      name: "قرية الخريف الذهبي",
+      name: "الهرم الملكي الأعظم",
+      nameEn: "Grand Sun Scarab Pyramid",
       tag: "القصر العاشر",
-      description: "أوراق القيقب الذهبية وحصاد الحلوى الملكي",
-      icon: "🍁",
-      castleArt: "./assets/castle-chocolate.svg",
-      accent: "#ea580c",
+      tagEn: "Palace 10",
+      description: "قمة الشمس الذهبية وعرش ملك الحلوى النهائي",
+      descriptionEn: "Golden sun summit and the Candy King throne",
+      icon: "☀️",
+      castleArt: "./assets/extracted/palaces/palace_10.png",
+      interiorMap: "./public/assets/aistudio/palace_10_sun_pyramid_9d74e9e4.png",
+      mapPos: { x: 50.1, y: 10.9, scale: 1.08 },
+      accent: "#fbbf24",
       boardPrefix: "autumn_village",
       boardStart: 46,
     },
@@ -383,13 +433,34 @@
   // =========================================================================
   const MAX_BOOSTER_STOCK = 25;
 
+  const SHOP_FRAMES = Object.freeze({
+    royal_blue: "./public/assets/aistudio/shop_royal_kingdom_blue_ab7c704a.png",
+    royal_purple: "./public/assets/aistudio/shop_royal_kingdom_purple_02cd6eb8.png",
+    candy_pink_blue: "./public/assets/aistudio/shop_candy_crush_pink_blue_56323b39.png",
+    royal_open_azure: "./public/assets/aistudio/shop_royal_open_azure_a3f187e6.png",
+  });
+
+  const SHOP_ICONS = Object.freeze({
+    rocket: "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png",
+    wand: "./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png",
+    bomb: "./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png",
+    striped: "./public/assets/aistudio/04_booster_striped_candy_7749b182.png",
+    mysteryBox: "./public/assets/aistudio/05_booster_mystery_box_864a8fca.png",
+    coin: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png",
+    chest: "./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png",
+    combo1: "./public/assets/aistudio/combo_1_rocket_wand_bomb_coins_28a68e57.png",
+    combo2: "./public/assets/aistudio/combo_2_bomb_striped_box_coins_a1efec08.png",
+    combo3: "./public/assets/aistudio/combo_3_chest_rocket_wand_striped_273cd5ca.png",
+    combo4: "./public/assets/aistudio/combo_4_coins_rocket_bomb_box_6b01e40e.png",
+  });
+
   const STORE_CATEGORIES = Object.freeze([
-    { id: "coins", label: "العملات الذهبية", icon: "./assets/packs/buttons/icon_coin.png" },
-    { id: "gems", label: "الجواهر", icon: "./assets/packs/buttons/icon_gem.png" },
-    { id: "hearts", label: "القلوب", icon: "./assets/packs/buttons/icon_heart.png" },
-    { id: "boosters", label: "المعززات", icon: "./08_bomb_skull.png" },
-    { id: "chests", label: "الصناديق والهدايا", icon: "./assets/packs/images/chest_gold.png" },
-    { id: "offers", label: "العروض الخاصة", icon: "./assets/packs/images/gift_box.png" },
+    { id: "coins", label: "العملات الذهبية", shortLabel: "عملات", icon: SHOP_ICONS.coin },
+    { id: "gems", label: "الجواهر", shortLabel: "جواهر", icon: "./assets/packs/buttons/icon_gem.png" },
+    { id: "hearts", label: "القلوب", shortLabel: "قلوب", icon: "./assets/packs/buttons/icon_heart.png" },
+    { id: "boosters", label: "المعززات", shortLabel: "معززات", icon: SHOP_ICONS.rocket },
+    { id: "chests", label: "الصناديق والهدايا", shortLabel: "صناديق", icon: SHOP_ICONS.chest },
+    { id: "offers", label: "العروض الخاصة", shortLabel: "عروض", icon: SHOP_ICONS.mysteryBox },
   ]);
 
   const STORE_ITEMS = Object.freeze([
@@ -398,8 +469,10 @@
       id: "coins_pouch",
       category: "coins",
       name: "كيس العملات الذهبية",
+      shortTitle: "عملات ملكية",
+      shortQty: "+300 عملة",
       description: "احصل فوراً على +300 عملة ذهبية لشراء القلوب والمعززات.",
-      image: "./assets/packs/images/coin.png",
+      image: SHOP_ICONS.coin,
       currency: "gems",
       price: 5,
       reward: { coins: 300 },
@@ -408,8 +481,10 @@
       id: "coins_sack",
       category: "coins",
       name: "حقيبة الكنز الملكي",
+      shortTitle: "حقيبة الكنز",
+      shortQty: "+850 عملة",
       description: "احصل على +850 عملة ذهبية بقيمة أفضل للمغامرين.",
-      image: "./14_bag_gold.png",
+      image: SHOP_ICONS.combo4,
       currency: "gems",
       price: 12,
       badge: "الأكثر طلباً",
@@ -419,8 +494,10 @@
       id: "coins_vault",
       category: "coins",
       name: "خزينة الفراعنة الذهبية",
+      shortTitle: "خزينة الذهب",
+      shortQty: "+2,000 عملة",
       description: "كنز ضخم يمنحك +2,000 عملة ذهبية دفعة واحدة.",
-      image: "./assets/packs/images/chest_gold.png",
+      image: SHOP_ICONS.chest,
       currency: "gems",
       price: 24,
       badge: "قيمة ملكية",
@@ -430,8 +507,10 @@
       id: "ad_free_coins",
       category: "coins",
       name: "عملات مجانية مقابل إعلان",
+      shortTitle: "عملات مجانية",
+      shortQty: "+100 عملة",
       description: "شاهد إعلاناً مكافأً بالكامل لتحصل على +100 عملة ذهبية مجاناً.",
-      image: "./assets/packs/images/currency_coin.png",
+      image: SHOP_ICONS.coin,
       currency: "rewarded_ad",
       price: 0,
       adPlacement: "free_coins",
@@ -443,6 +522,8 @@
       id: "gems_crystal",
       category: "gems",
       name: "حزمة الجواهر السحرية",
+      shortTitle: "جواهر سحرية",
+      shortQty: "+5 جواهر",
       description: "استبدل عملاتك الذهبية بـ +5 جواهر ملكية نادرة.",
       image: "./assets/packs/images/gem_blue.png",
       currency: "coins",
@@ -453,6 +534,8 @@
       id: "gems_royal_bundle",
       category: "gems",
       name: "مجموعة جواهر القصر",
+      shortTitle: "جواهر القصر",
+      shortQty: "+15 جوهرة",
       description: "استبدل عملاتك بـ +15 جوهرة ملكية لفتح الصناديق والعروض.",
       image: "./assets/packs/images/currency_gem.png",
       currency: "coins",
@@ -464,6 +547,8 @@
       id: "gems_crown_pack",
       category: "gems",
       name: "تاج الجواهر الفرعوني",
+      shortTitle: "تاج الجواهر",
+      shortQty: "+40 جوهرة",
       description: "أكبر حزمة جواهر داخل اللعبة: +40 جوهرة ملكية.",
       image: "./03_diamond_blue.png",
       currency: "coins",
@@ -477,6 +562,8 @@
       id: "heart_single",
       category: "hearts",
       name: "قلب إضافي واحد",
+      shortTitle: "قلب إضافي",
+      shortQty: "+1 قلب",
       description: "استعد +1 قلب فوراً لمتابعة التحدي دون انتظار.",
       image: "./assets/packs/images/heart.png",
       currency: "coins",
@@ -488,6 +575,8 @@
       id: "hearts_full_refill",
       category: "hearts",
       name: "تعبئة القلوب بالكامل",
+      shortTitle: "تعبئة كاملة",
+      shortQty: "5/5 قلوب",
       description: "املأ جميع القلوب إلى الحد الأقصى (5 قلوب كاملة) فوراً.",
       image: "./02_heart_rainbow.png",
       currency: "gems",
@@ -500,6 +589,8 @@
       id: "ad_extra_heart",
       category: "hearts",
       name: "قلب مجاني مقابل إعلان",
+      shortTitle: "قلب مجاني",
+      shortQty: "+1 قلب",
       description: "شاهد إعلاناً مكافأً بالكامل لتحصل على +1 قلب إضافي.",
       image: "./assets/packs/buttons/icon_heart.png",
       currency: "rewarded_ad",
@@ -511,51 +602,61 @@
 
     // 4. المعززات
     {
-      id: "booster_bomb_3",
-      category: "boosters",
-      name: "حزمة القنابل (×3)",
-      description: "تضيف 3 قنابل لتفجير مساحة 3×3 وتحطيم العوائق الصعبة.",
-      image: "./08_bomb_skull.png",
-      currency: "coins",
-      price: 150,
-      reward: { hammer: 3 },
-    },
-    {
       id: "booster_rocket_3",
       category: "boosters",
       name: "حزمة الصواريخ (×3)",
+      shortTitle: "صاروخ الحلوى",
+      shortQty: "×3 صواريخ",
       description: "تضيف 3 صواريخ سحرية لمسح صف وعمود بالكامل.",
-      image: "./09_rocket_striped.png",
+      image: SHOP_ICONS.rocket,
       currency: "coins",
       price: 140,
       reward: { rockets: 3 },
     },
     {
-      id: "booster_color_3",
-      category: "boosters",
-      name: "عجلات الألوان (×3)",
-      description: "تضيف 3 عجلات ألوان لمسح كل القطع المتشابهة في اللوحة.",
-      image: "./11_color_wheel.png",
-      currency: "coins",
-      price: 180,
-      reward: { colors: 3 },
-    },
-    {
       id: "booster_paint_3",
       category: "boosters",
-      name: "فرشاة التلوين (×3)",
-      description: "تضيف 3 فرش سحرية لتغيير لون أي قطعة حلوى بذكاء.",
-      image: "./10_paintbrush_rainbow.png",
+      name: "العصا السحرية (×3)",
+      shortTitle: "العصا السحرية",
+      shortQty: "×3 عصا نجمية",
+      description: "تضيف 3 عصي سحرية لتغيير لون أي قطعة حلوى بذكاء.",
+      image: SHOP_ICONS.wand,
       currency: "coins",
       price: 130,
       reward: { paints: 3 },
     },
     {
+      id: "booster_bomb_3",
+      category: "boosters",
+      name: "قنبلة الحلوى (×3)",
+      shortTitle: "قنبلة الحلوى",
+      shortQty: "×3 قنابل",
+      description: "تضيف 3 قنابل لتفجير مساحة 3×3 وتحطيم العوائق الصعبة.",
+      image: SHOP_ICONS.bomb,
+      currency: "coins",
+      price: 150,
+      reward: { hammer: 3 },
+    },
+    {
+      id: "booster_color_3",
+      category: "boosters",
+      name: "الحلوى المخططة (×3)",
+      shortTitle: "حلوى مخططة",
+      shortQty: "×3 مخططة",
+      description: "تضيف 3 معززات ملكية لمسح كل القطع المتشابهة في اللوحة.",
+      image: SHOP_ICONS.striped,
+      currency: "coins",
+      price: 180,
+      reward: { colors: 3 },
+    },
+    {
       id: "ad_free_booster",
       category: "boosters",
       name: "معزز مجاني مقابل إعلان",
+      shortTitle: "معزز مجاني",
+      shortQty: "×1 قنبلة و×1 صاروخ",
       description: "شاهد إعلاناً مكافأً لتحصل على +1 قنبلة و+1 صاروخ مجاناً.",
-      image: "./21_rocket_crown_gold.png",
+      image: SHOP_ICONS.combo1,
       currency: "rewarded_ad",
       price: 0,
       adPlacement: "free_booster",
@@ -566,9 +667,11 @@
     {
       id: "chest_silver",
       category: "chests",
-      name: "صندوق القصر السحري",
-      description: "يمنحك 120 عملة + 1 قنبلة + 1 صاروخ + 1 فرشاة مباشرة في مخزونك.",
-      image: "./assets/packs/images/gift_box.png",
+      name: "صندوق المفاجآت السحري",
+      shortTitle: "صندوق مفاجأة",
+      shortQty: "120 عملة + 3 معززات",
+      description: "يمنحك 120 عملة + 1 قنبلة + 1 صاروخ + 1 عصا مباشرة في مخزونك.",
+      image: SHOP_ICONS.mysteryBox,
       currency: "coins",
       price: 220,
       reward: { coins: 120, hammer: 1, rockets: 1, paints: 1 },
@@ -576,9 +679,11 @@
     {
       id: "chest_royal_gold",
       category: "chests",
-      name: "صندوق الكنز الذهبي",
-      description: "يمنحك 300 عملة + 2 قنبلة + 2 صاروخ + 2 عجلة ألوان.",
-      image: "./assets/packs/images/chest_gold.png",
+      name: "صندوق الكنز الملكي",
+      shortTitle: "صندوق الكنز",
+      shortQty: "300 عملة + 6 معززات",
+      description: "يمنحك 300 عملة + 2 قنبلة + 2 صاروخ + 2 حلوى مخططة.",
+      image: SHOP_ICONS.chest,
       currency: "gems",
       price: 10,
       badge: "كنز ملكي",
@@ -588,21 +693,77 @@
       id: "ad_reward_chest",
       category: "chests",
       name: "صندوق الهدايا المجاني (إعلان)",
+      shortTitle: "صندوق هدايا",
+      shortQty: "75 عملة + معزز",
       description: "شاهد إعلاناً مكافأً لفتح الصندوق والحصول على عملات ومعزز مجاناً.",
-      image: "./15_bag_rainbow.png",
+      image: SHOP_ICONS.mysteryBox,
       currency: "rewarded_ad",
       price: 0,
       adPlacement: "reward_chest",
       reward: { coins: 75, paints: 1, gems: 1 },
     },
 
-    // 6. العروض الخاصة
+    // 6. العروض الخاصة (Includes all 4 Triple-Combo Bundles!)
+    {
+      id: "combo_mega_featured",
+      category: "offers",
+      name: "الحزمة الملكية الكبرى",
+      shortTitle: "الحزمة الكبرى",
+      shortQty: "500 عملة · ×6 معززات",
+      description: "صندوق الكنز + ×2 صاروخ + ×2 عصا سحرية + ×2 حلوى مخططة + 500 عملة!",
+      image: SHOP_ICONS.combo3,
+      currency: "gems",
+      price: 15,
+      badge: "العرض المميز",
+      reward: { coins: 500, rockets: 2, paints: 2, colors: 2 },
+    },
+    {
+      id: "combo_pack_1",
+      category: "offers",
+      name: "باقة الأبطال الثلاثية",
+      shortTitle: "باقة الأبطال",
+      shortQty: "350 عملة + 3 معززات",
+      description: "صاروخ + عصا سحرية + قنبلة الحلوى + 350 عملة ذهبية.",
+      image: SHOP_ICONS.combo1,
+      currency: "gems",
+      price: 8,
+      badge: "الأكثر مبيعاً",
+      reward: { coins: 350, rockets: 1, paints: 1, hammer: 1 },
+    },
+    {
+      id: "combo_pack_2",
+      category: "offers",
+      name: "باقة الانفجار السحري",
+      shortTitle: "باقة الانفجار",
+      shortQty: "×4 معززات + 3 جواهر",
+      description: "×2 قنبلة حلوى + ×2 حلوى مخططة + صندوق مفاجآت (+3 جواهر).",
+      image: SHOP_ICONS.combo2,
+      currency: "coins",
+      price: 380,
+      badge: "وفر 30%",
+      reward: { hammer: 2, colors: 2, gems: 3 },
+    },
+    {
+      id: "combo_pack_4",
+      category: "offers",
+      name: "حزمة الكنز والصواريخ",
+      shortTitle: "كنز الصواريخ",
+      shortQty: "650 عملة + 5 معززات",
+      description: "650 عملة + ×2 صاروخ + ×2 قنبلة + ×1 عصا سحرية.",
+      image: SHOP_ICONS.combo4,
+      currency: "gems",
+      price: 11,
+      badge: "قيمة فائقة",
+      reward: { coins: 650, rockets: 2, hammer: 2, paints: 1 },
+    },
     {
       id: "offer_daily_gift",
       category: "offers",
       name: "هدية المملكة اليومية",
+      shortTitle: "هدية اليوم",
+      shortQty: "100 عملة + 2 جوهرة",
       description: "هدية مجانية يومية: +100 عملة ذهبية و+2 جوهرة (مرة كل يوم).",
-      image: "./assets/packs/images/crown.png",
+      image: SHOP_ICONS.mysteryBox,
       currency: "free_daily",
       price: 0,
       badge: "مجاني يومياً",
@@ -612,8 +773,10 @@
       id: "offer_boss_slayer",
       category: "offers",
       name: "حزمة قاهر زعيم ملك الحلوى",
-      description: "استعد للمرحلة 50: +3 قنابل، +3 صواريخ، +2 عجلة ألوان، وتعبئة قلوب!",
-      image: "./18_bag_crown_green.png",
+      shortTitle: "قاهر الزعيم",
+      shortQty: "×8 معززات + 5 قلوب",
+      description: "استعد للمرحلة 50: +3 قنابل، +3 صواريخ، +2 حلوى مخططة، وتعبئة قلوب!",
+      image: SHOP_ICONS.combo3,
       currency: "gems",
       price: 14,
       badge: "عرض خاص",
@@ -623,14 +786,173 @@
       id: "offer_starter_royal",
       category: "offers",
       name: "عرض البداية الذهبي",
-      description: "عرض مميز بالعملات: +2 قنبلة، +2 صاروخ، +2 فرشاة، و+4 جواهر.",
-      image: "./16_bag_diamond_blue.png",
+      shortTitle: "عرض البداية",
+      shortQty: "×6 معززات + 4 جواهر",
+      description: "عرض مميز بالعملات: +2 قنبلة، +2 صاروخ، +2 عصا سحرية، و+4 جواهر.",
+      image: SHOP_ICONS.combo1,
       currency: "coins",
       price: 420,
       badge: "وفر 35%",
       reward: { hammer: 2, rockets: 2, paints: 2, gems: 4 },
     },
   ]);
+
+  const SHOP_FEATURED_BUNDLE_ID = "combo_mega_featured";
+  const SHOP_SHOWCASE_IDS = Object.freeze([
+    "combo_pack_1",
+    "combo_pack_2",
+    "combo_pack_4",
+    "booster_rocket_3",
+    "booster_bomb_3",
+    "chest_royal_gold",
+  ]);
+
+  // =========================================================================
+  // Daily Lucky Spin Wheel — 8 Equal 45-Degree Slices & Pure Rotation Math
+  // =========================================================================
+  const LUCKY_WHEEL_ASSETS = Object.freeze({
+    disc: "./assets/extracted/wheel/lucky_wheel_disc_8slices.png",
+    pointer: "./assets/extracted/wheel/lucky_wheel_pointer.png",
+    hub: "./assets/extracted/wheel/lucky_wheel_hub_blank.png",
+    preview: "./public/assets/aistudio/lucky_wheel_1_compact_1_1_e76b2f6a.png",
+  });
+
+  const LUCKY_WHEEL_SLICES = Object.freeze([
+    {
+      index: 0,
+      id: "coins_150",
+      angleDeg: 22.5,
+      labelAr: "+150",
+      labelEn: "+150",
+      titleAr: "150 عملة ذهبية",
+      titleEn: "150 Gold Coins",
+      icon: SHOP_ICONS.coin,
+      reward: { coins: 150 },
+      weight: 22,
+    },
+    {
+      index: 1,
+      id: "rockets_2",
+      angleDeg: 67.5,
+      labelAr: "×2",
+      labelEn: "×2",
+      titleAr: "صاروخ الحلوى ×2",
+      titleEn: "Candy Rocket ×2",
+      icon: SHOP_ICONS.rocket,
+      reward: { rockets: 2 },
+      weight: 14,
+    },
+    {
+      index: 2,
+      id: "coins_300",
+      angleDeg: 112.5,
+      labelAr: "+300",
+      labelEn: "+300",
+      titleAr: "300 عملة ذهبية",
+      titleEn: "300 Gold Coins",
+      icon: SHOP_ICONS.coin,
+      reward: { coins: 300 },
+      weight: 14,
+    },
+    {
+      index: 3,
+      id: "wands_2",
+      angleDeg: 157.5,
+      labelAr: "×2",
+      labelEn: "×2",
+      titleAr: "العصا السحرية ×2",
+      titleEn: "Magic Star Wand ×2",
+      icon: SHOP_ICONS.wand,
+      reward: { paints: 2 },
+      weight: 13,
+    },
+    {
+      index: 4,
+      id: "bombs_2",
+      angleDeg: 202.5,
+      labelAr: "×2",
+      labelEn: "×2",
+      titleAr: "قنبلة الحلوى ×2",
+      titleEn: "Candy Bomb ×2",
+      icon: SHOP_ICONS.bomb,
+      reward: { hammer: 2 },
+      weight: 13,
+    },
+    {
+      index: 5,
+      id: "striped_2",
+      angleDeg: 247.5,
+      labelAr: "×2",
+      labelEn: "×2",
+      titleAr: "الحلوى المخططة ×2",
+      titleEn: "Striped Candy ×2",
+      icon: SHOP_ICONS.striped,
+      reward: { colors: 2 },
+      weight: 11,
+    },
+    {
+      index: 6,
+      id: "mystery_box",
+      angleDeg: 292.5,
+      labelAr: "هدية!",
+      labelEn: "BOX",
+      titleAr: "صندوق المفاجآت السحري",
+      titleEn: "Mystery Surprise Box",
+      icon: SHOP_ICONS.mysteryBox,
+      reward: { coins: 120, gems: 2, paints: 1 },
+      weight: 8,
+    },
+    {
+      index: 7,
+      id: "royal_chest",
+      angleDeg: 337.5,
+      labelAr: "كنز!",
+      labelEn: "JACKPOT",
+      titleAr: "صندوق الكنز الملكي!",
+      titleEn: "Royal Treasure Chest!",
+      icon: SHOP_ICONS.chest,
+      reward: { coins: 500, gems: 5, rockets: 1, hammer: 1 },
+      weight: 5,
+    },
+  ]);
+
+  function pickWeightedWheelSliceIndex(rng = Math.random) {
+    const totalWeight = LUCKY_WHEEL_SLICES.reduce((sum, s) => sum + (s.weight || 1), 0);
+    let roll = Math.max(0, Math.min(0.999999, Number(rng()))) * totalWeight;
+    for (let i = 0; i < LUCKY_WHEEL_SLICES.length; i++) {
+      roll -= LUCKY_WHEEL_SLICES[i].weight || 1;
+      if (roll <= 0) return i;
+    }
+    return 0;
+  }
+
+  function computeWheelSpinTarget(currentDeg, targetIndex, extraTurns = 5, jitterDeg = 0) {
+    const sliceCount = LUCKY_WHEEL_SLICES.length;
+    const sliceArc = 360 / sliceCount; // 45 deg
+    const safeIdx = ((Math.floor(Number(targetIndex) || 0) % sliceCount) + sliceCount) % sliceCount;
+    const safeJitter = Math.max(-12, Math.min(12, Number(jitterDeg) || 0));
+    const sliceCenter = safeIdx * sliceArc + sliceArc / 2; // 22.5 + 45*i
+    const desiredMod = (360 - sliceCenter + safeJitter + 720) % 360;
+    const safeCurrent = Number.isFinite(Number(currentDeg)) ? Number(currentDeg) : 0;
+    const currentMod = ((safeCurrent % 360) + 360) % 360;
+    let delta = desiredMod - currentMod;
+    if (delta <= 0) delta += 360;
+    const turns = Math.max(3, Math.floor(Number(extraTurns) || 5));
+    return safeCurrent + turns * 360 + delta;
+  }
+
+  function resolveWheelSliceFromAngle(finalDeg) {
+    const sliceCount = LUCKY_WHEEL_SLICES.length;
+    const sliceArc = 360 / sliceCount;
+    const norm = ((Number(finalDeg) || 0) % 360 + 360) % 360;
+    // Wheel rotated clockwise by norm -> the wheel angle sitting under 12 o'clock (0 deg) is (360 - norm) % 360
+    const wheelAngleAtPointer = (360 - norm) % 360;
+    const index = Math.floor(wheelAngleAtPointer / sliceArc) % sliceCount;
+    return {
+      index,
+      slice: LUCKY_WHEEL_SLICES[index],
+    };
+  }
 
   function getStoreItemById(itemId) {
     return STORE_ITEMS.find((item) => item.id === itemId) || null;
@@ -827,6 +1149,13 @@
       dailyLimit: 3,
       reward: { extraMoves: 5 },
     },
+    lucky_wheel_spin: {
+      id: "lucky_wheel_spin",
+      title: "لفة إضافية لعجلة الحظ",
+      description: "شاهد إعلاناً مكافأً بالكامل للحصول على لفة إضافية في عجلة الحظ اليومية.",
+      dailyLimit: 2,
+      reward: { bonusWheelSpin: 1 },
+    },
   });
 
   function createRewardedAdEngine(initialState = {}) {
@@ -1001,6 +1330,271 @@
     };
   }
 
+  // =========================================================================
+  // Player Avatars, XP/Level Progression & Achievement System (Pure Logic)
+  // =========================================================================
+  const AVATAR_CATALOG = Object.freeze([
+    {
+      id: "pharaoh_prince",
+      nameAr: "الأمير الفرعوني",
+      nameEn: "Pharaoh Prince",
+      src: "./assets/extracted/ui/avatar_pharaoh_portrait.png",
+    },
+    {
+      id: "queen_luma",
+      nameAr: "الملكة لوما",
+      nameEn: "Queen Luma",
+      src: "./assets/Picsart_26-11-17_02-37-45-792.png",
+    },
+    {
+      id: "baby_dragon",
+      nameAr: "أمير التنين",
+      nameEn: "Dragon Prince",
+      src: "./assets/Picsart_26-11-17_02-38-02-164.png",
+    },
+    {
+      id: "royal_crown",
+      nameAr: "التاج الملكي",
+      nameEn: "Royal Crown",
+      src: "./assets/extracted/ui/badge_crown_laurel.png",
+    },
+    {
+      id: "scarab_guardian",
+      nameAr: "حارس الجعران الذهبي",
+      nameEn: "Golden Scarab",
+      src: "./assets/extracted/ui/badge_scarab.png",
+    },
+    {
+      id: "star_champion",
+      nameAr: "بطل النجوم",
+      nameEn: "Star Champion",
+      src: "./assets/extracted/ui/badge_star_shield.png",
+    },
+  ]);
+
+  function getAvatarById(avatarId) {
+    return AVATAR_CATALOG.find((a) => a.id === avatarId) || AVATAR_CATALOG[0];
+  }
+
+  function computePlayerProgression(stats = {}) {
+    const completedStages = Math.max(0, Math.floor(Number(stats.completedStages) || 0));
+    const totalStars = Math.max(0, Math.floor(Number(stats.stars) || 0));
+    const bossesDefeated = Math.max(0, Math.floor(Number(stats.bossesDefeated) || 0));
+    const bonusXp = Math.max(0, Math.floor(Number(stats.bonusXp) || 0));
+    const totalXp = completedStages * 120 + totalStars * 45 + bossesDefeated * 350 + bonusXp;
+
+    let level = 1;
+    let remaining = totalXp;
+    let xpForNext = 250;
+    while (remaining >= xpForNext && level < 100) {
+      remaining -= xpForNext;
+      level++;
+      xpForNext = 250 + (level - 1) * 120;
+    }
+
+    return {
+      level,
+      totalXp,
+      currentLevelXp: remaining,
+      xpForNext,
+      progressPercent: Math.max(0, Math.min(100, Math.round((remaining / xpForNext) * 100))),
+    };
+  }
+
+  function getPalaceProgressSummary(palaceIndex, highestUnlocked, stageStarsMap = {}) {
+    const pIdx = Math.max(0, Math.min(PALACES_COUNT - 1, Math.floor(Number(palaceIndex) || 0)));
+    const startStage = pIdx * STAGES_PER_PALACE + 1;
+    const endStage = (pIdx + 1) * STAGES_PER_PALACE;
+    const unlocked = clampStage(highestUnlocked);
+    const isCompleted = unlocked > endStage;
+    const isActive = unlocked >= startStage && unlocked <= endStage;
+    const isLocked = unlocked < startStage;
+
+    let completedCount = 0;
+    let earnedStars = 0;
+    const bossStage = pIdx * STAGES_PER_PALACE + BOSS_STAGE_IN_PALACE;
+    let bossDefeated = unlocked > bossStage;
+
+    for (let s = startStage; s <= endStage; s++) {
+      const recorded = Math.max(0, Math.min(3, Math.floor(Number(stageStarsMap[s]) || 0)));
+      if (s < unlocked) {
+        completedCount++;
+        earnedStars += recorded > 0 ? recorded : 3;
+      } else if (recorded > 0) {
+        earnedStars += recorded;
+      }
+    }
+
+    return {
+      palaceIndex: pIdx,
+      startStage,
+      endStage,
+      isCompleted,
+      isActive,
+      isLocked,
+      completedCount,
+      earnedStars,
+      maxStars: STAGES_PER_PALACE * 3,
+      bossDefeated,
+      progressPercent: Math.round((completedCount / STAGES_PER_PALACE) * 100),
+    };
+  }
+
+  const ACHIEVEMENTS = Object.freeze([
+    {
+      id: "first_victory",
+      badge: "./assets/extracted/ui/badge_star_shield.png",
+      nameAr: "الانتصار الأول",
+      nameEn: "First Royal Victory",
+      descAr: "أكمل المرحلة الأولى في مملكة الحلوى.",
+      descEn: "Complete your very first stage in the kingdom.",
+      metric: "completedStages",
+      target: 1,
+      reward: { coins: 150, gems: 2 },
+    },
+    {
+      id: "stages_10",
+      badge: "./assets/extracted/ui/badge_scarab.png",
+      nameAr: "مستكشف الواحة",
+      nameEn: "Oasis Explorer",
+      descAr: "أكمل 10 مراحل بنجاح.",
+      descEn: "Complete 10 stages across the palaces.",
+      metric: "completedStages",
+      target: 10,
+      reward: { coins: 250, gems: 3 },
+    },
+    {
+      id: "stages_50",
+      badge: "./assets/extracted/ui/badge_swords_shield.png",
+      nameAr: "محارب الحلوى",
+      nameEn: "Royal Candy Warrior",
+      descAr: "أكمل 50 مرحلة في رحلتك الملكية.",
+      descEn: "Complete 50 stages on your royal journey.",
+      metric: "completedStages",
+      target: 50,
+      reward: { coins: 500, gems: 8 },
+    },
+    {
+      id: "stars_15",
+      badge: "./assets/extracted/ui/icon_star_gold.png",
+      nameAr: "جامع النجوم",
+      nameEn: "Starlight Collector",
+      descAr: "اجمع 15 نجمة من المراحل.",
+      descEn: "Collect 15 stars from completed stages.",
+      metric: "stars",
+      target: 15,
+      reward: { coins: 200, gems: 3 },
+    },
+    {
+      id: "stars_100",
+      badge: "./assets/extracted/ui/badge_laurel_trophy.png",
+      nameAr: "كوكبة الفراعنة",
+      nameEn: "Pharaoh Constellation",
+      descAr: "اجمع 100 نجمة ذهبية.",
+      descEn: "Collect 100 golden stars.",
+      metric: "stars",
+      target: 100,
+      reward: { coins: 600, gems: 10 },
+    },
+    {
+      id: "boss_slayer_1",
+      badge: "./assets/extracted/ui/badge_crown_shield.png",
+      nameAr: "قاهر ملك الحلوى",
+      nameEn: "Candy King Vanquisher",
+      descAr: "اهزم زعيم ملك الحلوى عند المرحلة 50 في أي قصر.",
+      descEn: "Defeat the Candy King Boss at Stage 50 of any palace.",
+      metric: "bossesDefeated",
+      target: 1,
+      reward: { coins: 400, gems: 8 },
+    },
+    {
+      id: "palace_complete_1",
+      badge: "./assets/extracted/ui/badge_crown_laurel.png",
+      nameAr: "حاكم القصر الأول",
+      nameEn: "Palace Conqueror",
+      descAr: "أكمل جميع مراحل قصر واحد (100 مرحلة).",
+      descEn: "Complete all 100 stages of a palace.",
+      metric: "palacesCompleted",
+      target: 1,
+      reward: { coins: 800, gems: 15 },
+    },
+    {
+      id: "palace_complete_5",
+      badge: "./assets/extracted/ui/icon_ankh_gold.png",
+      nameAr: "حامي الممالك الخمس",
+      nameEn: "Guardian of Five Realms",
+      descAr: "أكمل 5 قصور فرعونية بالكامل.",
+      descEn: "Complete 5 Egyptian fantasy palaces.",
+      metric: "palacesCompleted",
+      target: 5,
+      reward: { coins: 1500, gems: 25 },
+    },
+    {
+      id: "player_level_5",
+      badge: "./assets/extracted/ui/badge_trophy_shield.png",
+      nameAr: "الصعود الملكي",
+      nameEn: "Royal Ascension",
+      descAr: "صل إلى المستوى الخامس للاعب.",
+      descEn: "Reach Player Level 5.",
+      metric: "playerLevel",
+      target: 5,
+      reward: { coins: 300, gems: 5 },
+    },
+    {
+      id: "profile_customized",
+      badge: "./assets/extracted/ui/icon_papyrus_scroll.png",
+      nameAr: "الهوية الملكية",
+      nameEn: "Royal Identity",
+      descAr: "خصّص اسمك أو صورتك الشخصية في الملف الشخصي.",
+      descEn: "Customize your name or avatar in your Player Profile.",
+      metric: "profileCustomized",
+      target: 1,
+      reward: { coins: 150, gems: 3 },
+    },
+  ]);
+
+  function evaluateAchievements(progressSnapshot = {}, claimedMap = {}) {
+    const highestUnlocked = clampStage(progressSnapshot.highestUnlocked || 1);
+    const completedStages = Math.max(0, highestUnlocked - 1);
+    const stars = Math.max(0, Math.floor(Number(progressSnapshot.stars) || 0));
+    const palacesCompleted = Math.floor(completedStages / STAGES_PER_PALACE);
+    let bossesDefeated = 0;
+    for (let p = 0; p < PALACES_COUNT; p++) {
+      if (highestUnlocked > p * STAGES_PER_PALACE + BOSS_STAGE_IN_PALACE) {
+        bossesDefeated++;
+      }
+    }
+    const prog = computePlayerProgression({
+      completedStages,
+      stars,
+      bossesDefeated,
+      bonusXp: progressSnapshot.bonusXp || 0,
+    });
+    const metrics = {
+      completedStages,
+      stars,
+      palacesCompleted,
+      bossesDefeated,
+      playerLevel: prog.level,
+      profileCustomized: progressSnapshot.profileCustomized ? 1 : 0,
+    };
+
+    return ACHIEVEMENTS.map((ach) => {
+      const current = Math.max(0, Number(metrics[ach.metric]) || 0);
+      const unlocked = current >= ach.target;
+      const claimed = Boolean(claimedMap && claimedMap[ach.id]);
+      return {
+        ...ach,
+        current: Math.min(current, ach.target),
+        rawCurrent: current,
+        unlocked,
+        claimed,
+        canClaim: unlocked && !claimed,
+        percent: Math.max(0, Math.min(100, Math.round((Math.min(current, ach.target) / ach.target) * 100))),
+      };
+    });
+  }
+
   return {
     PALACES_COUNT,
     STAGES_PER_PALACE,
@@ -1010,16 +1604,31 @@
     MAX_BOOSTER_STOCK,
     GAME_STATES,
     PALACES,
+    AVATAR_CATALOG,
+    ACHIEVEMENTS,
     STORE_CATEGORIES,
     STORE_ITEMS,
+    SHOP_FRAMES,
+    SHOP_ICONS,
+    SHOP_FEATURED_BUNDLE_ID,
+    SHOP_SHOWCASE_IDS,
+    LUCKY_WHEEL_ASSETS,
+    LUCKY_WHEEL_SLICES,
     REWARDED_AD_PLACEMENTS,
     REWARDED_AD_DAILY_TOTAL_LIMIT,
     clampStage,
     getStageMeta,
     getLevelConfig,
+    getAvatarById,
+    computePlayerProgression,
+    getPalaceProgressSummary,
+    evaluateAchievements,
     getStoreItemById,
     formatRewardSummaryArabic,
     applyRewardToInventory,
+    pickWeightedWheelSliceIndex,
+    computeWheelSpinTarget,
+    resolveWheelSliceFromAngle,
     createGameStateMachine,
     createHeartActionGuard,
     createStoreEngine,

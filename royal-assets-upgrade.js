@@ -73,23 +73,17 @@
     }
   }
 
+  const BGM_SRC = "./public/assets/aistudio/_____________13597d86.mp3";
+
   const settings = loadSettings();
   const pools = Object.create(null);
   const lastPlayedAt = Object.create(null);
   const listeners = new Set();
 
   let unlocked = false;
-  let audioCtx = null;
-  let musicGain = null;
-  let musicTimer = null;
-  let musicStep = 0;
-
-  // Gentle royal celesta/harp progression (pentatonic C-major / A-minor fantasy motif)
-  const MELODY_NOTES = [
-    523.25, 659.25, 783.99, 659.25, 880.0, 783.99, 659.25, 587.33,
-    440.0, 523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 392.0,
-  ];
-  const BASS_NOTES = [261.63, 220.0, 174.61, 196.0];
+  let mapMusicActive = false;
+  let adPaused = false;
+  let bgmAudio = null;
 
   function saveSettings() {
     try {
@@ -102,80 +96,85 @@
     });
   }
 
-  function ensureAudioContext() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
-    if (!audioCtx) {
-      audioCtx = new AudioCtx();
-      musicGain = audioCtx.createGain();
-      musicGain.gain.value = settings.musicEnabled ? settings.musicVolume * 0.16 : 0;
-      musicGain.connect(audioCtx.destination);
+  function ensureBgmAudio() {
+    if (!bgmAudio) {
+      bgmAudio = new Audio(BGM_SRC);
+      bgmAudio.loop = true;
+      bgmAudio.preload = "auto";
+      bgmAudio.volume = Math.max(0, Math.min(1, settings.musicVolume));
+      bgmAudio.addEventListener("ended", () => {
+        if (mapMusicActive && settings.musicEnabled && !document.hidden) {
+          bgmAudio.currentTime = 0;
+          const p = bgmAudio.play();
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        }
+      });
     }
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume().catch(() => {});
-    }
-    return audioCtx;
-  }
-
-  function playMusicNote() {
-    if (!settings.musicEnabled || document.hidden || !unlocked || settings.musicVolume <= 0.001) {
-      return;
-    }
-    const ctx = ensureAudioContext();
-    if (!ctx || ctx.state !== "running" || !musicGain) return;
-
-    const now = ctx.currentTime;
-    const freq = MELODY_NOTES[musicStep % MELODY_NOTES.length];
-    const osc = ctx.createOscillator();
-    const noteGain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(freq, now);
-
-    noteGain.gain.setValueAtTime(0.0001, now);
-    noteGain.gain.linearRampToValueAtTime(0.28, now + 0.04);
-    noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
-
-    osc.connect(noteGain);
-    noteGain.connect(musicGain);
-    osc.start(now);
-    osc.stop(now + 0.76);
-
-    if (musicStep % 4 === 0) {
-      const bassFreq = BASS_NOTES[Math.floor(musicStep / 4) % BASS_NOTES.length];
-      const bass = ctx.createOscillator();
-      const bassGain = ctx.createGain();
-      bass.type = "sine";
-      bass.frequency.setValueAtTime(bassFreq, now);
-      bassGain.gain.setValueAtTime(0.0001, now);
-      bassGain.gain.linearRampToValueAtTime(0.22, now + 0.08);
-      bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
-      bass.connect(bassGain);
-      bassGain.connect(musicGain);
-      bass.start(now);
-      bass.stop(now + 1.55);
-    }
-
-    musicStep++;
+    return bgmAudio;
   }
 
   function updateMusicPlayback() {
-    if (musicGain && audioCtx) {
-      const target = settings.musicEnabled && !document.hidden ? settings.musicVolume * 0.16 : 0;
+    const shouldPlay =
+      mapMusicActive &&
+      !adPaused &&
+      settings.musicEnabled &&
+      !document.hidden &&
+      settings.musicVolume > 0.001;
+
+    if (!shouldPlay) {
+      if (bgmAudio && !bgmAudio.paused) {
+        try {
+          bgmAudio.pause();
+        } catch (_) {}
+      }
+      return;
+    }
+
+    const audio = ensureBgmAudio();
+    audio.loop = true;
+    audio.volume = Math.max(0, Math.min(1, settings.musicVolume));
+
+    if (audio.paused) {
       try {
-        musicGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.05);
-      } catch (_) {
-        musicGain.gain.value = target;
-      }
+        const p = audio.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            unlocked = true;
+          }).catch(() => {
+            // Autoplay blocked until first user tap/gesture; unlock() will retry immediately
+          });
+        }
+      } catch (_) {}
     }
-    if (settings.musicEnabled && unlocked && !document.hidden && settings.musicVolume > 0.001) {
-      if (!musicTimer) {
-        ensureAudioContext();
-        musicTimer = setInterval(playMusicNote, 560);
-      }
-    } else if (musicTimer) {
-      clearInterval(musicTimer);
-      musicTimer = null;
+  }
+
+  function setMapMusicActive(active) {
+    mapMusicActive = Boolean(active);
+    updateMusicPlayback();
+  }
+
+  function stopMusicForStage() {
+    mapMusicActive = false;
+    if (bgmAudio) {
+      try {
+        bgmAudio.pause();
+      } catch (_) {}
     }
+  }
+
+  function pauseForAd() {
+    adPaused = true;
+    stopAllSfx();
+    if (bgmAudio && !bgmAudio.paused) {
+      try {
+        bgmAudio.pause();
+      } catch (_) {}
+    }
+  }
+
+  function resumeAfterAd() {
+    adPaused = false;
+    updateMusicPlayback();
   }
 
   function getPool(channel) {
@@ -205,7 +204,7 @@
   }
 
   function playSfx(channel) {
-    if (!settings.sfxEnabled || settings.sfxVolume <= 0.001 || document.hidden) return;
+    if (adPaused || !settings.sfxEnabled || settings.sfxVolume <= 0.001 || document.hidden) return;
     const key = SFX_MAP[channel] ? channel : "click";
     const now = performance.now();
     const minGap = key === "match" || key === "ice" || key === "pop" ? 75 : 55;
@@ -224,12 +223,9 @@
   }
 
   function unlock() {
-    if (!unlocked) {
-      unlocked = true;
-      ensureAudioContext();
+    unlocked = true;
+    if (mapMusicActive) {
       updateMusicPlayback();
-    } else if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume().catch(() => {});
     }
   }
 
@@ -314,6 +310,20 @@
     playSfx,
     stopAllSfx,
     unlock,
+    setMapMusicActive,
+    stopMusicForStage,
+    pauseForAd,
+    resumeAfterAd,
+    resumeMapMusic: () => setMapMusicActive(true),
+    getBgmState: () => ({
+      active: mapMusicActive,
+      adPaused,
+      playing: Boolean(bgmAudio && !bgmAudio.paused),
+      paused: Boolean(!bgmAudio || bgmAudio.paused),
+      loop: Boolean(bgmAudio && bgmAudio.loop),
+      src: BGM_SRC,
+      volume: bgmAudio ? bgmAudio.volume : settings.musicVolume,
+    }),
     getSettings: () => ({ ...settings }),
     setMusicEnabled,
     setSfxEnabled,

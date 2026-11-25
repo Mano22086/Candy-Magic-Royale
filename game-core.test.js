@@ -287,3 +287,219 @@ test("rewarded ad engine strictly refuses fake rewards when unconfigured, grants
   assert.equal(blocked3.status, "daily_limit_reached");
 });
 
+test("all 10 extracted individual palaces, 10 interior maps, new vertical world map, BGM MP3, profile frame, and UI badges exist on disk", () => {
+  assert.ok(fs.existsSync(path.join(__dirname, "public/assets/aistudio/Picsart_26-11-25_18-52-31-817_a4649afd.jpg")));
+  assert.ok(fs.existsSync(path.join(__dirname, "public/assets/aistudio/_____________13597d86.mp3")));
+  assert.ok(fs.existsSync(path.join(__dirname, "assets/extracted/ui/player_map_banner_clean.png")));
+  assert.ok(fs.existsSync(path.join(__dirname, "assets/extracted/profile/profile_frame_clean.png")));
+
+  const expectedInteriorPrefixes = [
+    "palace_01_golden_sapphire",
+    "palace_02_amethyst_bastet",
+    "palace_03_emerald_sphinx",
+    "palace_04_crimson_lava",
+    "palace_05_azure_oasis",
+    "palace_06_obsidian_emerald",
+    "palace_07_pharaoh_sphinx",
+    "palace_08_pink_lotus",
+    "palace_09_midnight_horus",
+    "palace_10_sun_pyramid",
+  ];
+
+  const seenPalaceArt = new Set();
+  const seenInteriorMaps = new Set();
+  for (let i = 0; i < core.PALACES.length; i++) {
+    const palace = core.PALACES[i];
+    assert.ok(palace.castleArt.includes("assets/extracted/palaces/palace_"), `Palace ${palace.index} should use individual extracted PNG`);
+    assert.ok(!seenPalaceArt.has(palace.castleArt), `Palace ${palace.index} artwork must be unique`);
+    seenPalaceArt.add(palace.castleArt);
+    assert.ok(fs.existsSync(path.join(__dirname, palace.castleArt)), `Missing palace PNG: ${palace.castleArt}`);
+
+    assert.ok(
+      palace.interiorMap && palace.interiorMap.includes(expectedInteriorPrefixes[i]),
+      `Palace ${i + 1} interiorMap should match ${expectedInteriorPrefixes[i]}`
+    );
+    assert.ok(!seenInteriorMaps.has(palace.interiorMap), `Palace ${i + 1} interiorMap must be unique`);
+    seenInteriorMaps.add(palace.interiorMap);
+    assert.ok(fs.existsSync(path.join(__dirname, palace.interiorMap)), `Missing palace interior map: ${palace.interiorMap}`);
+
+    assert.ok(palace.mapPos && typeof palace.mapPos.x === "number" && typeof palace.mapPos.y === "number");
+  }
+  assert.equal(seenPalaceArt.size, 10);
+  assert.equal(seenInteriorMaps.size, 10);
+
+  for (const av of core.AVATAR_CATALOG) {
+    assert.ok(fs.existsSync(path.join(__dirname, av.src)), `Missing avatar image: ${av.src}`);
+  }
+  for (const ach of core.ACHIEVEMENTS) {
+    assert.ok(fs.existsSync(path.join(__dirname, ach.badge)), `Missing achievement badge: ${ach.badge}`);
+  }
+});
+
+test("player progression, palace summary, and achievements evaluate deterministically", () => {
+  const prog1 = core.computePlayerProgression({ completedStages: 0, stars: 0, bossesDefeated: 0 });
+  assert.equal(prog1.level, 1);
+  assert.equal(prog1.totalXp, 0);
+
+  const prog2 = core.computePlayerProgression({ completedStages: 154, stars: 410, bossesDefeated: 2 });
+  assert.ok(prog2.level > 10);
+  assert.ok(prog2.progressPercent >= 0 && prog2.progressPercent <= 100);
+
+  const pal1 = core.getPalaceProgressSummary(0, 155, { 1: 3, 2: 2 });
+  assert.equal(pal1.isCompleted, true);
+  assert.equal(pal1.isLocked, false);
+  assert.equal(pal1.completedCount, 100);
+  assert.equal(pal1.earnedStars, 299);
+
+  const pal2 = core.getPalaceProgressSummary(1, 155, {});
+  assert.equal(pal2.isActive, true);
+  assert.equal(pal2.completedCount, 54);
+
+  const pal3 = core.getPalaceProgressSummary(2, 155, {});
+  assert.equal(pal3.isLocked, true);
+  assert.equal(pal3.completedCount, 0);
+
+  const achs = core.evaluateAchievements(
+    { highestUnlocked: 55, stars: 120, profileCustomized: true },
+    { first_victory: true }
+  );
+  const firstVic = achs.find((a) => a.id === "first_victory");
+  assert.equal(firstVic.unlocked, true);
+  assert.equal(firstVic.claimed, true);
+  assert.equal(firstVic.canClaim, false);
+
+  const bossAch = achs.find((a) => a.id === "boss_slayer_1");
+  assert.equal(bossAch.unlocked, true);
+  assert.equal(bossAch.canClaim, true);
+
+  const av = core.getAvatarById("unknown_id");
+  assert.equal(av.id, "pharaoh_prince");
+});
+
+test("all 4 shop frames, 7 transparent shop icons, 4 triple-combo bundles, and wheel layers exist on disk and triple-combo purchases work cleanly", () => {
+  assert.equal(Object.keys(core.SHOP_FRAMES).length, 4);
+  for (const [k, relPath] of Object.entries(core.SHOP_FRAMES)) {
+    assert.ok(fs.existsSync(path.join(__dirname, relPath)), `Missing shop frame ${k}: ${relPath}`);
+  }
+  assert.ok(core.SHOP_FRAMES.royal_blue.includes("shop_royal_kingdom_blue"));
+
+  for (const [k, relPath] of Object.entries(core.SHOP_ICONS)) {
+    assert.ok(fs.existsSync(path.join(__dirname, relPath)), `Missing shop icon ${k}: ${relPath}`);
+  }
+
+  for (const [k, relPath] of Object.entries(core.LUCKY_WHEEL_ASSETS)) {
+    assert.ok(fs.existsSync(path.join(__dirname, relPath)), `Missing wheel asset ${k}: ${relPath}`);
+  }
+
+  assert.equal(core.SHOP_SHOWCASE_IDS.length, 6);
+  for (const id of [core.SHOP_FEATURED_BUNDLE_ID, ...core.SHOP_SHOWCASE_IDS]) {
+    assert.ok(core.getStoreItemById(id), `Showcase item missing: ${id}`);
+  }
+
+  // Test purchasing the Featured Mega Bundle & Triple-Combo Offer Packs
+  const store = core.createStoreEngine();
+  let inv = { coins: 1000, gems: 50, lives: 5, hammer: 3, rockets: 3, colors: 3, paints: 3 };
+
+  const megaRes = store.purchase(inv, "combo_mega_featured", { now: 1000, minGapMs: 350 });
+  assert.equal(megaRes.ok, true);
+  assert.equal(megaRes.inventory.gems, 35);
+  assert.equal(megaRes.inventory.coins, 1500);
+  assert.equal(megaRes.inventory.rockets, 5);
+  assert.equal(megaRes.inventory.paints, 5);
+  assert.equal(megaRes.inventory.colors, 5);
+  inv = megaRes.inventory;
+
+  const combo2Res = store.purchase(inv, "combo_pack_2", { now: 2000, minGapMs: 350 });
+  assert.equal(combo2Res.ok, true);
+  assert.equal(combo2Res.inventory.coins, 1120);
+  assert.equal(combo2Res.inventory.hammer, 5);
+  assert.equal(combo2Res.inventory.colors, 7);
+  assert.equal(combo2Res.inventory.gems, 38);
+});
+
+test("Daily Lucky Spin Wheel has 8 valid 45-degree slices and spin math lands accurately on every slice 0..7", () => {
+  assert.equal(core.LUCKY_WHEEL_SLICES.length, 8);
+  for (let i = 0; i < 8; i++) {
+    const s = core.LUCKY_WHEEL_SLICES[i];
+    assert.equal(s.index, i);
+    assert.equal(s.angleDeg, i * 45 + 22.5);
+    assert.ok(fs.existsSync(path.join(__dirname, s.icon)), `Missing wheel slice icon: ${s.icon}`);
+  }
+
+  // Verify every slice index 0..7 resolves accurately across repeated cumulative spins with safe jitter
+  let angle = 0;
+  for (let i = 0; i < 8; i++) {
+    for (const jitter of [-10, 0, 10]) {
+      const nextAngle = core.computeWheelSpinTarget(angle, i, 5, jitter);
+      assert.ok(nextAngle > angle + 5 * 360, "Wheel must spin forward by at least 5 full turns");
+      const landed = core.resolveWheelSliceFromAngle(nextAngle);
+      assert.equal(landed.index, i, `Expected slice ${i} with jitter ${jitter}, got ${landed.index}`);
+      angle = nextAngle;
+    }
+  }
+});
+
+test("Google AdMob manager stores real & test IDs, switches automatically on IS_TEST_MODE, and paces interstitials every 3 stages after Level 5", () => {
+  const admob = require("./admob-manager");
+  const cfg = admob.ADMOB_CONFIG;
+
+  // 1. Exact IDs and safe Test Mode default
+  assert.equal(cfg.IS_TEST_MODE, true);
+  assert.equal(cfg.APP_ID, "ca-app-pub-7895931535988996~2281008271");
+  assert.equal(cfg.LIVE_IDS.REWARDED, "ca-app-pub-7895931535988996/4427951627");
+  assert.equal(cfg.LIVE_IDS.INTERSTITIAL, "ca-app-pub-7895931535988996/7728455278");
+  assert.equal(cfg.TEST_IDS.REWARDED, "ca-app-pub-3940256099942544/5224354917");
+  assert.equal(cfg.TEST_IDS.INTERSTITIAL, "ca-app-pub-3940256099942544/1033173712");
+
+  // 2. Automatic TEST_IDS vs LIVE_IDS switching
+  assert.deepEqual(admob.getActiveAdUnitIds({ ...cfg, IS_TEST_MODE: true }), cfg.TEST_IDS);
+  assert.deepEqual(admob.getActiveAdUnitIds({ ...cfg, IS_TEST_MODE: false }), cfg.LIVE_IDS);
+
+  // 3. Smart Interstitial pacing: never on levels 1..5
+  let counter = 0;
+  for (let lvl = 1; lvl <= 5; lvl++) {
+    const res = admob.shouldShowInterstitial({ completedLevel: lvl, completedSinceLastAd: counter });
+    assert.equal(res.show, false);
+    assert.equal(res.reason, "below_min_level");
+    counter = res.nextCounter;
+  }
+  assert.equal(counter, 0);
+
+  // 4. Starting after Level 5 (levels 6, 7, 8 -> trigger on 8, reset to 0)
+  const l6 = admob.shouldShowInterstitial({ completedLevel: 6, completedSinceLastAd: counter });
+  assert.equal(l6.show, false);
+  assert.equal(l6.nextCounter, 1);
+
+  const l7 = admob.shouldShowInterstitial({ completedLevel: 7, completedSinceLastAd: l6.nextCounter });
+  assert.equal(l7.show, false);
+  assert.equal(l7.nextCounter, 2);
+
+  const l8 = admob.shouldShowInterstitial({ completedLevel: 8, completedSinceLastAd: l7.nextCounter });
+  assert.equal(l8.show, true);
+  assert.equal(l8.reason, "interval_reached");
+  assert.equal(l8.nextCounter, 0);
+
+  // 5. VIP / No-Ads and Offline immediately skip interstitials
+  const vipSkip = admob.shouldShowInterstitial({ completedLevel: 10, completedSinceLastAd: 2, hasNoAds: true });
+  assert.equal(vipSkip.show, false);
+  assert.equal(vipSkip.reason, "vip_no_ads");
+
+  const offlineSkip = admob.shouldShowInterstitial({ completedLevel: 10, completedSinceLastAd: 2, isOnline: false });
+  assert.equal(offlineSkip.show, false);
+  assert.equal(offlineSkip.reason, "offline");
+});
+
+test("Capacitor AndroidManifest.xml and package.json are properly configured for @capacitor-community/admob", () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
+  assert.ok(pkg.dependencies && pkg.dependencies["@capacitor-community/admob"], "Missing @capacitor-community/admob in package.json");
+
+  const manifestPath = path.join(__dirname, "android/app/src/main/AndroidManifest.xml");
+  assert.ok(fs.existsSync(manifestPath), "Missing android/app/src/main/AndroidManifest.xml");
+  const manifest = fs.readFileSync(manifestPath, "utf8");
+  assert.ok(manifest.includes('android:name="com.google.android.gms.ads.APPLICATION_ID"'));
+  assert.ok(manifest.includes('android:value="ca-app-pub-7895931535988996~2281008271"'));
+});
+
+
+
+

@@ -84,6 +84,7 @@
     coins: 500,
     gems: 25,
     stars: 0,
+    stageStars: {},
     lives: 5,
     lastHeartAt: Date.now(),
     selected: null,
@@ -102,7 +103,10 @@
     settingsOpen: false,
     settingsContext: "gameplay",
     activeConfirmToken: null,
-    activeStoreCategory: "coins",
+    activeStoreCategory: "featured",
+    lastWinCoinReward: 0,
+    lastWinDoubled: false,
+    completedStageForInterstitial: null,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -2212,6 +2216,9 @@
         state.obstaclesCleared = state.obstacleGoal;
         state.lossHandled = false;
         const earnedStars = state.moves >= 12 ? 3 : state.moves >= 6 ? 2 : 1;
+        if (!state.stageStars || typeof state.stageStars !== "object") state.stageStars = {};
+        const prevStageStars = Number(state.stageStars[String(state.level)] || 0);
+        state.stageStars[String(state.level)] = Math.max(prevStageStars, earnedStars);
         const rewardGranted = safeClaimLevelReward(state.level);
         const coinReward = meta.isBossStage ? 250 : 150;
         const gemReward = meta.isBossStage ? 5 : 2;
@@ -2219,6 +2226,8 @@
           state.stars += earnedStars;
           state.coins += coinReward;
           state.gems += gemReward;
+        } else if (earnedStars > prevStageStars) {
+          state.stars += earnedStars - prevStageStars;
         }
         state.highestUnlocked = Math.max(
           state.highestUnlocked,
@@ -2226,6 +2235,8 @@
         );
         updateHud();
         saveProgress(true);
+        window.CMRProfile?.vibrate?.([28, 35, 28]);
+        window.CMRProfile?.onGameplayProgress?.();
 
         winView.classList.remove("hidden");
         lossView.classList.add("hidden");
@@ -2242,6 +2253,22 @@
             ? `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · المكافأة: +${coinReward} عملة و+${gemReward} جوهرة · النقاط: ${state.score.toLocaleString("en-US")}`
             : `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · النقاط: ${state.score.toLocaleString("en-US")} (تم استلام مكافأة المرحلة سابقاً)`;
         }
+
+        state.lastWinCoinReward = rewardGranted ? coinReward : 0;
+        state.lastWinDoubled = false;
+        state.completedStageForInterstitial = state.level;
+
+        const doubleBtn = $("winDoubleCoinsBtn");
+        const doubleLbl = $("winDoubleCoinsLabel");
+        if (doubleBtn) {
+          doubleBtn.disabled = false;
+          doubleBtn.classList.remove("is-claimed");
+          doubleBtn.classList.toggle("hidden", state.lastWinCoinReward <= 0);
+        }
+        if (doubleLbl && state.lastWinCoinReward > 0) {
+          doubleLbl.textContent = `🎬 ×2 عملات (+${state.lastWinCoinReward})`;
+        }
+        window.CMRAdMob?.syncOfflineAdButtons?.();
 
         triggerCharacterResult(true);
         playSfx("win");
@@ -2269,6 +2296,7 @@
               : `تبقى ${remainingObs} عوائق · نفدت قلوبك! استخدم المساعدة أو المتجر لاستعادة القلوب.`;
         }
 
+        window.CMRAdMob?.syncOfflineAdButtons?.();
         triggerCharacterResult(false);
         playSfx("lose");
       }
@@ -2380,6 +2408,7 @@
           coins: state.coins,
           gems: state.gems,
           stars: state.stars,
+          stageStars: state.stageStars || {},
           lives: state.lives,
           lastHeartAt: state.lastHeartAt,
           hammer: state.hammer,
@@ -2408,6 +2437,7 @@
       state.coins = Number.isFinite(Number(x.coins)) ? Math.max(0, Math.floor(Number(x.coins))) : 500;
       state.gems = Number.isFinite(Number(x.gems)) ? Math.max(0, Math.floor(Number(x.gems))) : 25;
       state.stars = Number.isFinite(Number(x.stars)) ? Math.max(0, Math.floor(Number(x.stars))) : 0;
+      state.stageStars = x.stageStars && typeof x.stageStars === "object" ? { ...x.stageStars } : {};
       state.lives =
         x.lives === undefined
           ? Core.MAX_LIVES
@@ -2473,10 +2503,29 @@
     }
   }
 
+  function openOutOfHeartsModal() {
+    applyHeartRegen();
+    const modal = $("outOfHeartsModal");
+    const btn = $("oohFreeHeartBtn");
+    if (btn) btn.disabled = false;
+    window.CMRAdMob?.syncOfflineAdButtons?.();
+    if (modal) {
+      modal.classList.remove("hidden");
+    } else {
+      say("لا توجد قلوب متاحة حالياً. انتظر استعادة قلب أو اشترِ من المتجر.");
+      openStoreModal("hearts");
+    }
+  }
+
+  function closeOutOfHeartsModal() {
+    const modal = $("outOfHeartsModal");
+    if (modal) modal.classList.add("hidden");
+  }
+
   function restartFromResultModal() {
     applyHeartRegen();
     if (state.lives <= 0) {
-      say("لا توجد قلوب متاحة حالياً. انتظر استعادة قلب أو اشترِ من المتجر.");
+      openOutOfHeartsModal();
       return;
     }
     startFreshBoardForCurrentLevel();
@@ -2599,7 +2648,7 @@
   function openHeartConfirmation(actionType) {
     applyHeartRegen();
     if (actionType === "restart" && state.lives <= 0) {
-      say("لا توجد قلوب متاحة لإعادة المرحلة حالياً.");
+      openOutOfHeartsModal();
       return;
     }
 
@@ -2713,7 +2762,9 @@
     updateHud();
     refreshBoosterBadges();
     saveProgress(false);
+    syncMenuUI();
     refreshShop();
+    window.CMRRefreshWorldMap?.();
   }
 
   function applyRewardedAdGrant(reward) {
@@ -2734,27 +2785,91 @@
     playSfx("coin");
   }
 
+  function formatShopPillPrice(item, claimedToday, heartsFull) {
+    if (item.currency === "rewarded_ad") {
+      return `<span>🎬 إعلان</span>`;
+    }
+    if (item.currency === "free_daily") {
+      return `<span>${claimedToday ? "تم الاستلام" : "مجاني!"}</span>`;
+    }
+    if (heartsFull) {
+      return `<span>ممتلئ</span>`;
+    }
+    if (item.currency === "gems") {
+      return `<img src="./assets/packs/buttons/icon_gem.png" alt=""><span>${item.price}</span>`;
+    }
+    return `<img src="${Core.SHOP_ICONS.coin}" alt=""><span>${item.price.toLocaleString("en-US")}</span>`;
+  }
+
+  function renderFeaturedShopBundle() {
+    const slot = $("shopFeaturedSlot");
+    if (!slot) return;
+    const featured = Core.getStoreItemById(Core.SHOP_FEATURED_BUNDLE_ID);
+    if (!featured) return;
+
+    const cantAfford =
+      (featured.currency === "coins" && state.coins < featured.price) ||
+      (featured.currency === "gems" && state.gems < featured.price);
+
+    slot.innerHTML = `
+      <div class="rk-featured-card" data-item-id="${featured.id}">
+        <div class="rk-featured-art">
+          <img src="${featured.image}" alt="${featured.name}" draggable="false">
+        </div>
+        <div class="rk-featured-info">
+          <span class="rk-featured-badge">${featured.badge || "العرض المميز"}</span>
+          <h3 class="rk-featured-title">${featured.name}</h3>
+          <p class="rk-featured-qty">${featured.shortQty || ""}</p>
+          <button
+            type="button"
+            class="rk-featured-buy-btn ${cantAfford ? "is-muted" : ""}"
+            data-store-buy="${featured.id}"
+            aria-label="شراء ${featured.name}"
+          >
+            ${formatShopPillPrice(featured, false, false)}
+          </button>
+        </div>
+      </div>
+    `;
+
+    const buyBtn = slot.querySelector("[data-store-buy]");
+    if (buyBtn) {
+      buyBtn.addEventListener("click", () => handleStorePurchase(featured.id, buyBtn));
+    }
+  }
+
   function renderStoreCategories() {
     const tabsEl = $("shopCategoryTabs");
     if (!tabsEl) return;
-    tabsEl.innerHTML = Core.STORE_CATEGORIES.map(
-      (cat) => `
+    if (!state.activeStoreCategory) state.activeStoreCategory = "featured";
+
+    const allTabs = [
+      { id: "featured", shortLabel: "المميز", label: "العروض المميزة", icon: Core.SHOP_ICONS.chest },
+      ...Core.STORE_CATEGORIES,
+    ];
+
+    tabsEl.innerHTML = allTabs
+      .map(
+        (cat) => `
         <button
           type="button"
           role="tab"
           aria-selected="${cat.id === state.activeStoreCategory}"
-          class="shop-cat-tab ${cat.id === state.activeStoreCategory ? "active" : ""}"
+          class="rk-cat-pill ${cat.id === state.activeStoreCategory ? "active" : ""}"
           data-shop-cat="${cat.id}"
+          title="${cat.label}"
         >
           <img src="${cat.icon}" alt="">
-          <span>${cat.label}</span>
+          <span>${cat.shortLabel || cat.label}</span>
         </button>
       `
-    ).join("");
+      )
+      .join("");
 
     tabsEl.querySelectorAll("[data-shop-cat]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.activeStoreCategory = btn.dataset.shopCat || "coins";
+        state.activeStoreCategory = btn.dataset.shopCat || "featured";
+        playSfx("swap");
         renderStoreCategories();
         renderStoreProducts();
       });
@@ -2767,68 +2882,75 @@
 
     const todayKey = new Date().toISOString().slice(0, 10);
     const dailyClaims = readStoreDailyClaims();
-    const items = Core.STORE_ITEMS.filter((item) => item.category === state.activeStoreCategory);
 
-    grid.innerHTML = items
-      .map((item) => {
-        const isAd = item.currency === "rewarded_ad";
-        const isDaily = item.currency === "free_daily";
-        const claimedToday = isDaily && dailyClaims[item.id] === todayKey;
-        const cantAfford =
-          (item.currency === "coins" && state.coins < item.price) ||
-          (item.currency === "gems" && state.gems < item.price);
-        const heartsFull = Boolean(item.requiresMissingHearts && state.lives >= Core.MAX_LIVES);
+    let items;
+    if (!state.activeStoreCategory || state.activeStoreCategory === "featured") {
+      items = Core.SHOP_SHOWCASE_IDS.map((id) => Core.getStoreItemById(id)).filter(Boolean);
+    } else {
+      items = Core.STORE_ITEMS.filter(
+        (item) => item.category === state.activeStoreCategory && item.id !== Core.SHOP_FEATURED_BUNDLE_ID
+      ).slice(0, 6);
+    }
 
-        let priceHtml = "";
-        if (isAd) {
-          priceHtml = `<span class="price-tag is-ad">🎬 شاهد إعلاناً</span>`;
-        } else if (isDaily) {
-          priceHtml = `<span class="price-tag is-free">${claimedToday ? "تم الاستلام اليوم" : "مجاني يومياً"}</span>`;
-        } else if (item.currency === "gems") {
-          priceHtml = `<span class="price-tag is-gems"><img src="./assets/packs/buttons/icon_gem.png" alt=""> ${item.price} جوهرة</span>`;
-        } else {
-          priceHtml = `<span class="price-tag is-coins"><img src="./assets/packs/buttons/icon_coin.png" alt=""> ${item.price.toLocaleString("en-US")} عملة</span>`;
-        }
+    // Pad up to 6 fixed visual card slots matching the 2x3 Royal Kingdom Blue frame geometry
+    const slots = [];
+    for (let i = 0; i < 6; i++) {
+      const item = items[i] || null;
+      if (!item) {
+        slots.push(`
+          <div class="rk-offer-slot rk-slot-${i} is-empty" aria-hidden="true">
+            <div class="rk-offer-empty-mark">✨</div>
+          </div>
+        `);
+        continue;
+      }
 
-        const btnLabel = isAd
-          ? "شاهد الإعلان"
-          : claimedToday
-          ? "مُستلَم"
-          : heartsFull
-          ? "القلوب ممتلئة"
-          : isDaily
-          ? "استلم مجاناً"
-          : "شراء الآن";
+      const isAd = item.currency === "rewarded_ad";
+      const isDaily = item.currency === "free_daily";
+      const claimedToday = isDaily && dailyClaims[item.id] === todayKey;
+      const cantAfford =
+        (item.currency === "coins" && state.coins < item.price) ||
+        (item.currency === "gems" && state.gems < item.price);
+      const heartsFull = Boolean(item.requiresMissingHearts && state.lives >= Core.MAX_LIVES);
+      const pillHtml = formatShopPillPrice(item, claimedToday, heartsFull);
 
-        return `
-          <article class="shop-product-card ${isAd ? "is-ad-card" : ""}" data-item-id="${item.id}">
-            ${item.badge ? `<span class="shop-item-badge">${item.badge}</span>` : ""}
-            <div class="shop-product-media">
-              <img src="${item.image}" alt="${item.name}">
+      slots.push(`
+        <article class="rk-offer-slot rk-slot-${i} ${isAd ? "is-ad-card" : ""}" data-item-id="${item.id}">
+          <div class="rk-offer-body">
+            <div class="rk-offer-art">
+              <img src="${item.image}" alt="${item.name}" draggable="false">
             </div>
-            <div class="shop-product-body">
-              <h3>${item.name}</h3>
-              <p>${item.description}</p>
-            </div>
-            <div class="shop-product-footer">
-              ${priceHtml}
-              <button
-                type="button"
-                class="shop-buy-btn ${isAd ? "is-ad-btn" : ""} ${cantAfford || heartsFull || claimedToday ? "is-muted" : ""}"
-                data-store-buy="${item.id}"
-                aria-label="${btnLabel}: ${item.name}"
-              >
-                ${btnLabel}
-              </button>
-            </div>
-          </article>
-        `;
-      })
-      .join("");
+            <h3 class="rk-offer-name">${item.shortTitle || item.name}</h3>
+            <span class="rk-offer-qty">${item.shortQty || ""}</span>
+          </div>
+          <button
+            type="button"
+            class="rk-offer-pill-btn ${cantAfford || heartsFull || claimedToday ? "is-muted" : ""}"
+            data-store-buy="${item.id}"
+            ${isAd ? 'data-ad-button="true"' : ""}
+            aria-label="شراء ${item.name}"
+          >
+            ${pillHtml}
+          </button>
+        </article>
+      `);
+    }
+
+    grid.innerHTML = slots.join("");
+    window.CMRAdMob?.syncOfflineAdButtons?.();
 
     grid.querySelectorAll("[data-store-buy]").forEach((btn) => {
       btn.addEventListener("click", () => handleStorePurchase(btn.dataset.storeBuy, btn));
     });
+  }
+
+  function triggerPurchaseVisualFeedback(itemId) {
+    const card = document.querySelector(`#royalShop [data-item-id="${itemId}"]`);
+    if (!card) return;
+    card.classList.remove("is-purchased-pop");
+    void card.offsetWidth;
+    card.classList.add("is-purchased-pop");
+    setTimeout(() => card.classList.remove("is-purchased-pop"), 650);
   }
 
   function handleStorePurchase(itemId, btnEl) {
@@ -2867,8 +2989,18 @@
     }
 
     applyInventorySnapshot(res.inventory);
+    triggerPurchaseVisualFeedback(itemId);
     playSfx("coin");
     say(res.message);
+  }
+
+  function setShopFrameTheme(frameKey = "royal_blue") {
+    const src = Core.SHOP_FRAMES[frameKey] || Core.SHOP_FRAMES.royal_blue;
+    const img = $("rkShopFrameImg");
+    const stage = $("rkShopStage");
+    if (img) img.src = src;
+    if (stage) stage.dataset.frame = frameKey;
+    return src;
   }
 
   function refreshShop() {
@@ -2889,13 +3021,16 @@
     setText("invColor", state.colors);
     setText("invPaint", state.paints);
 
+    renderFeaturedShopBundle();
     renderStoreCategories();
     renderStoreProducts();
   }
 
   function openStoreModal(categoryId) {
-    if (categoryId && Core.STORE_CATEGORIES.some((c) => c.id === categoryId)) {
+    if (categoryId === "featured" || (categoryId && Core.STORE_CATEGORIES.some((c) => c.id === categoryId))) {
       state.activeStoreCategory = categoryId;
+    } else if (!state.activeStoreCategory) {
+      state.activeStoreCategory = "featured";
     }
     refreshShop();
     const modal = $("royalShop");
@@ -3014,6 +3149,10 @@
         closeLoginModal();
         playSfx("coin");
         say(`أهلاً بك يا ${name}! تم حفظ حسابك بنجاح.`);
+        window.CMRProfile?.refresh?.();
+        if (document.body.dataset.state === "title") {
+          window.CMRLaunchGame?.();
+        }
       });
     }
 
@@ -3072,26 +3211,127 @@
       });
     }
 
-    // Victory Transparent PNG Hotspots
-    bind("winNextBtn", () => {
+    // Out of Hearts Modal (Rewarded Ad for +1 Free Heart)
+    bind("oohCloseBtn", closeOutOfHeartsModal);
+    bind("oohOpenShopBtn", () => {
+      closeOutOfHeartsModal();
+      openStoreModal("hearts");
+    });
+    const oohModal = $("outOfHeartsModal");
+    if (oohModal) {
+      oohModal.addEventListener("click", (e) => {
+        if (e.target === oohModal) closeOutOfHeartsModal();
+      });
+    }
+    bind("oohFreeHeartBtn", async () => {
       playSfx("tap");
+      const btn = $("oohFreeHeartBtn");
+      const grantFreeHeart = () => {
+        applyRewardedAdGrant({ lives: 1 });
+        closeOutOfHeartsModal();
+        say("❤️ تمت إضافة قلب مجاني فوري! يمكنك متابعة اللعب الآن.");
+      };
+      if (window.CMRAdMob && typeof window.CMRAdMob.showRewardedAd === "function") {
+        if (btn) btn.disabled = true;
+        const res = await window.CMRAdMob.showRewardedAd("extra_heart", grantFreeHeart);
+        if (btn) btn.disabled = false;
+        if (!res.ok || !res.rewarded) {
+          if (res.status === "skipped") {
+            say("تم إغلاق الإعلان مبكراً — لم يُمنح قلب مجاني.");
+          } else if (res.status === "offline") {
+            say("لا يوجد اتصال بالإنترنت لعرض الإعلان.");
+          }
+        }
+      } else {
+        window.CMRAdManager?.openRewardedAdModal?.("extra_heart", grantFreeHeart);
+      }
+    });
+
+    // Victory Screen: ×2 Coins Rewarded Ad Button
+    bind("winDoubleCoinsBtn", async () => {
+      if (state.lastWinDoubled || state.lastWinCoinReward <= 0) return;
+      playSfx("tap");
+      const btn = $("winDoubleCoinsBtn");
+      const lbl = $("winDoubleCoinsLabel");
+      const bonusCoins = state.lastWinCoinReward;
+      const grantDoubledCoins = () => {
+        if (state.lastWinDoubled) return;
+        state.lastWinDoubled = true;
+        state.coins += bonusCoins;
+        updateHud();
+        saveProgress(true);
+        syncMenuUI();
+        refreshShop();
+        window.CMRRefreshWorldMap?.();
+        playSfx("coin");
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add("is-claimed");
+        }
+        if (lbl) lbl.textContent = `✓ تمت مضاعفة العملات (+${bonusCoins})`;
+        say(`🎉 تمت مضاعفة عملات الفوز! حصلت على +${bonusCoins} عملة إضافية.`);
+      };
+      if (window.CMRAdMob && typeof window.CMRAdMob.showRewardedAd === "function") {
+        if (btn) btn.disabled = true;
+        const res = await window.CMRAdMob.showRewardedAd("double_win_coins", grantDoubledCoins);
+        if (!state.lastWinDoubled && btn) btn.disabled = false;
+        if (!res.ok || !res.rewarded) {
+          if (res.status === "skipped") {
+            say("تم إغلاق الإعلان مبكراً — لم تتم مضاعفة العملات.");
+          } else if (res.status === "offline") {
+            say("لا يوجد اتصال بالإنترنت لعرض الإعلان.");
+          }
+        }
+      } else {
+        window.CMRAdManager?.openRewardedAdModal?.("free_coins", grantDoubledCoins);
+      }
+    });
+
+    // Victory Transparent PNG Hotspots (Interstitial triggers ONLY between screens, never mid-level)
+    const runPostWinInterstitial = async () => {
+      const completedLvl = state.completedStageForInterstitial;
+      state.completedStageForInterstitial = null;
+      if (completedLvl && window.CMRAdMob?.maybeShowInterstitialAfterStage) {
+        await window.CMRAdMob.maybeShowInterstitialAfterStage(completedLvl);
+      }
+    };
+
+    bind("winNextBtn", async () => {
+      playSfx("tap");
+      await runPostWinInterstitial();
       advanceToNextStage();
     });
     bind("winReplayBtn", () => {
       playSfx("tap");
       startFreshBoardForCurrentLevel();
     });
-    bind("winMapBtn", () => {
+    bind("winMapBtn", async () => {
       playSfx("tap");
+      await runPostWinInterstitial();
       exitToWorldMap();
     });
 
     // Defeat Transparent PNG Hotspots + Help Button
-    bind("lossWatchAdBtn", () => {
+    bind("lossWatchAdBtn", async () => {
       playSfx("tap");
-      window.CMRAdManager?.openRewardedAdModal?.("extra_moves", (reward) => {
-        applyRewardedAdGrant(reward);
-      });
+      const btn = $("lossWatchAdBtn");
+      const grantMoves = () => {
+        applyRewardedAdGrant({ extraMoves: 5 });
+      };
+      if (window.CMRAdMob && typeof window.CMRAdMob.showRewardedAd === "function") {
+        if (btn) btn.disabled = true;
+        const res = await window.CMRAdMob.showRewardedAd("extra_moves", grantMoves);
+        if (btn) btn.disabled = false;
+        if (!res.ok || !res.rewarded) {
+          if (res.status === "skipped") {
+            say("تم إغلاق الإعلان مبكراً — لم تُضف +5 حركات.");
+          } else if (res.status === "offline") {
+            say("لا يوجد اتصال بالإنترنت لعرض الإعلان.");
+          }
+        }
+      } else {
+        window.CMRAdManager?.openRewardedAdModal?.("extra_moves", grantMoves);
+      }
     });
     bind("lossRetryBtn", () => {
       playSfx("tap");
@@ -3109,6 +3349,11 @@
     // Escape key closes open modals cleanly
     window.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
+      const oohEl = $("outOfHeartsModal");
+      if (oohEl && !oohEl.classList.contains("hidden")) {
+        closeOutOfHeartsModal();
+        return;
+      }
       const adModal = $("rewardedAdModal");
       if (adModal && !adModal.classList.contains("hidden")) {
         window.CMRAdManager?.closeAdModal?.();
@@ -3223,6 +3468,7 @@
   }
 
   window.CMRStartSelectedHouse = async (selectedLevel) => {
+    window.CMRAudio?.setMapMusicActive?.(false);
     document.body.classList.add("game-started");
     window.CMRHideWorldMap?.();
     try {
@@ -3253,6 +3499,7 @@
     open: openStoreModal,
     close: closeStoreModal,
     refresh: refreshShop,
+    setFrame: setShopFrameTheme,
   };
 
   // Expose clean diagnostic/interaction API for verification & cross-module sync
@@ -3294,15 +3541,39 @@
     findFirstValidMove,
     openSettings: openSettingsModal,
     closeSettings: closeSettingsModal,
+    openOutOfHeartsModal,
+    closeOutOfHeartsModal,
     openLogin: openLoginModal,
     setGuestProfile,
     syncMenuUI,
     exitToMap: exitToWorldMap,
+    grantReward: (reward) => {
+      if (!reward || typeof reward !== "object") return getInventorySnapshot();
+      const nextInv = Core.applyRewardToInventory(getInventorySnapshot(), reward);
+      applyInventorySnapshot(nextInv);
+      return nextInv;
+    },
+    addRewards: (coinsAdd = 0, gemsAdd = 0) => {
+      state.coins = Math.max(0, state.coins + Math.floor(Number(coinsAdd) || 0));
+      state.gems = Math.max(0, state.gems + Math.floor(Number(gemsAdd) || 0));
+      updateHud();
+      saveProgress(false);
+      syncMenuUI();
+      refreshShop();
+      window.CMRRefreshWorldMap?.();
+    },
   };
 
   window.addEventListener("DOMContentLoaded", () => {
     loadProgress();
     bindShellModals();
     syncAudioUI();
+    const shopWheelBtn = $("shopWheelShortcutBtn");
+    if (shopWheelBtn) {
+      shopWheelBtn.addEventListener("click", () => {
+        closeStoreModal();
+        window.CMRLuckyWheel?.open?.();
+      });
+    }
   });
 })();

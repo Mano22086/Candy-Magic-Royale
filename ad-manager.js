@@ -34,6 +34,29 @@
 
   // Auto-detect real authorized ad bridges if present on the runtime page
   function detectAuthorizedProvider() {
+    // 0. Centralized Capacitor AdMob Manager (native Android SDK or safe browser Test Mode)
+    if (
+      window.CMRAdMob &&
+      typeof window.CMRAdMob.showRewardedAd === "function" &&
+      (window.CMRAdMob.isNativeCapacitor() || window.CMRAdMob.ADMOB_CONFIG?.IS_TEST_MODE)
+    ) {
+      engine.registerProvider({
+        name: window.CMRAdMob.isNativeCapacitor()
+          ? "Google AdMob (Android)"
+          : "Google AdMob (Test Mode)",
+        showRewardedAd(placementId, { onComplete, onSkip, onError }) {
+          window.CMRAdMob.showRewardedAd(placementId)
+            .then((res) => {
+              if (res && res.ok && res.rewarded) onComplete();
+              else if (res && res.status === "skipped") onSkip();
+              else onError((res && res.status) || "admob_unavailable");
+            })
+            .catch((err) => onError(err));
+        },
+      });
+      return;
+    }
+
     // 1. Native Android WebView AdMob Bridge (if packaged as Android APK/TWA with AdMob SDK)
     if (
       window.AndroidAdBridge &&
