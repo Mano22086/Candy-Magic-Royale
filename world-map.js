@@ -166,6 +166,62 @@
         <span class="vmap-wheel-fab-badge" id="wmWheelBadge">1/1</span>
       </button>
 
+      <!-- Free Gift Chest Every 4 Hours (Compact Animated World Map Badge) -->
+      <button type="button" class="vmap-free-chest-fab is-ready" id="wmFreeChestBtn" aria-label="صندوق الهدية المجانية كل 4 ساعات" title="صندوق الهدية المجانية">
+        <span class="vmap-chest-aura" aria-hidden="true"></span>
+        <img src="./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png" alt="" draggable="false">
+        <span class="vmap-chest-tag" id="wmFreeChestTag">هدية جاهزة!</span>
+        <span class="vmap-chest-timer" id="wmFreeChestTimer">00:00:00</span>
+      </button>
+
+      <!-- Phase 1 + Teams Animated Side-Badge Rail (Left Edge on Mobile) -->
+      <aside class="vmap-events-rail" id="vmapEventsRail" aria-label="الفعاليات الملكية">
+        <button type="button" class="vmap-ev-badge is-vault" id="evBadgeRoyalVault" aria-label="خزنة الملك" title="خزنة الملك">
+          <img src="./public/assets/aistudio/icon_golden_bastet_vault_411d03d1.png" alt="" draggable="false">
+          <span class="vmap-ev-label">خزنة الملك</span>
+          <span class="vmap-ev-dot hidden" id="evDotRoyalVault" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-rocket" id="evBadgeRocketRush" aria-label="عاصفة الصواريخ" title="عاصفة الصواريخ">
+          <img src="./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png" alt="" draggable="false">
+          <span class="vmap-ev-label">الصواريخ</span>
+          <span class="vmap-ev-dot hidden" id="evDotRocketRush" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-secret" id="evBadgeSecretVault" aria-label="غرفة الكنز" title="غرفة الكنز">
+          <img src="./public/assets/aistudio/icon_chest_closed_egyptian_40e6290f.png" alt="" draggable="false">
+          <span class="vmap-ev-label">غرفة الكنز</span>
+          <span class="vmap-ev-dot hidden" id="evDotSecretVault" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-teams" id="evBadgeTeams" aria-label="فرق المملكة" title="فرق المملكة">
+          <img src="./public/assets/aistudio/icon_team_scarab_shield_9cc0cf8b.png" alt="" draggable="false">
+          <span class="vmap-ev-label">الفرق</span>
+          <span class="vmap-ev-dot hidden" id="evDotTeams" aria-hidden="true"></span>
+        </button>
+      </aside>
+
+      <!-- Phases 2 & 3 Events Animated Side-Badge Rail (Right Edge on Mobile) -->
+      <aside class="vmap-events-rail vmap-events-rail-right" id="vmapEventsRailRight" aria-label="تحديات المملكة">
+        <button type="button" class="vmap-ev-badge is-lava" id="evBadgeLavaQuest" aria-label="تحدي البركان" title="تحدي البركان">
+          <img src="./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png" alt="" draggable="false">
+          <span class="vmap-ev-label">البركان</span>
+          <span class="vmap-ev-dot hidden" id="evDotLavaQuest" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-album" id="evBadgeCardAlbum" aria-label="ألبوم الفراعنة" title="ألبوم الفراعنة">
+          <img src="./public/assets/aistudio/icon_card_pack_pharaoh_cbc27457.png" alt="" draggable="false">
+          <span class="vmap-ev-label">الألبوم</span>
+          <span class="vmap-ev-dot hidden" id="evDotCardAlbum" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-league" id="evBadgeNileLeague" aria-label="بطولة النيل" title="بطولة النيل">
+          <img src="./public/assets/aistudio/league_4_pharaoh_4f175723.png" alt="" draggable="false">
+          <span class="vmap-ev-label">النيل</span>
+          <span class="vmap-ev-dot hidden" id="evDotNileLeague" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="vmap-ev-badge is-sphinx" id="evBadgeCoopSphinx" aria-label="تحدي الأصدقاء" title="تحدي الأصدقاء">
+          <img src="./public/assets/aistudio/icon_golden_candy_sphinx_0c0aee3b.png" alt="" draggable="false">
+          <span class="vmap-ev-label">أبو الهول</span>
+          <span class="vmap-ev-dot hidden" id="evDotCoopSphinx" aria-hidden="true"></span>
+        </button>
+      </aside>
+
       <!-- Floating Map Utility Controls (My Location, Zoom, Main Menu) -->
       <div class="vmap-float-tools" id="vmapFloatTools">
         <button type="button" class="vmap-mini-fab" id="wmLocateBtn" aria-label="${i18n("myLocation")}" title="${i18n("myLocation")}">
@@ -192,6 +248,7 @@
         </button>
         <button type="button" class="vmap-dock-icon" id="dockCalendarBtn" aria-label="${i18n("openCalendarAria")}">
           <img src="./assets/extracted/ui/btn_calendar.png" alt="">
+          <span class="vmap-dock-badge hidden" id="dockCalBadge">!</span>
         </button>
         <button type="button" class="vmap-dock-play" id="wmQuickPlay" aria-label="${i18n("playNow")}">
           <img src="./assets/extracted/ui/btn_play_round.png" alt="">
@@ -202,6 +259,7 @@
         </button>
         <button type="button" class="vmap-dock-icon" id="dockMailBtn" aria-label="${i18n("openMailAria")}">
           <img src="./assets/extracted/ui/btn_mail.png" alt="">
+          <span class="vmap-dock-badge hidden" id="dockMailBadge">0</span>
         </button>
         <button type="button" class="vmap-dock-icon" id="wmShopBtn" aria-label="${i18n("openShopAria")}">
           <img src="./assets/extracted/ui/btn_gift.png" alt="">
@@ -260,6 +318,70 @@
       });
     }
 
+    // Free Gift Chest Every 4 Hours trigger + live 1-second timer
+    const freeChestBtn = overlay.querySelector("#wmFreeChestBtn");
+    if (freeChestBtn) {
+      freeChestBtn.addEventListener("click", () => {
+        const sys = window.CMRMatch3Systems;
+        if (!sys || typeof sys.createFreeChestEngine !== "function") return;
+        const engine = sys.createFreeChestEngine();
+        const res = engine.claim(Date.now());
+        if (!res.ok) {
+          window.CMRAudio?.playSfx?.("click");
+          showToast(`الهدية المجانية القادمة بعد ${res.formatted} ⏳`);
+          syncFreeChestBadge();
+          return;
+        }
+        window.CMRProfile?.vibrate?.([18, 30, 18]);
+        window.CMRAudio?.playSfx?.("reward");
+        window.CMRGame?.grantReward?.(res.reward);
+        triggerFreeChestBurst(freeChestBtn, res.labelAr, res.icon);
+        showToast(`🎁 فتحت صندوق الهدية المجانية: ${res.labelAr}!`);
+        updateBannerAndDock();
+        syncFreeChestBadge();
+      });
+    }
+    startFreeChestClock();
+
+    // Phase 1, 2 & 3 Events & Social Side-Badge Triggers
+    overlay.querySelector("#evBadgeRoyalVault")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRRoyalVault?.open?.();
+    });
+    overlay.querySelector("#evBadgeRocketRush")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRRocketRush?.open?.();
+    });
+    overlay.querySelector("#evBadgeSecretVault")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRSecretVault?.open?.();
+    });
+    overlay.querySelector("#evBadgeTeams")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRTeams?.open?.();
+    });
+    overlay.querySelector("#evBadgeLavaQuest")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRLavaQuest?.open?.();
+    });
+    overlay.querySelector("#evBadgeCardAlbum")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRCardAlbum?.open?.();
+    });
+    overlay.querySelector("#evBadgeNileLeague")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRNileLeague?.open?.();
+    });
+    overlay.querySelector("#evBadgeCoopSphinx")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(14);
+      window.CMRCoopSphinx?.open?.();
+    });
+
+    // Live EventBus sync for side-badge notification dots
+    window.CMREventBus?.on?.("events:badge-update", () => {
+      syncEventSideBadges();
+    });
+
     // Center winged green Play button -> current unlocked level
     overlay.querySelector("#wmQuickPlay").addEventListener("click", async () => {
       window.CMRProfile?.vibrate?.(16);
@@ -305,6 +427,8 @@
     const heartsEl = overlay.querySelector("#wmHearts");
     const playLvlEl = overlay.querySelector("#wmQuickPlayLevel");
     const achBadge = overlay.querySelector("#dockAchBadge");
+    const mailBadge = overlay.querySelector("#dockMailBadge");
+    const calBadge = overlay.querySelector("#dockCalBadge");
 
     if (avatarEl && st.avatar) avatarEl.src = st.avatar.img;
     if (nameEl) nameEl.textContent = st.displayName;
@@ -316,6 +440,7 @@
     if (heartsEl) heartsEl.textContent = String(st.lives);
     if (playLvlEl) playLvlEl.textContent = String(st.highestUnlocked);
     window.CMRLuckyWheel?.syncBadge?.();
+    syncEventSideBadges();
 
     const wheelLbl = overlay.querySelector("#wmWheelLabel");
     if (wheelLbl) wheelLbl.textContent = isEnglish() ? "Lucky Wheel" : "عجلة الحظ";
@@ -326,6 +451,25 @@
         achBadge.classList.remove("hidden");
       } else {
         achBadge.classList.add("hidden");
+      }
+    }
+
+    if (mailBadge) {
+      const mailCount = Number(st.unclaimedMailCount) || 0;
+      if (mailCount > 0) {
+        mailBadge.textContent = String(mailCount);
+        mailBadge.classList.remove("hidden");
+      } else {
+        mailBadge.classList.add("hidden");
+      }
+    }
+
+    if (calBadge) {
+      if (st.canClaimDailyToday) {
+        calBadge.textContent = "1";
+        calBadge.classList.remove("hidden");
+      } else {
+        calBadge.classList.add("hidden");
       }
     }
 
@@ -343,6 +487,67 @@
     if (locLbl) locLbl.textContent = i18n("myLocation");
     const homeLbl = overlay.querySelector("#wmHomeLabel");
     if (homeLbl) homeLbl.textContent = i18n("mainMenu");
+  }
+
+  function syncEventSideBadges() {
+    if (!overlay) return;
+    const badgeBindings = [
+      ["#evDotRoyalVault", () => window.CMRRoyalVault?.hasNotification?.()],
+      ["#evDotRocketRush", () => window.CMRRocketRush?.hasNotification?.()],
+      ["#evDotSecretVault", () => window.CMRSecretVault?.hasNotification?.()],
+      ["#evDotTeams", () => window.CMRTeams?.hasNotification?.()],
+      ["#evDotLavaQuest", () => window.CMRLavaQuest?.hasNotification?.()],
+      ["#evDotCardAlbum", () => window.CMRCardAlbum?.hasNotification?.()],
+      ["#evDotNileLeague", () => window.CMRNileLeague?.hasNotification?.()],
+      ["#evDotCoopSphinx", () => window.CMRCoopSphinx?.hasNotification?.()],
+    ];
+    badgeBindings.forEach(([selector, check]) => {
+      const dot = overlay.querySelector(selector);
+      if (dot) dot.classList.toggle("hidden", !check());
+    });
+    syncFreeChestBadge();
+  }
+
+  let freeChestInterval = null;
+
+  function syncFreeChestBadge() {
+    if (!overlay) return;
+    const btn = overlay.querySelector("#wmFreeChestBtn");
+    const tag = overlay.querySelector("#wmFreeChestTag");
+    const timer = overlay.querySelector("#wmFreeChestTimer");
+    const sys = window.CMRMatch3Systems;
+    if (!btn || !sys || typeof sys.createFreeChestEngine !== "function") return;
+    const status = sys.createFreeChestEngine().getStatus(Date.now());
+    btn.classList.toggle("is-ready", status.ready);
+    if (tag) tag.textContent = status.ready ? "هدية جاهزة!" : "صندوق هدية";
+    if (timer) timer.textContent = status.ready ? "افتح الآن ✨" : status.formatted;
+  }
+
+  function startFreeChestClock() {
+    if (freeChestInterval) return;
+    freeChestInterval = setInterval(() => {
+      if (overlay && !overlay.classList.contains("hidden") && currentView === "palaces") {
+        syncFreeChestBadge();
+      }
+    }, 1000);
+  }
+
+  function triggerFreeChestBurst(anchorBtn, labelAr, iconSrc) {
+    if (!overlay || !anchorBtn) return;
+    anchorBtn.classList.remove("is-bursting");
+    void anchorBtn.offsetWidth;
+    anchorBtn.classList.add("is-bursting");
+    setTimeout(() => anchorBtn.classList.remove("is-bursting"), 700);
+
+    const rect = anchorBtn.getBoundingClientRect();
+    const pop = document.createElement("div");
+    pop.className = "vmap-chest-reward-pop";
+    pop.setAttribute("dir", "rtl");
+    pop.style.left = `${rect.left + rect.width / 2}px`;
+    pop.style.top = `${rect.top}px`;
+    pop.innerHTML = `<img src="${iconSrc}" alt=""><span>${labelAr}</span>`;
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 1700);
   }
 
   function focusCurrentLocation(smooth = true) {
@@ -441,6 +646,10 @@
 
     const floatTools = overlay.querySelector("#vmapFloatTools");
     if (floatTools) floatTools.classList.remove("hidden");
+    overlay.querySelector("#vmapEventsRail")?.classList.remove("hidden");
+    overlay.querySelector("#vmapEventsRailRight")?.classList.remove("hidden");
+    overlay.querySelector("#wmFreeChestBtn")?.classList.remove("hidden");
+    syncFreeChestBadge();
 
     const st = getPlayerSummary();
     const unlocked = st.highestUnlocked;
@@ -548,6 +757,9 @@
 
     const floatTools = overlay.querySelector("#vmapFloatTools");
     if (floatTools) floatTools.classList.add("hidden");
+    overlay.querySelector("#vmapEventsRail")?.classList.add("hidden");
+    overlay.querySelector("#vmapEventsRailRight")?.classList.add("hidden");
+    overlay.querySelector("#wmFreeChestBtn")?.classList.add("hidden");
 
     const palace = core().PALACES[activePalaceIndex];
     const st = getPlayerSummary();
@@ -614,7 +826,7 @@
             .map((seg) => {
               const s = palaceBase + seg * RANGE_SIZE + 1;
               const e = s + RANGE_SIZE - 1;
-              const isBossSeg = seg === 1;
+              const isBossSeg = seg === 1 || seg === 3;
               return `<button type="button" class="pls-jump-tab ${seg === 0 ? "is-active" : ""}" data-jump-seg="${seg}">${s}–${e}${isBossSeg ? " 👑" : ""}</button>`;
             })
             .join("")}
@@ -656,7 +868,14 @@
         const done = globalStage < unlocked;
         const isCurrent = globalStage === unlocked;
         const locked = globalStage > unlocked;
-        const isBoss = localStage === core().BOSS_STAGE_IN_PALACE;
+        const bossList = core().BOSS_STAGES_IN_PALACE || [core().BOSS_STAGE_IN_PALACE];
+        const isBoss = bossList.includes(localStage);
+        const diffTier =
+          typeof core().getStageDifficultyTier === "function"
+            ? core().getStageDifficultyTier(localStage)
+            : { isHard: false, isSuperHard: false, tagAr: null };
+        const isHard = Boolean(diffTier.isHard);
+        const isSuperHard = Boolean(diffTier.isSuperHard);
         const recordedStars = Number(stageStars[String(globalStage)]);
         const starCount = done
           ? Number.isFinite(recordedStars) && recordedStars >= 1
@@ -670,6 +889,8 @@
           "pls-slot-node",
           done ? "is-done" : isCurrent ? "is-current" : "is-locked",
           isBoss ? "is-boss" : "",
+          isHard ? "is-hard-stage" : "",
+          isSuperHard ? "is-super-hard-stage" : "",
           isMedallionExtra ? "is-medallion-slot" : "",
         ]
           .filter(Boolean)
@@ -678,25 +899,51 @@
         btn.style.top = `${rowY}%`;
         btn.dataset.stage = String(globalStage);
         btn.dataset.localStage = String(localStage);
+        btn.dataset.difficulty = diffTier.tier || "normal";
         if (c === 0 && r % 5 === 0) {
           btn.dataset.segAnchor = String(Math.floor(r / 5));
         }
         btn.setAttribute("aria-disabled", locked ? "true" : "false");
         btn.setAttribute(
           "aria-label",
-          `${en ? "Level" : "المرحلة"} ${globalStage} (${name})${isBoss ? ` — ${i18n("bossStageLabel")}` : ""}${
-            locked ? ` (${i18n("lockedBadge")})` : isCurrent ? ` (${i18n("playNow")})` : ` (${starCount}★)`
-          }`
+          `${en ? "Level" : "المرحلة"} ${globalStage} (${name})${
+            isBoss
+              ? ` — ${i18n("bossStageLabel")}`
+              : isSuperHard
+              ? " — تحدي فرعوني خارق (×2.5 عملات)"
+              : isHard
+              ? " — مرحلة صعبة (×2 عملات)"
+              : ""
+          }${locked ? ` (${i18n("lockedBadge")})` : isCurrent ? ` (${i18n("playNow")})` : ` (${starCount}★)`}`
         );
 
+        const starIconUrl =
+          window.CMROutcomeEngine?.OUTCOME_ASSETS?.victoryStar ||
+          "./public/assets/aistudio/icon_victory_star_8b503f69.png";
+        const buildMiniStarsHtml = (count) => {
+          let out = '<span class="pls-slot-stars-img" aria-hidden="true">';
+          for (let sIdx = 1; sIdx <= 3; sIdx++) {
+            const lit = sIdx <= count;
+            out += `<img class="pls-mini-star ${lit ? "is-lit" : "is-dim"} ${sIdx === 2 ? "is-mid" : ""}" src="${starIconUrl}" alt="" draggable="false">`;
+          }
+          out += "</span>";
+          return out;
+        };
+
         const starsHtml = done
-          ? `<span class="pls-slot-stars" aria-hidden="true">${"★".repeat(starCount)}${"☆".repeat(3 - starCount)}</span>`
+          ? buildMiniStarsHtml(starCount)
           : isCurrent
           ? `<span class="pls-slot-now">${i18n("playNow")}</span>`
+          : isSuperHard
+          ? `<span class="pls-slot-diff-tag is-super">⚡×2.5</span>`
+          : isHard
+          ? `<span class="pls-slot-diff-tag is-hard">🔥×2</span>`
           : "";
 
         btn.innerHTML = `
           ${isCurrent ? '<span class="pls-slot-pulse" aria-hidden="true"></span>' : ""}
+          ${isHard ? '<span class="pls-hard-ring" aria-hidden="true"></span>' : ""}
+          ${isSuperHard ? '<span class="pls-super-hard-ring" aria-hidden="true"></span>' : ""}
           <span class="pls-slot-disc">
             <b>${globalStage}</b>
           </span>
@@ -705,6 +952,10 @@
               ? '<span class="pls-slot-badge pls-slot-lock" aria-hidden="true"><img src="./assets/packs/buttons/icon_lock.png" alt=""></span>'
               : isBoss
               ? '<span class="pls-slot-badge pls-slot-crown" aria-hidden="true"><img src="./assets/packs/buttons/icon_crown.png" alt=""></span>'
+              : isSuperHard
+              ? '<span class="pls-slot-badge pls-slot-super-badge" aria-hidden="true">⚡</span>'
+              : isHard
+              ? '<span class="pls-slot-badge pls-slot-hard-badge" aria-hidden="true">🔥</span>'
               : ""
           }
           ${starsHtml}
@@ -718,6 +969,33 @@
 
         slotsLayer.appendChild(btn);
       }
+    }
+
+    // Helper: pick player's golden-ring Avatar badge (profile avatar, or Queen Luma on Odd / Pharaoh Boy on Even palaces)
+    const getPalaceAvatarSrc = () => {
+      const profileSrc = st.avatar?.img || st.avatar?.src || "";
+      if (profileSrc) return profileSrc;
+      const isEvenPalace = (activePalaceIndex + 1) % 2 === 0;
+      return isEvenPalace
+        ? "./assets/extracted/avatars/avatar_pharaoh_boy.png"
+        : "./assets/extracted/avatars/avatar_queen_luma.png";
+    };
+
+    // Place the player's Golden-Ring Avatar Marker on the active unlocked slot (if inside this palace)
+    const activeSlotEl = slotsLayer.querySelector(`.pls-slot-node[data-stage="${unlocked}"]`);
+    if (activeSlotEl) {
+      const avatarPin = document.createElement("div");
+      avatarPin.className = "pls-avatar-walker";
+      avatarPin.id = "plsAvatarWalker";
+      avatarPin.setAttribute("aria-hidden", "true");
+      avatarPin.style.left = activeSlotEl.style.left;
+      avatarPin.style.top = activeSlotEl.style.top;
+      avatarPin.innerHTML = `
+        <span class="pls-avatar-ring">
+          <img src="${getPalaceAvatarSrc()}" alt="" draggable="false">
+        </span>
+      `;
+      slotsLayer.appendChild(avatarPin);
     }
 
     // Quick-jump tabs smoothly scroll to the chosen 25-level segment on the 5x20 interior map
@@ -742,6 +1020,178 @@
     }
   }
 
+  let activeWalkRaf = 0;
+
+  function spawnMapSparkleBurst(parentEl, leftPct, topPct, count = 10) {
+    if (!parentEl) return;
+    const burst = document.createElement("div");
+    burst.className = "pls-map-sparkle-burst";
+    burst.style.left = `${leftPct}%`;
+    burst.style.top = `${topPct}%`;
+    const colors = ["#fde047", "#ffffff", "#fbbf24", "#38bdf8", "#f472b6"];
+    for (let i = 0; i < count; i++) {
+      const sp = document.createElement("span");
+      sp.className = "pls-map-spark";
+      const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+      const dist = 18 + Math.random() * 24;
+      sp.style.setProperty("--mx", `${Math.round(Math.cos(ang) * dist)}px`);
+      sp.style.setProperty("--my", `${Math.round(Math.sin(ang) * dist)}px`);
+      sp.style.background = colors[i % colors.length];
+      burst.appendChild(sp);
+    }
+    parentEl.appendChild(burst);
+    setTimeout(() => burst.remove(), 700);
+  }
+
+  function spawnMapDustPuff(parentEl, leftPct, topPct) {
+    if (!parentEl) return;
+    const puff = document.createElement("span");
+    puff.className = "pls-walk-dust-puff";
+    puff.style.left = `${leftPct}%`;
+    puff.style.top = `${topPct}%`;
+    parentEl.appendChild(puff);
+    setTimeout(() => puff.remove(), 460);
+  }
+
+  /**
+   * Palace Map Star Stamping & 900ms Curved Avatar Walking Transition after Victory.
+   */
+  function openPalaceWithVictoryTransition({ completedStage, nextStage, starsEarned = 3 } = {}) {
+    ensureOverlay();
+    if (activeWalkRaf) {
+      cancelAnimationFrame(activeWalkRaf);
+      activeWalkRaf = 0;
+    }
+
+    const doneStage = Math.max(1, Math.min(core().TOTAL_STAGES, Math.floor(Number(completedStage) || 1)));
+    const targetStage = Math.max(
+      doneStage,
+      Math.min(core().TOTAL_STAGES, Math.floor(Number(nextStage) || doneStage + 1))
+    );
+    const palaceIdx = Math.floor((doneStage - 1) / core().STAGES_PER_PALACE);
+
+    const startScr = document.getElementById("startScreen");
+    if (startScr) startScr.classList.add("hidden");
+    document.body.classList.add("game-started", "map-open");
+    overlay.classList.remove("hidden");
+    document.body.dataset.state = "map";
+    window.CMRPauseGameRender?.();
+    window.Dragon3DCharacter?.pause?.();
+    window.CMRAudio?.setMapMusicActive?.(true);
+
+    renderPalaceStages(palaceIdx);
+
+    const slotsLayer = overlay.querySelector("#plsSlotsLayer");
+    if (!slotsLayer) return;
+    const fromSlot = slotsLayer.querySelector(`.pls-slot-node[data-stage="${doneStage}"]`);
+    const toSlot = slotsLayer.querySelector(`.pls-slot-node[data-stage="${targetStage}"]`);
+    const walker = slotsLayer.querySelector("#plsAvatarWalker");
+
+    if (fromSlot) {
+      fromSlot.scrollIntoView({ behavior: "auto", block: "center" });
+    }
+
+    // 1) Stamp the earned mini golden stars on the completed slot with sparkle pop!
+    const fromX = fromSlot ? parseFloat(fromSlot.style.left) || 50 : 50;
+    const fromY = fromSlot ? parseFloat(fromSlot.style.top) || 10 : 10;
+    if (fromSlot) {
+      fromSlot.classList.add("is-just-stamped");
+      spawnMapSparkleBurst(slotsLayer, fromX, fromY, 12);
+      const earnedStarsCount = Math.max(1, Math.min(3, Math.floor(Number(starsEarned) || 1)));
+      const miniStars = fromSlot.querySelectorAll(".pls-mini-star.is-lit");
+      miniStars.forEach((starImg, idx) => {
+        if (idx < earnedStarsCount) {
+          starImg.classList.remove("is-stamp-pop");
+          void starImg.offsetWidth;
+          starImg.style.animationDelay = `${idx * 110}ms`;
+          starImg.classList.add("is-stamp-pop");
+        }
+      });
+      window.CMROutcomeUI?.playStarChime?.(Math.min(2, earnedStarsCount - 1));
+    }
+
+    // 2) Position Avatar Badge at the completed slot, then hop smoothly along a curved path (900ms) to nextStage!
+    if (!walker || !fromSlot || !toSlot || doneStage === targetStage) {
+      if (toSlot) toSlot.classList.add("is-just-unlocked");
+      return;
+    }
+
+    const toX = parseFloat(toSlot.style.left) || fromX;
+    const toY = parseFloat(toSlot.style.top) || fromY;
+
+    walker.style.left = `${fromX}%`;
+    walker.style.top = `${fromY}%`;
+    walker.classList.add("is-walking");
+
+    const engine = window.CMROutcomeEngine;
+    const duration = engine?.AVATAR_WALK_DURATION_MS || 900;
+
+    setTimeout(() => {
+      const startAt = performance.now();
+      let lastStepIdx = -1;
+      let lastDustAt = 0;
+
+      const stepFrame = (now) => {
+        const rawT = Math.min(1, (now - startAt) / duration);
+        const pt = engine?.computeCurvedHopPoint
+          ? engine.computeCurvedHopPoint(
+              { x: fromX, y: fromY },
+              { x: toX, y: toY },
+              rawT,
+              { arcLift: 1.8, hops: 3, hopHeight: 1.15 }
+            )
+          : {
+              x: fromX + (toX - fromX) * rawT,
+              y: fromY + (toY - fromY) * rawT,
+              scaleX: 1,
+              scaleY: 1,
+              rotateDeg: 0,
+            };
+
+        walker.style.left = `${pt.x}%`;
+        walker.style.top = `${pt.y}%`;
+        walker.style.setProperty("--walk-sx", String(pt.scaleX));
+        walker.style.setProperty("--walk-sy", String(pt.scaleY));
+        walker.style.setProperty("--walk-rot", `${pt.rotateDeg}deg`);
+
+        // Footstep pop SFX at each hop landing (3 hops)
+        const stepIdx = Math.floor(rawT * 3);
+        if (stepIdx > lastStepIdx && stepIdx < 3) {
+          lastStepIdx = stepIdx;
+          window.CMROutcomeUI?.playFootstepPop?.(stepIdx);
+        }
+
+        // Trailing golden dust/star puffs along the path
+        if (now - lastDustAt > 110 && rawT < 0.96) {
+          lastDustAt = now;
+          spawnMapDustPuff(slotsLayer, pt.x, pt.y);
+        }
+
+        if (rawT < 1) {
+          activeWalkRaf = requestAnimationFrame(stepFrame);
+        } else {
+          activeWalkRaf = 0;
+          walker.classList.remove("is-walking");
+          walker.style.left = `${toX}%`;
+          walker.style.top = `${toY}%`;
+          walker.style.removeProperty("--walk-sx");
+          walker.style.removeProperty("--walk-sy");
+          walker.style.removeProperty("--walk-rot");
+          walker.classList.add("is-landed-bounce");
+          setTimeout(() => walker.classList.remove("is-landed-bounce"), 550);
+
+          // Pulse/glow the newly unlocked slot & sparkle burst
+          toSlot.classList.add("is-just-unlocked");
+          spawnMapSparkleBurst(slotsLayer, toX, toY, 14);
+          window.CMROutcomeUI?.playFootstepPop?.(3);
+          toSlot.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      };
+
+      activeWalkRaf = requestAnimationFrame(stepFrame);
+    }, 360);
+  }
+
   function show() {
     ensureOverlay();
     overlay.classList.remove("hidden");
@@ -754,6 +1204,10 @@
   }
 
   function hide() {
+    if (activeWalkRaf) {
+      cancelAnimationFrame(activeWalkRaf);
+      activeWalkRaf = 0;
+    }
     if (overlay) overlay.classList.add("hidden");
     document.body.classList.remove("map-open");
     window.CMRAudio?.setMapMusicActive?.(false);
@@ -773,4 +1227,5 @@
     if (overlay.classList.contains("hidden")) show();
     renderPalaceStages(Number(idx) || 0);
   };
+  window.CMROpenPalaceWithVictoryTransition = openPalaceWithVictoryTransition;
 })();

@@ -26,20 +26,30 @@
     combo(chain) {
       const tier = chain >= 3 ? "combo-3" : chain === 2 ? "combo-2" : "combo-1";
       triggerQueenState(tier, 950);
-      window.Dragon3DCharacter?.playCelebrate?.();
+      window.CMRHeroBossVFX?.onHeroReaction?.(chain >= 2 ? "special" : "normal");
+      if (!window.CMRHeroBossVFX) window.Dragon3DCharacter?.playCelebrate?.();
+    },
+    react(kind) {
+      if (kind === "celebrate" || kind === "combo-2" || kind === "combo-3") {
+        window.CMRHeroBossVFX?.onHeroReaction?.("special");
+      } else if (kind === "combo-1") {
+        window.CMRHeroBossVFX?.onHeroReaction?.("normal");
+      }
+      triggerQueenState(kind || "combo-1", 950);
     },
     celebrate() {
       triggerQueenState("celebrate", 2200);
-      window.Dragon3DCharacter?.playCelebrate?.();
+      window.CMRHeroBossVFX?.onHeroReaction?.("celebrate");
+      if (!window.CMRHeroBossVFX) window.Dragon3DCharacter?.playCelebrate?.();
     },
     defeat() {
       triggerQueenState("defeat", 1600);
-      window.Dragon3DCharacter?.playIdle?.();
+      if (!window.CMRHeroBossVFX) window.Dragon3DCharacter?.playIdle?.();
     },
     reset() {
       const queen = document.getElementById("queen");
       if (queen) queen.classList.remove("combo-1", "combo-2", "combo-3", "celebrate", "defeat");
-      window.Dragon3DCharacter?.playIdle?.();
+      if (!window.CMRHeroBossVFX) window.Dragon3DCharacter?.playIdle?.();
     },
   };
 })();

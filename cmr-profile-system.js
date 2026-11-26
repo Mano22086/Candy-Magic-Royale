@@ -81,9 +81,10 @@
       noHeartsToast: "نفدت قلوبك! يمكنك استعادة القلوب من المتجر الملكي.",
       bossStageLabel: "زعيم ملك الحلوى",
       youAreHere: "أنت هنا",
-      calendarTitle: "التقويم الملكي اليومي",
-      calendarSubtitle: "سجّل يومياً واحصل على عملات وجواهر مجانية",
+      calendarTitle: "التقويم اليومي الملكي",
+      calendarSubtitle: "سجّل دخولك يومياً لتحصل على العملات والمعززات وصندوق اليوم السابع!",
       dayLabel: "اليوم {d}",
+      claimNowBtn: "استلام الآن",
       mailTitle: "البريد الملكي",
       mailSubtitle: "رسائل وهدايا من مملكة الحلوى",
       friendsTitle: "أبطال المملكة",
@@ -99,11 +100,12 @@
       boosterColor: "ألوان",
       boosterRocket: "صاروخ",
       rewardClaimed: "تم استلام المكافأة: +{coins} عملة و+{gems} جوهرة!",
+      rewardClaimedSummary: "تم استلام المكافأة: {summary}!",
       alreadyClaimedToday: "تم استلام مكافأة اليوم بالفعل — عد غداً!",
       welcomeMailTitle: "هدية الترحيب الملكية",
-      welcomeMailBody: "أهلاً بك في مملكة Candy Magic Royale! استلم صندوقك الملكي لبدء مغامرة القصور العشرة.",
-      palaceGuideMailTitle: "خريطة القصور الـ 10 الجديدة",
-      palaceGuideMailBody: "استكشف 10 قصور فرعونية و1000 مرحلة متدرجة مع زعيم ملك الحلوى في المرحلة 50 من كل قصر.",
+      welcomeMailBody: "أهلاً بك في مملكة Candy Magic Royale! استلم هديتك الملكية لبدء المغامرة.",
+      palaceGuideMailTitle: "مكافأة المطور الملكية",
+      palaceGuideMailBody: "شكراً لانضمامك إلى أبطال القصور العشرة! إليك جواهر نادرة وقنبلة حلوى.",
       loginTitle: "حساب اللاعب الملكي",
       loginSubtitle: "سجّل اسمك الملكي لحفظ تقدمك ومخزونك على هذا الجهاز.",
       loginNameLabel: "اسم اللاعب الملكي",
@@ -190,8 +192,9 @@
       bossStageLabel: "Candy King Boss",
       youAreHere: "You",
       calendarTitle: "Daily Royal Calendar",
-      calendarSubtitle: "Check in daily to claim free Coins & Gems",
+      calendarSubtitle: "Check in daily for Gold Coins, Boosters & Day 7 Royal Chest!",
       dayLabel: "Day {d}",
+      claimNowBtn: "Claim Now",
       mailTitle: "Royal Mail",
       mailSubtitle: "Gifts & scrolls from the Candy Kingdom",
       friendsTitle: "Kingdom Champions",
@@ -207,11 +210,12 @@
       boosterColor: "Color",
       boosterRocket: "Rocket",
       rewardClaimed: "Reward claimed: +{coins} Coins & +{gems} Gems!",
+      rewardClaimedSummary: "Reward claimed: {summary}!",
       alreadyClaimedToday: "Today's reward is already claimed — come back tomorrow!",
-      welcomeMailTitle: "Royal Welcome Chest",
-      welcomeMailBody: "Welcome to Candy Magic Royale! Claim your starter treasure chest for the 10 Palaces journey.",
-      palaceGuideMailTitle: "10 Egyptian Palaces Unlocked",
-      palaceGuideMailBody: "Explore 10 themed palaces and 1,000 levels with the Candy King Boss waiting on Stage 50 of each palace.",
+      welcomeMailTitle: "Royal Welcome Gift",
+      welcomeMailBody: "Welcome to Candy Magic Royale! Claim your starter gold & rockets.",
+      palaceGuideMailTitle: "Developer Royal Reward",
+      palaceGuideMailBody: "Thank you for exploring the 10 Palaces! Enjoy rare Gems & a Candy Bomb.",
       loginTitle: "Royal Player Account",
       loginSubtitle: "Save your royal name & progress securely on this device.",
       loginNameLabel: "Royal Player Name",
@@ -230,14 +234,103 @@
     },
   };
 
+  const ROYAL_FRAME_URLS = Object.freeze({
+    mail: "./public/assets/aistudio/ui_1_royal_mail_270fc2e1.png",
+    achievements: "./public/assets/aistudio/ui_2_royal_achievements_5dc43009.png",
+    calendar: "./public/assets/aistudio/ui_3_daily_calendar_c966c2ca.png",
+    champions: "./public/assets/aistudio/ui_4_kingdom_champions_5dc36eea.png",
+  });
+
   const DAILY_REWARDS = [
-    { day: 1, coins: 150, gems: 5, icon: "./assets/extracted/ui/icon_coin_gold.png" },
-    { day: 2, coins: 200, gems: 8, icon: "./assets/extracted/ui/icon_gem_purple.png" },
-    { day: 3, coins: 250, gems: 10, icon: "./assets/extracted/ui/icon_coin_gold.png" },
-    { day: 4, coins: 300, gems: 12, icon: "./assets/extracted/ui/icon_gem_purple.png" },
-    { day: 5, coins: 400, gems: 15, icon: "./assets/extracted/ui/icon_royal_chest.png" },
-    { day: 6, coins: 500, gems: 20, icon: "./assets/extracted/ui/icon_gem_purple.png" },
-    { day: 7, coins: 800, gems: 35, icon: "./assets/extracted/ui/icon_royal_chest.png" },
+    {
+      day: 1,
+      icon: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png",
+      labelAr: "+150 عملة",
+      labelEn: "+150 Coins",
+      reward: { coins: 150 },
+    },
+    {
+      day: 2,
+      icon: "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png",
+      labelAr: "+200 · ×1 صاروخ",
+      labelEn: "+200 · ×1 Rocket",
+      reward: { coins: 200, rockets: 1 },
+    },
+    {
+      day: 3,
+      icon: "./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png",
+      labelAr: "+250 · ×1 عصا",
+      labelEn: "+250 · ×1 Wand",
+      reward: { coins: 250, paints: 1 },
+    },
+    {
+      day: 4,
+      icon: "./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png",
+      labelAr: "+300 · ×1 قنبلة",
+      labelEn: "+300 · ×1 Bomb",
+      reward: { coins: 300, hammer: 1 },
+    },
+    {
+      day: 5,
+      icon: "./public/assets/aistudio/04_booster_striped_candy_7749b182.png",
+      labelAr: "+400 · ×1 مخططة",
+      labelEn: "+400 · ×1 Striped",
+      reward: { coins: 400, colors: 1 },
+    },
+    {
+      day: 6,
+      icon: "./public/assets/aistudio/combo_1_rocket_wand_bomb_coins_28a68e57.png",
+      labelAr: "+500 · ×2 معززات",
+      labelEn: "+500 · ×2 Boosters",
+      reward: { coins: 500, rockets: 1, hammer: 1 },
+    },
+    {
+      day: 7,
+      isGrand: true,
+      icon: "./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png",
+      labelAr: "صندوق ملكي + 800 عملة + 15 جوهرة",
+      labelEn: "Royal Chest + 800 Coins + 15 Gems",
+      reward: { coins: 800, gems: 15, rockets: 2, paints: 1 },
+    },
+  ];
+
+  const ROYAL_MAIL_MESSAGES = [
+    {
+      id: "welcome_chest",
+      senderIcon: "./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png",
+      titleAr: "هدية الترحيب الملكية",
+      titleEn: "Royal Welcome Gift",
+      bodyAr: "أهلاً بك في مملكة Candy Magic Royale! استلم ذهبك وصواريخ البداية.",
+      bodyEn: "Welcome to Candy Magic Royale! Claim starter gold & rockets.",
+      reward: { coins: 250, rockets: 2 },
+    },
+    {
+      id: "dev_appreciation",
+      senderIcon: "./assets/extracted/ui/icon_gem_purple.png",
+      titleAr: "مكافأة المطور الملكية",
+      titleEn: "Developer Royal Reward",
+      bodyAr: "هدية خاصة من فريق اللعبة تقديراً لمغامرتك في القصور العشرة!",
+      bodyEn: "A special thank-you gift from the game creators!",
+      reward: { gems: 10, hammer: 1 },
+    },
+    {
+      id: "pharaoh_event",
+      senderIcon: "./public/assets/aistudio/05_booster_mystery_box_864a8fca.png",
+      titleAr: "جائزة مهرجان القصور",
+      titleEn: "Palace Festival Prize",
+      bodyAr: "مكافأة فعالية القصر الذهبي: عملات ذهبية وعصا سحرية نجمية.",
+      bodyEn: "Golden Palace event reward: Gold Coins & Magic Star Wand.",
+      reward: { coins: 300, paints: 1 },
+    },
+    {
+      id: "friend_hearts_luma",
+      senderIcon: "./assets/Picsart_26-11-17_02-37-45-792.png",
+      titleAr: "هدية قلوب من الملكة لوما",
+      titleEn: "Hearts Gift from Queen Luma",
+      bodyAr: "أرسلت لك الملكة لوما قلوباً وعملات لدعمك في المراحل القادمة!",
+      bodyEn: "Queen Luma sent you extra hearts & coins for your journey!",
+      reward: { lives: 2, coins: 120 },
+    },
   ];
 
   const DEFAULT_PREFS = {
@@ -347,19 +440,168 @@
   }
 
   function creditWallet(coinsAdd = 0, gemsAdd = 0) {
-    if (window.CMRGame && typeof window.CMRGame.addRewards === "function") {
-      window.CMRGame.addRewards(coinsAdd, gemsAdd);
+    grantStructuredReward({ coins: coinsAdd, gems: gemsAdd });
+  }
+
+  function grantStructuredReward(reward = {}) {
+    if (!reward || typeof reward !== "object") return;
+    if (window.CMRGame && typeof window.CMRGame.grantReward === "function") {
+      window.CMRGame.grantReward(reward);
       return;
     }
     try {
       const saved = readSave();
-      saved.coins = Math.max(0, Math.floor(Number(saved.coins ?? 500)) + Math.floor(coinsAdd));
-      saved.gems = Math.max(0, Math.floor(Number(saved.gems ?? 25)) + Math.floor(gemsAdd));
+      const maxStock = core()?.MAX_BOOSTER_STOCK || 25;
+      const maxLives = core()?.MAX_LIVES || 5;
+      saved.coins = Math.max(0, Math.floor(Number(saved.coins ?? 500)) + Math.floor(Number(reward.coins) || 0));
+      saved.gems = Math.max(0, Math.floor(Number(saved.gems ?? 25)) + Math.floor(Number(reward.gems) || 0));
+      saved.lives = Math.min(maxLives, Math.max(0, Math.floor(Number(saved.lives ?? maxLives)) + Math.floor(Number(reward.lives) || 0)));
+      saved.rockets = Math.min(maxStock, Math.max(0, Math.floor(Number(saved.rockets ?? 3)) + Math.floor(Number(reward.rockets) || 0)));
+      saved.hammer = Math.min(maxStock, Math.max(0, Math.floor(Number(saved.hammer ?? 3)) + Math.floor(Number(reward.hammer) || 0)));
+      saved.paints = Math.min(maxStock, Math.max(0, Math.floor(Number(saved.paints ?? 3)) + Math.floor(Number(reward.paints) || 0)));
+      saved.colors = Math.min(maxStock, Math.max(0, Math.floor(Number(saved.colors ?? 3)) + Math.floor(Number(reward.colors) || 0)));
       localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
     } catch (_) {}
     window.CMRRefreshWorldMap?.();
     window.CMRGame?.syncMenuUI?.();
   }
+
+  function animateFlyingReward(sourceEl, reward = {}) {
+    if (!sourceEl || typeof document === "undefined") return;
+    const rect = sourceEl.getBoundingClientRect();
+    const startX = rect.left + rect.width / 2;
+    const startY = rect.top + rect.height / 2;
+
+    const tokens = [];
+    if (reward.coins) {
+      tokens.push(
+        { src: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png", targetSel: "#vmapResCoinsBtn" },
+        { src: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png", targetSel: "#vmapResCoinsBtn" },
+        { src: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png", targetSel: "#vmapResCoinsBtn" }
+      );
+    }
+    if (reward.gems) {
+      tokens.push(
+        { src: "./assets/extracted/ui/icon_gem_purple.png", targetSel: "#vmapResGemsBtn" },
+        { src: "./assets/extracted/ui/icon_gem_purple.png", targetSel: "#vmapResGemsBtn" }
+      );
+    }
+    if (reward.lives) {
+      tokens.push({ src: "./assets/extracted/ui/icon_heart_ruby.png", targetSel: "#vmapResHeartsBtn" });
+    }
+    if (reward.rockets) {
+      tokens.push({ src: "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png", targetSel: "#vmapResCoinsBtn" });
+    }
+    if (reward.hammer) {
+      tokens.push({ src: "./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png", targetSel: "#vmapResCoinsBtn" });
+    }
+    if (reward.paints) {
+      tokens.push({ src: "./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png", targetSel: "#vmapResCoinsBtn" });
+    }
+    if (reward.colors) {
+      tokens.push({ src: "./public/assets/aistudio/04_booster_striped_candy_7749b182.png", targetSel: "#vmapResCoinsBtn" });
+    }
+
+    tokens.forEach((tok, idx) => {
+      const targetEl = document.querySelector(tok.targetSel);
+      const tRect = targetEl ? targetEl.getBoundingClientRect() : { left: window.innerWidth * 0.5, top: 28, width: 32, height: 24 };
+      const endX = tRect.left + tRect.width / 2;
+      const endY = tRect.top + tRect.height / 2;
+
+      const el = document.createElement("img");
+      el.className = "rf-fly-token";
+      el.src = tok.src;
+      el.alt = "";
+      el.setAttribute("aria-hidden", "true");
+      const jitterX = (idx % 2 === 0 ? 1 : -1) * (12 + idx * 6);
+      el.style.left = `${startX}px`;
+      el.style.top = `${startY}px`;
+      el.style.setProperty("--fly-dx", `${Math.round(endX - startX)}px`);
+      el.style.setProperty("--fly-dy", `${Math.round(endY - startY)}px`);
+      el.style.setProperty("--fly-mid-x", `${Math.round((endX - startX) * 0.45 + jitterX)}px`);
+      el.style.setProperty("--fly-mid-y", `${Math.round((endY - startY) * 0.35 - 48)}px`);
+      el.style.animationDelay = `${idx * 65}ms`;
+      document.body.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+        if (targetEl) {
+          targetEl.classList.remove("rf-balance-bump");
+          void targetEl.offsetWidth;
+          targetEl.classList.add("rf-balance-bump");
+          setTimeout(() => targetEl.classList.remove("rf-balance-bump"), 360);
+        }
+      }, 760 + idx * 65);
+    });
+  }
+
+  function formatRewardBadgesHtml(reward = {}, isEn = false) {
+    const pills = [];
+    if (reward.coins) {
+      pills.push(`<span class="rf-rew-pill"><img src="./public/assets/aistudio/06_shop_gold_coin_50095eb1.png" alt="">+${reward.coins}</span>`);
+    }
+    if (reward.gems) {
+      pills.push(`<span class="rf-rew-pill is-gem"><img src="./assets/extracted/ui/icon_gem_purple.png" alt="">+${reward.gems}</span>`);
+    }
+    if (reward.lives) {
+      pills.push(`<span class="rf-rew-pill is-heart"><img src="./assets/extracted/ui/icon_heart_ruby.png" alt="">+${reward.lives}</span>`);
+    }
+    if (reward.rockets) {
+      pills.push(`<span class="rf-rew-pill is-booster"><img src="./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png" alt="">×${reward.rockets}</span>`);
+    }
+    if (reward.hammer) {
+      pills.push(`<span class="rf-rew-pill is-booster"><img src="./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png" alt="">×${reward.hammer}</span>`);
+    }
+    if (reward.paints) {
+      pills.push(`<span class="rf-rew-pill is-booster"><img src="./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png" alt="">×${reward.paints}</span>`);
+    }
+    if (reward.colors) {
+      pills.push(`<span class="rf-rew-pill is-booster"><img src="./public/assets/aistudio/04_booster_striped_candy_7749b182.png" alt="">×${reward.colors}</span>`);
+    }
+    return pills.join("") || (isEn ? "Gift" : "هدية");
+  }
+
+  function getTodayLocalKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getUnclaimedMailCount() {
+    return ROYAL_MAIL_MESSAGES.filter(
+      (m) => m.reward && !prefs.claimedMailIds.includes(m.id)
+    ).length;
+  }
+
+  function canClaimDailyCalendarToday() {
+    const today = getTodayLocalKey();
+    return prefs.lastDailyDate !== today;
+  }
+
+  function openAnimatedModal(modalEl) {
+    if (!modalEl) return;
+    clearTimeout(modalEl.__rfCloseTimer);
+    modalEl.classList.remove("hidden", "is-closing");
+    modalEl.classList.remove("is-opening");
+    void modalEl.offsetWidth;
+    modalEl.classList.add("is-opening");
+    window.CMRAudio?.playSfx?.("open");
+  }
+
+  function closeAnimatedModal(modalEl) {
+    if (!modalEl || modalEl.classList.contains("hidden")) return;
+    window.CMRAudio?.playSfx?.("cancel");
+    modalEl.classList.remove("is-opening");
+    modalEl.classList.add("is-closing");
+    clearTimeout(modalEl.__rfCloseTimer);
+    modalEl.__rfCloseTimer = setTimeout(() => {
+      modalEl.classList.remove("is-closing");
+      modalEl.classList.add("hidden");
+    }, 180);
+  }
+
+  let externalLeaderboardProvider = null;
 
   function getProfileState() {
     const saved = readSave();
@@ -400,13 +642,24 @@
 
     const achievements = core()
       ? core().evaluateAchievements(
-          { highestUnlocked, stars, coins, gems, profileCustomized: prefs.profileCustomized },
+          {
+            highestUnlocked,
+            stars,
+            coins,
+            gems,
+            stageStars,
+            obstaclesBroken: saved.obstaclesBroken,
+            rocketsCreated: saved.rocketsCreated,
+            profileCustomized: prefs.profileCustomized,
+          },
           claimedMap
         )
       : [];
 
     const unlockedAchCount = achievements.filter((a) => a.unlocked).length;
     const claimableAchCount = achievements.filter((a) => a.canClaim).length;
+    const unclaimedMailCount = getUnclaimedMailCount();
+    const canClaimDailyToday = canClaimDailyCalendarToday();
     const rawAvatar = core()
       ? core().getAvatarById(prefs.avatarId)
       : { id: "pharaoh_prince", src: "./assets/extracted/ui/avatar_pharaoh_portrait.png" };
@@ -432,6 +685,8 @@
       achievements,
       unlockedAchCount,
       claimableAchCount,
+      unclaimedMailCount,
+      canClaimDailyToday,
       prefs: { ...prefs },
     };
   }
@@ -983,34 +1238,34 @@
     }, 50);
   }
 
-  // ---- Achievements Modal (Uses ALL Extracted Badge Assets) ----
+  // ---- 2. Royal Achievements Modal (ui_2_royal_achievements.png) ----
   function ensureAchievementsModal() {
     if (achievementsModal) return achievementsModal;
     achievementsModal = document.createElement("div");
     achievementsModal.id = "achievementsModal";
-    achievementsModal.className = "modal cmr-royal-modal hidden";
+    achievementsModal.className = "modal rf-modal hidden";
     achievementsModal.setAttribute("role", "dialog");
     achievementsModal.setAttribute("aria-modal", "true");
     achievementsModal.setAttribute("aria-labelledby", "achievementsModalTitle");
     achievementsModal.innerHTML = `
-      <div class="cmr-dialog-card cmr-dialog-wide">
-        <button type="button" class="cmr-dialog-close" id="achCloseBtn" aria-label="إغلاق">✕</button>
-        <div class="cmr-dialog-header">
-          <img src="./assets/extracted/ui/badge_laurel_trophy.png" alt="">
-          <div>
-            <h2 id="achievementsModalTitle">الإنجازات الملكية</h2>
-            <p class="cmr-dialog-sub" id="achSummarySub"></p>
-          </div>
+      <div class="rf-stage rf-stage-achievements" dir="rtl">
+        <img class="rf-frame-img" src="${ROYAL_FRAME_URLS.achievements}" alt="" aria-hidden="true" draggable="false">
+        <h2 class="rf-ribbon-title rf-title-achievements" id="achievementsModalTitle">الإنجازات الملكية</h2>
+        <button type="button" class="rf-close-orb rf-close-achievements" id="achCloseBtn" aria-label="إغلاق">
+          <span aria-hidden="true">✕</span>
+        </button>
+        <div class="rf-inner-safe rf-safe-achievements">
+          <div class="rf-summary-pill" id="achSummarySub"></div>
+          <div class="rf-scroll-list rf-ach-list" id="cmrAchList"></div>
         </div>
-        <div class="cmr-ach-list" id="cmrAchList"></div>
       </div>
     `;
     document.body.appendChild(achievementsModal);
     achievementsModal.addEventListener("click", (e) => {
-      if (e.target === achievementsModal) achievementsModal.classList.add("hidden");
+      if (e.target === achievementsModal) closeAnimatedModal(achievementsModal);
     });
     achievementsModal.querySelector("#achCloseBtn").addEventListener("click", () => {
-      achievementsModal.classList.add("hidden");
+      closeAnimatedModal(achievementsModal);
     });
     return achievementsModal;
   }
@@ -1019,9 +1274,13 @@
     if (!achievementsModal) return;
     const st = getProfileState();
     const isEn = getLanguage() === "en";
+    const stage = achievementsModal.querySelector(".rf-stage");
+    if (stage) stage.setAttribute("dir", isEn ? "ltr" : "rtl");
     achievementsModal.querySelector("#achievementsModalTitle").textContent = t("achievementsTitle");
     achievementsModal.querySelector("#achCloseBtn").setAttribute("aria-label", t("closeBtn"));
-    achievementsModal.querySelector("#achSummarySub").textContent = `${st.unlockedAchCount} / ${st.achievements.length} ${t("unlockedBadge")}`;
+    achievementsModal.querySelector("#achSummarySub").textContent = isEn
+      ? `${st.unlockedAchCount} / ${st.achievements.length} Achievements Unlocked`
+      : `المكتمل: ${st.unlockedAchCount} من ${st.achievements.length} إنجاز`;
 
     const list = achievementsModal.querySelector("#cmrAchList");
     list.innerHTML = "";
@@ -1029,31 +1288,28 @@
       const pct = Number.isFinite(ach.percent) ? ach.percent : Math.min(100, Math.round((ach.current / Math.max(1, ach.target)) * 100));
       const rCoins = ach.reward?.coins || 0;
       const rGems = ach.reward?.gems || 0;
-      const row = document.createElement("div");
-      row.className = `cmr-ach-card ${ach.unlocked ? "is-unlocked" : "is-locked"} ${ach.claimed ? "is-claimed" : ""}`;
+      const row = document.createElement("article");
+      row.className = `rf-ach-row ${ach.unlocked && !ach.claimed ? "is-ready" : ach.claimed ? "is-claimed" : "is-progress"}`;
       row.innerHTML = `
-        <img class="cmr-ach-badge" src="${ach.badge}" alt="">
-        <div class="cmr-ach-body">
-          <div class="cmr-ach-head">
-            <strong>${isEn ? ach.nameEn : ach.nameAr}</strong>
-            <span class="cmr-ach-rewards">
-              <img src="./assets/extracted/ui/icon_coin_gold.png" alt="">+${rCoins}
-              <img src="./assets/extracted/ui/icon_gem_purple.png" alt="">+${rGems}
-            </span>
-          </div>
-          <small>${isEn ? ach.descEn : ach.descAr}</small>
-          <div class="cmr-ach-bar-wrap">
-            <span class="cmr-ach-bar"><i style="width:${pct}%"></i></span>
-            <em>${ach.current}/${ach.target}</em>
-          </div>
+        <div class="rf-ach-icon-box">
+          <img class="rf-ach-icon" src="${ach.badge}" alt="" draggable="false">
         </div>
-        <div class="cmr-ach-action">
+        <div class="rf-ach-mid">
+          <strong class="rf-ach-name">${isEn ? ach.nameEn : ach.nameAr}</strong>
+          <p class="rf-ach-desc">${isEn ? ach.descEn : ach.descAr}</p>
+          <div class="rf-ach-prog-wrap">
+            <span class="rf-ach-prog-track"><i class="rf-ach-prog-fill" style="width:${pct}%"></i></span>
+            <em class="rf-ach-prog-num" dir="ltr">${ach.current}/${ach.target}</em>
+          </div>
+          <div class="rf-rew-row">${formatRewardBadgesHtml({ coins: rCoins, gems: rGems }, isEn)}</div>
+        </div>
+        <div class="rf-ach-cta">
           ${
             ach.claimed
-              ? `<span class="cmr-status-chip is-done">${t("claimedBadge")}</span>`
+              ? `<span class="rf-badge-done">✓</span>`
               : ach.unlocked
-              ? `<button type="button" class="cmr-claim-btn" data-claim-ach="${ach.id}">${t("claimBtn")}</button>`
-              : `<span class="cmr-status-chip is-locked">${t("lockedBadge")}</span>`
+              ? `<button type="button" class="rf-gold-claim-btn is-glowing" data-claim-ach="${ach.id}">${t("claimBtn")}</button>`
+              : `<span class="rf-badge-pct" dir="ltr">${pct}%</span>`
           }
         </div>
       `;
@@ -1063,9 +1319,10 @@
           if (prefs.claimedAchievements.includes(ach.id)) return;
           prefs.claimedAchievements.push(ach.id);
           savePrefs();
-          creditWallet(rCoins, rGems);
+          animateFlyingReward(claimBtn, { coins: rCoins, gems: rGems });
+          grantStructuredReward({ coins: rCoins, gems: rGems });
           vibrate([20, 30, 20]);
-          window.CMRAudio?.playSfx?.("win");
+          window.CMRAudio?.playSfx?.("reward");
           showToast(t("rewardClaimed", { coins: rCoins, gems: rGems }), true);
           renderAchievementsModal();
           refreshAllUI();
@@ -1078,247 +1335,458 @@
   function openAchievements() {
     ensureAchievementsModal();
     renderAchievementsModal();
-    achievementsModal.classList.remove("hidden");
+    openAnimatedModal(achievementsModal);
   }
 
-  // ---- Daily Rewards Calendar Modal ----
+  // ---- 3. Daily Royal Calendar Modal (ui_3_daily_calendar.png) ----
   function ensureCalendarModal() {
     if (calendarModal) return calendarModal;
     calendarModal = document.createElement("div");
     calendarModal.id = "calendarModal";
-    calendarModal.className = "modal cmr-royal-modal hidden";
+    calendarModal.className = "modal rf-modal hidden";
     calendarModal.setAttribute("role", "dialog");
     calendarModal.setAttribute("aria-modal", "true");
     calendarModal.setAttribute("aria-labelledby", "calendarModalTitle");
     calendarModal.innerHTML = `
-      <div class="cmr-dialog-card cmr-dialog-wide">
-        <button type="button" class="cmr-dialog-close" id="calCloseBtn" aria-label="إغلاق">✕</button>
-        <div class="cmr-dialog-header">
-          <img src="./assets/extracted/ui/btn_calendar.png" alt="">
-          <div>
-            <h2 id="calendarModalTitle">التقويم الملكي اليومي</h2>
-            <p class="cmr-dialog-sub" id="calSubText"></p>
+      <div class="rf-stage rf-stage-calendar" dir="rtl">
+        <img class="rf-frame-img" src="${ROYAL_FRAME_URLS.calendar}" alt="" aria-hidden="true" draggable="false">
+        <h2 class="rf-ribbon-title rf-title-calendar" id="calendarModalTitle">التقويم اليومي الملكي</h2>
+        <button type="button" class="rf-close-orb rf-close-calendar" id="calCloseBtn" aria-label="إغلاق">
+          <span aria-hidden="true">✕</span>
+        </button>
+        <div class="rf-inner-safe rf-safe-calendar">
+          <p class="rf-cal-banner" id="calSubText"></p>
+          <div class="rf-scroll-list rf-cal-wrap">
+            <div class="rf-cal-grid" id="cmrCalGrid"></div>
           </div>
         </div>
-        <div class="cmr-cal-grid" id="cmrCalGrid"></div>
       </div>
     `;
     document.body.appendChild(calendarModal);
     calendarModal.addEventListener("click", (e) => {
-      if (e.target === calendarModal) calendarModal.classList.add("hidden");
+      if (e.target === calendarModal) closeAnimatedModal(calendarModal);
     });
-    calendarModal.querySelector("#calCloseBtn").addEventListener("click", () => calendarModal.classList.add("hidden"));
+    calendarModal.querySelector("#calCloseBtn").addEventListener("click", () => {
+      closeAnimatedModal(calendarModal);
+    });
     return calendarModal;
   }
 
-  function openCalendar() {
+  function renderCalendarModal() {
     ensureCalendarModal();
+    const isEn = getLanguage() === "en";
+    const stage = calendarModal.querySelector(".rf-stage");
+    if (stage) stage.setAttribute("dir", isEn ? "ltr" : "rtl");
     calendarModal.querySelector("#calendarModalTitle").textContent = t("calendarTitle");
-    calendarModal.querySelector("#calSubText").textContent = t("calendarSubtitle");
     calendarModal.querySelector("#calCloseBtn").setAttribute("aria-label", t("closeBtn"));
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayLocalKey();
+    // Repeating 7-day cycle: reset cleanly on a new calendar day after completing Day 7
+    if (prefs.dailyClaims.length >= 7 && prefs.lastDailyDate !== today) {
+      prefs.dailyClaims = [];
+      savePrefs();
+    }
+
+    const canClaimToday = prefs.lastDailyDate !== today;
     const nextDay = Math.min(7, prefs.dailyClaims.length + 1);
-    const canClaimToday = prefs.lastDailyDate !== today && prefs.dailyClaims.length < 7;
+    const subEl = calendarModal.querySelector("#calSubText");
+    if (subEl) {
+      subEl.textContent = canClaimToday
+        ? isEn
+          ? `Day ${nextDay} reward is ready — claim it now!`
+          : `مكافأة اليوم ${nextDay} جاهزة — استلمها الآن!`
+        : t("alreadyClaimedToday");
+    }
+
     const grid = calendarModal.querySelector("#cmrCalGrid");
     grid.innerHTML = "";
 
     DAILY_REWARDS.forEach((item) => {
       const claimed = prefs.dailyClaims.includes(item.day);
       const isToday = !claimed && item.day === nextDay && canClaimToday;
-      const card = document.createElement("div");
-      card.className = `cmr-cal-day ${claimed ? "is-claimed" : isToday ? "is-ready" : "is-future"}`;
+      const card = document.createElement("article");
+      card.className = [
+        "rf-cal-card",
+        item.isGrand ? "is-grand" : "",
+        claimed ? "is-claimed" : isToday ? "is-today" : "is-upcoming",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
       card.innerHTML = `
-        <span class="cmr-cal-day-num">${t("dayLabel", { d: item.day })}</span>
-        <img src="${item.icon}" alt="">
-        <div class="cmr-cal-reward-line">
-          <span>+${item.coins}</span>
-          <span>💎+${item.gems}</span>
+        <div class="rf-cal-top">
+          <span class="rf-cal-day-pill">${t("dayLabel", { d: item.day })}</span>
+          ${
+            claimed
+              ? `<span class="rf-cal-check" aria-label="${t("claimedBadge")}">✓</span>`
+              : !isToday
+              ? `<span class="rf-cal-lock" aria-hidden="true">🔒</span>`
+              : `<span class="rf-cal-star" aria-hidden="true">✨</span>`
+          }
         </div>
-        ${
-          claimed
-            ? `<span class="cmr-status-chip is-done">${t("claimedBadge")}</span>`
-            : isToday
-            ? `<button type="button" class="cmr-claim-btn">${t("claimBtn")}</button>`
-            : `<span class="cmr-status-chip is-locked">${t("lockedBadge")}</span>`
-        }
+        <div class="rf-cal-body">
+          <img class="rf-cal-icon" src="${item.icon}" alt="" draggable="false">
+          <div class="rf-cal-info">
+            <span class="rf-cal-reward-txt">${isEn ? item.labelEn : item.labelAr}</span>
+            ${
+              item.isGrand
+                ? `<div class="rf-rew-row">${formatRewardBadgesHtml(item.reward, isEn)}</div>`
+                : ""
+            }
+          </div>
+        </div>
+        <div class="rf-cal-foot">
+          ${
+            claimed
+              ? `<span class="rf-cal-state-done">${t("claimedBadge")}</span>`
+              : isToday
+              ? `<button type="button" class="rf-gold-claim-btn rf-cal-claim-btn is-glowing" data-cal-day="${item.day}">${t("claimNowBtn")}</button>`
+              : `<span class="rf-cal-state-lock">${t("lockedBadge")}</span>`
+          }
+        </div>
       `;
-      const btn = card.querySelector(".cmr-claim-btn");
+
+      const btn = card.querySelector("[data-cal-day]");
       if (btn) {
         btn.addEventListener("click", () => {
+          if (prefs.lastDailyDate === today || prefs.dailyClaims.includes(item.day)) return;
           prefs.dailyClaims.push(item.day);
           prefs.lastDailyDate = today;
           savePrefs();
-          creditWallet(item.coins, item.gems);
-          vibrate([20, 25, 20]);
-          window.CMRAudio?.playSfx?.("win");
-          showToast(t("rewardClaimed", { coins: item.coins, gems: item.gems }), true);
-          openCalendar();
+          animateFlyingReward(btn, item.reward);
+          grantStructuredReward(item.reward);
+          vibrate([20, 28, 22]);
+          window.CMRAudio?.playSfx?.(item.isGrand ? "win" : "reward");
+          const summary = core()?.formatRewardSummaryArabic?.(item.reward) || (isEn ? item.labelEn : item.labelAr);
+          showToast(t("rewardClaimedSummary", { summary }), true);
+          renderCalendarModal();
           refreshAllUI();
         });
       }
       grid.appendChild(card);
     });
-    calendarModal.classList.remove("hidden");
   }
 
-  // ---- Royal Mail Modal ----
+  function openCalendar() {
+    renderCalendarModal();
+    openAnimatedModal(calendarModal);
+  }
+
+  // ---- 1. Royal Mail Modal (ui_1_royal_mail.png) ----
   function ensureMailModal() {
     if (mailModal) return mailModal;
     mailModal = document.createElement("div");
     mailModal.id = "mailModal";
-    mailModal.className = "modal cmr-royal-modal hidden";
+    mailModal.className = "modal rf-modal hidden";
     mailModal.setAttribute("role", "dialog");
     mailModal.setAttribute("aria-modal", "true");
     mailModal.setAttribute("aria-labelledby", "mailModalTitle");
     mailModal.innerHTML = `
-      <div class="cmr-dialog-card cmr-dialog-wide">
-        <button type="button" class="cmr-dialog-close" id="mailCloseBtn" aria-label="إغلاق">✕</button>
-        <div class="cmr-dialog-header">
-          <img src="./assets/extracted/ui/icon_papyrus_scroll.png" alt="">
-          <div>
-            <h2 id="mailModalTitle">البريد الملكي</h2>
-            <p class="cmr-dialog-sub" id="mailSubText"></p>
-          </div>
+      <div class="rf-stage rf-stage-mail" dir="rtl">
+        <img class="rf-frame-img" src="${ROYAL_FRAME_URLS.mail}" alt="" aria-hidden="true" draggable="false">
+        <h2 class="rf-ribbon-title rf-title-mail" id="mailModalTitle">البريد الملكي</h2>
+        <button type="button" class="rf-close-orb rf-close-mail" id="mailCloseBtn" aria-label="إغلاق">
+          <span aria-hidden="true">✕</span>
+        </button>
+        <div class="rf-inner-safe rf-safe-mail">
+          <div class="rf-summary-pill" id="mailSubText"></div>
+          <div class="rf-scroll-list rf-mail-list" id="cmrMailList"></div>
         </div>
-        <div class="cmr-mail-list" id="cmrMailList"></div>
       </div>
     `;
     document.body.appendChild(mailModal);
     mailModal.addEventListener("click", (e) => {
-      if (e.target === mailModal) mailModal.classList.add("hidden");
+      if (e.target === mailModal) closeAnimatedModal(mailModal);
     });
-    mailModal.querySelector("#mailCloseBtn").addEventListener("click", () => mailModal.classList.add("hidden"));
+    mailModal.querySelector("#mailCloseBtn").addEventListener("click", () => {
+      closeAnimatedModal(mailModal);
+    });
     return mailModal;
   }
 
-  function openMail() {
+  function renderMailModal() {
     ensureMailModal();
+    const isEn = getLanguage() === "en";
+    const stage = mailModal.querySelector(".rf-stage");
+    if (stage) stage.setAttribute("dir", isEn ? "ltr" : "rtl");
     mailModal.querySelector("#mailModalTitle").textContent = t("mailTitle");
-    mailModal.querySelector("#mailSubText").textContent = t("mailSubtitle");
     mailModal.querySelector("#mailCloseBtn").setAttribute("aria-label", t("closeBtn"));
+
+    const unclaimed = getUnclaimedMailCount();
+    const subEl = mailModal.querySelector("#mailSubText");
+    if (subEl) {
+      subEl.textContent =
+        unclaimed > 0
+          ? isEn
+            ? `${unclaimed} Royal Gifts Waiting to Claim`
+            : `لديك ${unclaimed} رسائل وهدايا بانتظار الاستلام`
+          : isEn
+          ? "All royal gifts claimed — inbox up to date!"
+          : "تم استلام جميع الهدايا الملكية!";
+    }
+
     const list = mailModal.querySelector("#cmrMailList");
-    const messages = [
-      {
-        id: "welcome_chest",
-        icon: "./assets/extracted/ui/icon_royal_chest.png",
-        title: t("welcomeMailTitle"),
-        body: t("welcomeMailBody"),
-        coins: 200,
-        gems: 10,
-      },
-      {
-        id: "palace_guide",
-        icon: "./assets/extracted/ui/icon_papyrus_scroll.png",
-        title: t("palaceGuideMailTitle"),
-        body: t("palaceGuideMailBody"),
-        coins: 0,
-        gems: 0,
-      },
-    ];
     list.innerHTML = "";
-    messages.forEach((m) => {
+
+    ROYAL_MAIL_MESSAGES.forEach((m) => {
       const claimed = prefs.claimedMailIds.includes(m.id);
-      const row = document.createElement("div");
-      row.className = "cmr-mail-card";
-      row.innerHTML = `
-        <img src="${m.icon}" alt="">
-        <div class="cmr-mail-copy">
-          <strong>${m.title}</strong>
-          <p>${m.body}</p>
+      const card = document.createElement("article");
+      card.className = `rf-mail-card ${claimed ? "is-claimed" : "is-unread"}`;
+      card.dataset.mailId = m.id;
+      card.innerHTML = `
+        <div class="rf-mail-sender-box">
+          <img src="${m.senderIcon}" alt="" draggable="false">
+          ${!claimed ? '<span class="rf-unread-dot" aria-hidden="true"></span>' : ""}
         </div>
-        ${
-          m.coins > 0 || m.gems > 0
-            ? claimed
-              ? `<span class="cmr-status-chip is-done">${t("claimedBadge")}</span>`
-              : `<button type="button" class="cmr-claim-btn">${t("claimBtn")}</button>`
-            : ""
-        }
+        <div class="rf-mail-mid">
+          <strong class="rf-mail-title">${isEn ? m.titleEn : m.titleAr}</strong>
+          <p class="rf-mail-desc">${isEn ? m.bodyEn : m.bodyAr}</p>
+          <div class="rf-rew-row">${formatRewardBadgesHtml(m.reward, isEn)}</div>
+        </div>
+        <div class="rf-mail-cta">
+          ${
+            claimed
+              ? `<span class="rf-badge-done">${t("claimedBadge")}</span>`
+              : `<button type="button" class="rf-gold-claim-btn is-glowing" data-claim-mail="${m.id}">${t("claimBtn")}</button>`
+          }
+        </div>
       `;
-      const btn = row.querySelector(".cmr-claim-btn");
+
+      const btn = card.querySelector("[data-claim-mail]");
       if (btn) {
         btn.addEventListener("click", () => {
+          if (prefs.claimedMailIds.includes(m.id)) return;
           prefs.claimedMailIds.push(m.id);
           savePrefs();
-          creditWallet(m.coins, m.gems);
+          animateFlyingReward(btn, m.reward);
+          grantStructuredReward(m.reward);
           vibrate(22);
-          window.CMRAudio?.playSfx?.("win");
-          showToast(t("rewardClaimed", { coins: m.coins, gems: m.gems }), true);
-          openMail();
+          window.CMRAudio?.playSfx?.("reward");
+          const summary = core()?.formatRewardSummaryArabic?.(m.reward) || "";
+          showToast(t("rewardClaimedSummary", { summary }), true);
+          renderMailModal();
           refreshAllUI();
         });
       }
-      list.appendChild(row);
+      list.appendChild(card);
     });
-    mailModal.classList.remove("hidden");
   }
 
-  // ---- Kingdom Friends / Champions Modal ----
+  function openMail() {
+    renderMailModal();
+    openAnimatedModal(mailModal);
+  }
+
+  // ---- 4. Kingdom Champions / Leaderboard Modal (ui_4_kingdom_champions.png) ----
   function ensureFriendsModal() {
     if (friendsModal) return friendsModal;
     friendsModal = document.createElement("div");
     friendsModal.id = "friendsModal";
-    friendsModal.className = "modal cmr-royal-modal hidden";
+    friendsModal.className = "modal rf-modal hidden";
     friendsModal.setAttribute("role", "dialog");
     friendsModal.setAttribute("aria-modal", "true");
     friendsModal.setAttribute("aria-labelledby", "friendsModalTitle");
     friendsModal.innerHTML = `
-      <div class="cmr-dialog-card cmr-dialog-wide">
-        <button type="button" class="cmr-dialog-close" id="friendsCloseBtn" aria-label="إغلاق">✕</button>
-        <div class="cmr-dialog-header">
-          <img src="./assets/extracted/ui/btn_friends.png" alt="">
-          <div>
-            <h2 id="friendsModalTitle">أبطال المملكة</h2>
-            <p class="cmr-dialog-sub" id="friendsSubText"></p>
-          </div>
+      <div class="rf-stage rf-stage-champions" dir="rtl">
+        <img class="rf-frame-img" src="${ROYAL_FRAME_URLS.champions}" alt="" aria-hidden="true" draggable="false">
+        <h2 class="rf-ribbon-title rf-title-champions" id="friendsModalTitle">أبطال المملكة</h2>
+        <button type="button" class="rf-close-orb rf-close-champions" id="friendsCloseBtn" aria-label="إغلاق">
+          <span aria-hidden="true">✕</span>
+        </button>
+        <div class="rf-inner-safe rf-safe-champions">
+          <div class="rf-scroll-list rf-champ-list" id="cmrFriendsList"></div>
+          <div class="rf-champ-pinned" id="cmrFriendsPinned" aria-label="ترتيبك الحالي"></div>
         </div>
-        <div class="cmr-friends-list" id="cmrFriendsList"></div>
       </div>
     `;
     document.body.appendChild(friendsModal);
     friendsModal.addEventListener("click", (e) => {
-      if (e.target === friendsModal) friendsModal.classList.add("hidden");
+      if (e.target === friendsModal) closeAnimatedModal(friendsModal);
     });
-    friendsModal.querySelector("#friendsCloseBtn").addEventListener("click", () => friendsModal.classList.add("hidden"));
+    friendsModal.querySelector("#friendsCloseBtn").addEventListener("click", () => {
+      closeAnimatedModal(friendsModal);
+    });
     return friendsModal;
+  }
+
+  function buildLeaderboardEntries(st, isEn, externalRows = null) {
+    const playerPalace = Math.min(10, Math.floor((st.highestUnlocked - 1) / 100) + 1);
+    const playerScore = st.stars * 120 + st.progression.completedStages * 250;
+
+    const baseRivals = Array.isArray(externalRows) && externalRows.length > 0
+      ? externalRows
+      : [
+          {
+            name: isEn ? "Queen Luma" : "الملكة لوما",
+            palace: 9,
+            stage: 845,
+            stars: 2420,
+            score: 501650,
+            avatar: "./assets/Picsart_26-11-17_02-37-45-792.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Pharaoh Ramses" : "الفرعون رمسيس",
+            palace: 7,
+            stage: 632,
+            stars: 1790,
+            score: 372800,
+            avatar: "./assets/extracted/ui/avatar_pharaoh_portrait.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Dragon Prince" : "أمير التنين",
+            palace: 5,
+            stage: 455,
+            stars: 1210,
+            score: 258950,
+            avatar: "./assets/Picsart_26-11-17_02-38-02-164.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Cleopatra Star" : "كليوباترا النجوم",
+            palace: 4,
+            stage: 318,
+            stars: 840,
+            score: 180300,
+            avatar: "./assets/extracted/ui/badge_crown_laurel.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Nile Guardian" : "حارس النيل",
+            palace: 3,
+            stage: 214,
+            stars: 530,
+            score: 117100,
+            avatar: "./assets/extracted/ui/badge_scarab.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Oasis Knight" : "فارس الواحة",
+            palace: 2,
+            stage: 128,
+            stars: 310,
+            score: 69200,
+            avatar: "./assets/extracted/ui/badge_star_shield.png",
+            isYou: false,
+          },
+          {
+            name: isEn ? "Luxor Mage" : "ساحر الأقصر",
+            palace: 1,
+            stage: 54,
+            stars: 128,
+            score: 28860,
+            avatar: "./assets/extracted/ui/badge_swords_shield.png",
+            isYou: false,
+          },
+        ];
+
+    const hasYou = baseRivals.some((r) => r.isYou);
+    const merged = hasYou
+      ? [...baseRivals]
+      : [
+          ...baseRivals,
+          {
+            name: st.displayName,
+            palace: playerPalace,
+            stage: st.highestUnlocked,
+            stars: st.stars,
+            score: playerScore,
+            avatar: st.avatar.img,
+            isYou: true,
+          },
+        ];
+
+    return merged.sort((a, b) => b.stars - a.stars || b.stage - a.stage || b.score - a.score);
+  }
+
+  function renderLeaderboardRows(entries, isEn) {
+    const list = friendsModal.querySelector("#cmrFriendsList");
+    const pinned = friendsModal.querySelector("#cmrFriendsPinned");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const crownIcons = ["👑", "🥈", "🥉"];
+    let playerEntry = null;
+    let playerRank = entries.length;
+
+    entries.forEach((entry, idx) => {
+      const rank = idx + 1;
+      if (entry.isYou) {
+        playerEntry = entry;
+        playerRank = rank;
+      }
+      const tierClass = rank === 1 ? "is-gold" : rank === 2 ? "is-silver" : rank === 3 ? "is-bronze" : "";
+      const row = document.createElement("article");
+      row.className = `rf-champ-row ${tierClass} ${entry.isYou ? "is-you" : ""}`;
+      row.innerHTML = `
+        <div class="rf-champ-rank ${tierClass}">
+          ${rank <= 3 ? `<span class="rf-crown-icon" aria-hidden="true">${crownIcons[idx]}</span>` : ""}
+          <b>#${rank}</b>
+        </div>
+        <img class="rf-champ-avatar" src="${entry.avatar}" alt="" draggable="false">
+        <div class="rf-champ-info">
+          <strong>${entry.name} ${entry.isYou ? `<em>(${t("youTag")})</em>` : ""}</strong>
+          <small>${isEn ? `Palace ${entry.palace} · Lv.${entry.stage}` : `القصر ${entry.palace} · مرحلة ${entry.stage}`}</small>
+        </div>
+        <div class="rf-champ-score">
+          <span class="rf-champ-stars">
+            <img src="./assets/extracted/ui/icon_star_gold.png" alt="">
+            <b>${Number(entry.stars || 0).toLocaleString("en-US")}</b>
+          </span>
+          <small dir="ltr">${Number(entry.score || 0).toLocaleString("en-US")}</small>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    if (pinned && playerEntry) {
+      pinned.innerHTML = `
+        <div class="rf-champ-row is-you is-pinned-bar">
+          <div class="rf-champ-rank is-you-rank">
+            <b>#${playerRank}</b>
+          </div>
+          <img class="rf-champ-avatar" src="${playerEntry.avatar}" alt="" draggable="false">
+          <div class="rf-champ-info">
+            <strong>${playerEntry.name} <em>(${t("youTag")})</em></strong>
+            <small>${isEn ? `Palace ${playerEntry.palace} · Lv.${playerEntry.stage}` : `القصر ${playerEntry.palace} · مرحلة ${playerEntry.stage}`}</small>
+          </div>
+          <div class="rf-champ-score">
+            <span class="rf-champ-stars">
+              <img src="./assets/extracted/ui/icon_star_gold.png" alt="">
+              <b>${Number(playerEntry.stars || 0).toLocaleString("en-US")}</b>
+            </span>
+            <small dir="ltr">${Number(playerEntry.score || 0).toLocaleString("en-US")}</small>
+          </div>
+        </div>
+      `;
+    }
   }
 
   function openFriends() {
     ensureFriendsModal();
     const st = getProfileState();
     const isEn = getLanguage() === "en";
+    const stage = friendsModal.querySelector(".rf-stage");
+    if (stage) stage.setAttribute("dir", isEn ? "ltr" : "rtl");
     friendsModal.querySelector("#friendsModalTitle").textContent = t("friendsTitle");
-    friendsModal.querySelector("#friendsSubText").textContent = t("friendsSubtitle");
     friendsModal.querySelector("#friendsCloseBtn").setAttribute("aria-label", t("closeBtn"));
 
-    const entries = [
-      { name: isEn ? "Queen Luma" : "الملكة لوما", level: 28, stars: 840, avatar: "./assets/Picsart_26-11-17_02-37-45-792.png", isYou: false },
-      { name: isEn ? "Pharaoh Ramses" : "الفرعون رمسيس", level: 22, stars: 615, avatar: "./assets/extracted/ui/avatar_pharaoh_portrait.png", isYou: false },
-      { name: isEn ? "Dragon Prince" : "أمير التنين", level: 16, stars: 420, avatar: "./assets/Picsart_26-11-17_02-38-02-164.png", isYou: false },
-      { name: isEn ? "Nile Guardian" : "حارس النيل", level: 9, stars: 195, avatar: "./assets/extracted/ui/badge_scarab.png", isYou: false },
-      { name: st.displayName, level: st.progression.playerLevel, stars: st.stars, avatar: st.avatar.img, isYou: true },
-    ].sort((a, b) => b.stars - a.stars || b.level - a.level);
+    const entries = buildLeaderboardEntries(st, isEn, null);
+    renderLeaderboardRows(entries, isEn);
+    openAnimatedModal(friendsModal);
 
-    const list = friendsModal.querySelector("#cmrFriendsList");
-    list.innerHTML = "";
-    entries.forEach((entry, idx) => {
-      const row = document.createElement("div");
-      row.className = `cmr-friend-row ${entry.isYou ? "is-you" : ""}`;
-      row.innerHTML = `
-        <span class="cmr-rank-num">#${idx + 1}</span>
-        <img class="cmr-friend-avatar" src="${entry.avatar}" alt="">
-        <div class="cmr-friend-info">
-          <strong>${entry.name} ${entry.isYou ? `<em>(${t("youTag")})</em>` : ""}</strong>
-          <small>${t("levelShort")} ${entry.level}</small>
-        </div>
-        <span class="cmr-friend-stars">
-          <img src="./assets/extracted/ui/icon_star_gold.png" alt="">
-          <b>${entry.stars}</b>
-        </span>
-      `;
-      list.appendChild(row);
-    });
-    friendsModal.classList.remove("hidden");
+    // Optional live sync hook when Firebase/Firestore leaderboard provider is connected
+    const provider = externalLeaderboardProvider || window.CMRFirestoreLeaderboard?.fetchTopChampions;
+    if (typeof provider === "function") {
+      Promise.resolve(provider(st))
+        .then((remoteRows) => {
+          if (Array.isArray(remoteRows) && remoteRows.length > 0 && friendsModal && !friendsModal.classList.contains("hidden")) {
+            renderLeaderboardRows(buildLeaderboardEntries(st, isEn, remoteRows), isEn);
+          }
+        })
+        .catch(() => {});
+    }
   }
 
   function refreshAllUI() {
@@ -1327,6 +1795,12 @@
     }
     if (achievementsModal && !achievementsModal.classList.contains("hidden")) {
       renderAchievementsModal();
+    }
+    if (mailModal && !mailModal.classList.contains("hidden")) {
+      renderMailModal();
+    }
+    if (calendarModal && !calendarModal.classList.contains("hidden")) {
+      renderCalendarModal();
     }
     window.CMRRefreshWorldMap?.();
     window.CMRGame?.syncMenuUI?.();
@@ -1350,6 +1824,9 @@
     openCalendar,
     openMail,
     openFriends,
+    setLeaderboardProvider: (fn) => {
+      externalLeaderboardProvider = typeof fn === "function" ? fn : null;
+    },
     getProfileState,
     getPrefs: () => ({ ...prefs }),
     setPlayerName,

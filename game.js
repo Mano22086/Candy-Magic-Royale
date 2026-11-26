@@ -25,17 +25,25 @@
     { name: "Violet Jelly", color: new BABYLON.Color3(0.68, 0.25, 0.96) },
   ];
 
-  const OBSTACLE_DEFS = {
-    single_ice: { img: "1", hp: 1, adj: true, self: true, spread: false, reward: false },
-    double_ice: { img: "2", hp: 2, adj: true, self: true, spread: false, reward: false },
-    stone_wall: { img: "3", hp: 2, adj: true, self: false, spread: false, reward: false },
-    rope_net: { img: "4", hp: 2, adj: true, self: false, spread: false, reward: false },
-    vault: { img: "5", hp: 3, adj: true, self: false, spread: false, reward: true },
-    roots: { img: "6", hp: 2, adj: true, self: false, spread: true, reward: false },
-    golden_cage: { img: "7", hp: 2, adj: false, self: true, spread: false, reward: true },
-    iron_cage: { img: "8", hp: 2, adj: false, self: true, spread: false, reward: false },
-    whirlpool: { img: "9", hp: 1, adj: true, self: false, spread: false, reward: true },
-  };
+  const Systems = window.CMRMatch3Systems || null;
+  const HeroBossEngine = window.CMRHeroBossEngine || null;
+  const OutcomeEngine = window.CMROutcomeEngine || null;
+
+  const OBSTACLE_DEFS = Systems?.OBSTACLE_CATALOG
+    ? { ...Systems.OBSTACLE_CATALOG }
+    : {
+        single_ice: { img: "1", imgSrc: "./assets/packs/blockers/1.png", hp: 1, adj: true, self: true, spread: false, reward: false },
+        double_ice: { img: "2", imgSrc: "./assets/packs/blockers/2.png", hp: 2, adj: true, self: true, spread: false, reward: false },
+        stone_wall: { img: "3", imgSrc: "./assets/packs/blockers/3.png", hp: 2, adj: true, self: false, spread: false, reward: false },
+        rope_net: { img: "4", imgSrc: "./assets/packs/blockers/4.png", hp: 2, adj: true, self: false, spread: false, reward: false },
+        vault: { img: "5", imgSrc: "./assets/packs/blockers/5.png", hp: 3, adj: true, self: false, spread: false, reward: true },
+        roots: { img: "6", imgSrc: "./assets/packs/blockers/6.png", hp: 2, adj: true, self: false, spread: true, reward: false },
+        golden_cage: { img: "7", imgSrc: "./assets/packs/blockers/7.png", hp: 2, adj: false, self: true, spread: false, reward: true },
+        iron_cage: { img: "8", imgSrc: "./assets/packs/blockers/8.png", hp: 2, adj: false, self: true, spread: false, reward: false },
+        whirlpool: { img: "9", imgSrc: "./assets/packs/blockers/9.png", hp: 1, adj: true, self: false, spread: false, reward: true },
+      };
+
+  const pityTracker = Systems?.createPityTracker ? Systems.createPityTracker() : null;
 
   const candyImages = {
     1: "./01_star_gold.png",
@@ -107,6 +115,12 @@
     lastWinCoinReward: 0,
     lastWinDoubled: false,
     completedStageForInterstitial: null,
+    missionTargets: [],
+    lastBonusTimeCoins: 0,
+    earnedMovesForStars: null,
+    bonusTimeRunning: false,
+    lastSpeechAt: 0,
+    lastMoveUsedBooster: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -143,7 +157,13 @@
   const vfxMaterials = {};
   const VFX_MESH_LIMIT = 64;
 
-  function playSfx(kind) {
+  let idleHintTimer = null;
+  let comboBannerTimer = null;
+  let diffBannerTimer = null;
+  let shakeTimer = null;
+  const speechTimers = { queen: null, dragon: null };
+
+  function playSfx(kind, options) {
     const map = {
       match: "match",
       swap: "swap",
@@ -157,7 +177,129 @@
       ice: "ice",
       boss: "boss",
     };
-    window.CMRAudio?.playSfx?.(map[kind] || kind || "click");
+    window.CMRAudio?.playSfx?.(map[kind] || kind || "click", options);
+  }
+
+  function triggerHaptic(pattern) {
+    try {
+      if (window.CMRAudio?.isSfxEnabled?.() === false) return;
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(pattern);
+      }
+    } catch (_) {}
+  }
+
+  function triggerBoardShake() {
+    const wrap = $("boardWrap");
+    if (!wrap) return;
+    wrap.classList.remove("is-micro-shake");
+    void wrap.offsetWidth;
+    wrap.classList.add("is-micro-shake");
+    clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(() => wrap.classList.remove("is-micro-shake"), 165);
+  }
+
+  function showComboCallout(text, tier = 2, accent = "#fbbf24") {
+    const el = $("comboCalloutBanner");
+    if (!el || !text) return;
+    el.textContent = text;
+    el.dataset.tier = String(tier);
+    el.style.setProperty("--callout-accent", accent || "#fbbf24");
+    el.classList.remove("hidden", "is-active");
+    void el.offsetWidth;
+    el.classList.add("is-active");
+    clearTimeout(comboBannerTimer);
+    comboBannerTimer = setTimeout(() => {
+      el.classList.remove("is-active");
+      el.classList.add("hidden");
+    }, 1050);
+  }
+
+  function showStageDifficultyBanner(tagAr, tier) {
+    const el = $("stageDiffBanner");
+    if (!el || !tagAr) return;
+    el.textContent = tagAr;
+    el.className = `stage-diff-banner is-tier-${tier || "hard"}`;
+    void el.offsetWidth;
+    el.classList.add("is-show");
+    clearTimeout(diffBannerTimer);
+    diffBannerTimer = setTimeout(() => {
+      el.classList.remove("is-show");
+      el.classList.add("hidden");
+    }, 2100);
+  }
+
+  function showCharacterSpeech(trigger, force = false) {
+    const now = Date.now();
+    if (!force && now - state.lastSpeechAt < 8000) return false;
+    const line = Systems?.getCharacterSpeechLine?.(trigger);
+    if (!line) return false;
+    const id = line.who === "dragon" ? "dragonSpeechBubble" : "queenSpeechBubble";
+    const el = $(id);
+    if (!el) return false;
+    state.lastSpeechAt = now;
+    el.textContent = line.text;
+    el.classList.remove("hidden", "is-visible");
+    void el.offsetWidth;
+    el.classList.add("is-visible");
+    clearTimeout(speechTimers[line.who]);
+    speechTimers[line.who] = setTimeout(() => {
+      el.classList.remove("is-visible");
+      el.classList.add("hidden");
+    }, 2200);
+    return true;
+  }
+
+  function clearHintOverlay() {
+    if (idleHintTimer) {
+      clearTimeout(idleHintTimer);
+      idleHintTimer = null;
+    }
+    const layer = $("boardHintLayer");
+    if (layer) layer.textContent = "";
+  }
+
+  function renderSmartHint() {
+    const layer = $("boardHintLayer");
+    if (!layer || !canInteractWithBoard()) return null;
+    if (window.CMRQueenTutorial?.isActive?.()) return null;
+    if (!Systems?.findBestSmartHint) return null;
+
+    const hint = Systems.findBestSmartHint(state.grid, ROWS, COLS, isCellLocked);
+    if (!hint) return null;
+
+    layer.textContent = "";
+    const cellW = 100 / COLS;
+    const cellH = 100 / ROWS;
+    const dx = (hint.to.c - hint.from.c) * 6;
+    const dy = (hint.to.r - hint.from.r) * 6;
+
+    const cells = [
+      { cell: hint.from, sx: dx, sy: dy },
+      { cell: hint.to, sx: -dx, sy: -dy },
+    ];
+    for (const item of cells) {
+      const node = document.createElement("div");
+      node.className = "board-hint-tile";
+      node.style.left = `${item.cell.c * cellW}%`;
+      node.style.top = `${item.cell.r * cellH}%`;
+      node.style.width = `${cellW}%`;
+      node.style.height = `${cellH}%`;
+      node.style.setProperty("--hint-dx", `${item.sx}px`);
+      node.style.setProperty("--hint-dy", `${item.sy}px`);
+      layer.appendChild(node);
+    }
+    return hint;
+  }
+
+  function resetIdleHintTimer() {
+    clearHintOverlay();
+    if (!canInteractWithBoard()) return;
+    if (window.CMRQueenTutorial?.isActive?.()) return;
+    idleHintTimer = setTimeout(() => {
+      idleHintTimer = null;
+      renderSmartHint();
+    }, 5000);
   }
 
   function say(message) {
@@ -425,7 +567,7 @@
         ctx.stroke();
       }
       if (hp > 1) {
-        ctx.fillStyle = "#d82b59";
+        ctx.fillStyle = def.boosterOnly ? "#4c1d95" : "#d82b59";
         ctx.beginPath();
         ctx.arc(206, 50, 30, 0, Math.PI * 2);
         ctx.fill();
@@ -440,7 +582,7 @@
       }
       dt.update();
     };
-    img.src = `./assets/packs/blockers/${def.img}.png`;
+    img.src = def.imgSrc || `./assets/packs/blockers/${def.img || "1"}.png`;
 
     mat.diffuseTexture = dt;
     mat.opacityTexture = dt;
@@ -857,15 +999,32 @@
     }
 
     state.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+    const targetCounts = new Map();
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const type = randomType(r, c);
         const obs = obsMap.get(r * COLS + c) || null;
-        const ice = obs ? OBSTACLE_DEFS[obs]?.hp || 1 : 0;
-        state.grid[r][c] = { type, special: null, ice, obs, mesh: null };
+        const def = obs ? OBSTACLE_DEFS[obs] || OBSTACLE_DEFS.single_ice : null;
+        const ice = obs ? (cfg.introSingleLayer ? def.introHp || 1 : def.hp || 1) : 0;
+        if (obs) {
+          targetCounts.set(obs, (targetCounts.get(obs) || 0) + 1);
+        }
+        state.grid[r][c] = { type, special: null, ice, obs, originObs: obs, mesh: null };
         state.grid[r][c].mesh = candyMesh(r, c, type, null, ice, obs);
       }
     }
+    state.missionTargets = Array.from(targetCounts.entries())
+      .slice(0, 3)
+      .map(([id, required]) => {
+        const def = OBSTACLE_DEFS[id] || OBSTACLE_DEFS.single_ice;
+        return {
+          id,
+          imgSrc: def.imgSrc || `./assets/packs/blockers/${def.img || "1"}.png`,
+          nameAr: def.nameAr || "عائق",
+          required,
+          broken: 0,
+        };
+      });
     state.iceRemaining = countObstacles();
     state.obstacleGoal = state.iceRemaining;
 
@@ -902,11 +1061,38 @@
     }
   }
 
+  function pulseMissionSlot(slotIdx) {
+    const el = $("missionSlot" + slotIdx);
+    if (!el) return;
+    el.classList.remove("is-pulse");
+    void el.offsetWidth;
+    el.classList.add("is-pulse");
+  }
+
+  function recordMissionBreak(originObsId, currentObsId) {
+    if (!Array.isArray(state.missionTargets) || !state.missionTargets.length) return;
+    let idx = state.missionTargets.findIndex(
+      (t) => (t.id === originObsId || t.id === currentObsId) && t.broken < t.required
+    );
+    if (idx < 0) {
+      idx = state.missionTargets.findIndex((t) => t.broken < t.required);
+    }
+    if (idx >= 0) {
+      state.missionTargets[idx].broken = Math.min(
+        state.missionTargets[idx].required,
+        state.missionTargets[idx].broken + 1
+      );
+      pulseMissionSlot(idx);
+    }
+  }
+
   function damageIceAt(r, c, score = 25, source = "booster") {
     const item = state.grid[r]?.[c];
     if (!item || (item.ice <= 0 && !item.obs)) return false;
     const obs = item.obs || (item.ice > 1 ? "double_ice" : "single_ice");
+    const originObs = item.originObs || obs;
     const def = OBSTACLE_DEFS[obs] || OBSTACLE_DEFS.single_ice;
+    if (def.boosterOnly && source !== "booster") return false;
     if (source === "adj" && !def.adj) return false;
     if (source === "self" && !def.self) return false;
 
@@ -917,14 +1103,39 @@
     if (item.ice === 0) {
       state.obstaclesCleared = Math.min(state.obstacleGoal, state.obstaclesCleared + 1);
       item.obs = null;
-      if (obs === "vault") {
+      item.originObs = null;
+      recordMissionBreak(originObs, obs);
+
+      if (obs === "vault" || obs === "pyramid_safe") {
         state.coins += 75;
         state.score += 125;
-        say("فتحت الخزنة الملكية! +75 عملة");
-      } else if (obs === "golden_cage") {
+        say(obs === "pyramid_safe" ? "فتحت خزنة الهرم! +75 عملة" : "فتحت الخزنة الملكية! +75 عملة");
+      } else if (obs === "golden_cage" || obs === "scarab_gem_box") {
         state.coins += 50;
         state.score += 100;
-        say("فتحت القفص الذهبي! +50 عملة");
+        say(obs === "scarab_gem_box" ? "فتحت صندوق الجعران! +50 عملة" : "فتحت القفص الذهبي! +50 عملة");
+      } else if (def.lampBlast) {
+        // Magic Lamp fires a golden horizontal row-clearing beam!
+        rocketSweepAt({ r, c });
+        triggerBoardShake();
+        triggerHaptic(30);
+        playSfx("rocket");
+        say("المصباح السحري أطلق شعاع الصف! ✨");
+        for (let col = 0; col < COLS; col++) {
+          if (col === c) continue;
+          const nb = state.grid[r]?.[col];
+          if (!nb) continue;
+          if (nb.ice > 0 || nb.obs) {
+            damageIceAt(r, col, 30, "booster");
+          } else {
+            if (nb.mesh && !nb.mesh.isDisposed?.()) {
+              burstAt(nb.mesh.position, nb.type);
+              nb.mesh.dispose();
+            }
+            state.grid[r][col] = null;
+            state.score += 65;
+          }
+        }
       } else if (def.reward) {
         const sp = ["striped", "wrapped", "color"];
         item.special = sp[Math.floor(Math.random() * sp.length)];
@@ -964,6 +1175,19 @@
     if (impactPosition) {
       iceImpactAt(impactPosition, item.ice);
       playSfx("ice");
+    }
+    if (state.iceRemaining === 1 && state.obstacleGoal > 1) {
+      showCharacterSpeech("one_left");
+    }
+    const meta = Core.getStageMeta(state.level);
+    if (item.ice === 0) {
+      state.turnBrokeObstacle = true;
+      chargeHeroes("special", 1);
+      if (meta.isBossStage) {
+        triggerHaptic([20, 40, 20]);
+        damageBossFromBoard("obstacle", { r, c }, 1);
+        showCharacterSpeech("boss_attack");
+      }
     }
     return true;
   }
@@ -1040,6 +1264,8 @@
   }
 
   function canInteractWithBoard() {
+    if (state.bonusTimeRunning) return false;
+    if (window.CMRQueenTutorial?.isBlockingInput?.()) return false;
     return state.levelReady && !state.settingsOpen && stateMachine.canAcceptInput();
   }
 
@@ -1053,9 +1279,13 @@
       "pointerdown",
       (event) => {
         if (!canInteractWithBoard()) return;
+        clearHintOverlay();
         event.preventDefault();
         const startCell = pickCellAtClient(event.clientX, event.clientY);
         if (!startCell) return;
+        if (!state.booster && window.CMRQueenTutorial && !window.CMRQueenTutorial.isCellAllowed(startCell.r, startCell.c)) {
+          return;
+        }
         gesture = {
           pointerId: event.pointerId,
           startX: event.clientX,
@@ -1133,14 +1363,19 @@
 
   function tapCell(cell) {
     if (!canInteractWithBoard()) return;
+    clearHintOverlay();
     if (state.booster) {
       void useSelectedBooster(cell);
+      return;
+    }
+    if (window.CMRQueenTutorial && !window.CMRQueenTutorial.isCellAllowed(cell.r, cell.c)) {
       return;
     }
     if (state.selected) {
       const previous = state.selected;
       if (previous.r === cell.r && previous.c === cell.c) {
         clearSelection();
+        resetIdleHintTimer();
         return;
       }
       if (Math.abs(previous.r - cell.r) + Math.abs(previous.c - cell.c) === 1) {
@@ -1239,6 +1474,7 @@
 
   async function dropAndRefill() {
     const falling = [];
+    const pityBias = pityTracker ? pityTracker.getSpawnBias(state.level) : 0;
     for (let c = 0; c < COLS; c++) {
       let write = ROWS - 1;
       for (let r = ROWS - 1; r >= 0; r--) {
@@ -1256,12 +1492,14 @@
         }
       }
       for (let r = write; r >= 0; r--) {
-        const type = rand();
+        const type = Systems?.pickBiasedCandyType
+          ? Systems.pickBiasedCandyType(state.grid, r, c, ROWS, COLS, TYPES, pityBias)
+          : rand();
         const mesh = candyMesh(r, c, type, null, 0, null);
         const target = pos(r, c);
         const rowsAbove = write - r + 1;
         mesh.position = new BABYLON.Vector3(target.x, 0.16, target.z + SPACING * (rowsAbove + 0.6));
-        state.grid[r][c] = { type, special: null, ice: 0, obs: null, mesh };
+        state.grid[r][c] = { type, special: null, ice: 0, obs: null, originObs: null, mesh };
         mesh.metadata = { r, c, candy: true };
         falling.push(animate(mesh, target, Math.min(260, 150 + rowsAbove * 22)));
       }
@@ -1271,94 +1509,174 @@
   }
 
   async function activateSpecial(a, b) {
-    const A = state.grid[a.r][a.c];
-    const B = state.grid[b.r][b.c];
-    if (A?.special || B?.special) {
+    try {
+      const A = state.grid[a.r]?.[a.c];
+      const B = state.grid[b.r]?.[b.c];
+      const plan = Systems?.computeSuperComboPlan
+        ? Systems.computeSuperComboPlan(state.grid, ROWS, COLS, a, b)
+        : null;
+
       const kind = A?.special || B?.special;
-      playSfx(kind === "wrapped" ? "bomb" : kind === "striped" ? "rocket" : "color");
-      if (A?.special === "wrapped") wrappedDetonationAt(a, A.type);
-      else if (A?.special === "striped") rocketSweepAt(a);
-      else if (A?.special === "color") colorChainAt(a, B?.type || null);
-      if (B?.special === "wrapped") wrappedDetonationAt(b, B.type);
-      else if (B?.special === "striped") rocketSweepAt(b);
-      else if (B?.special === "color") colorChainAt(b, A?.type || null);
-    }
+      if (kind) {
+        playSfx(kind === "wrapped" ? "bomb" : kind === "striped" ? "rocket" : "color");
+      }
+      if (A?.special === "striped" || B?.special === "striped") {
+        window.CMREventBus?.emit?.("rocket:used", { source: "special_swap", cell: b });
+      }
 
-    const cells = new Set([a.r + "," + a.c, b.r + "," + b.c]);
-    const addCross = (cell) => {
-      for (let k = 0; k < COLS; k++) cells.add(cell.r + "," + k);
-      for (let k = 0; k < ROWS; k++) cells.add(k + "," + cell.c);
-    };
+      if (plan) {
+        if (plan.hapticMs) triggerHaptic(plan.hapticMs);
+        if (plan.shake) triggerBoardShake();
+        chargeHeroes("special", plan.isSuperCombo ? 2 : 1);
+        window.CMRHeroBossVFX?.onHeroReaction?.("special");
+        if (Core.getStageMeta(state.level).isBossStage) {
+          const bossSrc = plan.isSuperCombo
+            ? "super_combo"
+            : kind === "color"
+            ? "color"
+            : kind === "wrapped"
+            ? "bomb"
+            : "rocket";
+          damageBossFromBoard(bossSrc, b, plan.isSuperCombo ? 1.5 : 1);
+        }
+        if (plan.isSuperCombo && plan.bannerAr) {
+          showComboCallout(plan.bannerAr, 5, "#fbbf24");
+          showCharacterSpeech("big_combo");
+        }
 
-    if (A?.special === "color" && B?.special === "color") {
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) cells.add(r + "," + c);
-    } else if (A?.special === "wrapped" && B?.special === "wrapped") {
-      for (const center of [a, b]) {
-        for (let r = center.r - 2; r <= center.r + 2; r++) {
-          for (let c = center.c - 2; c <= center.c + 2; c++) {
-            if (inBounds(r, c)) cells.add(r + "," + c);
+        // Special VFX for Super Combos
+        if (plan.comboType === "rocket_bomb") {
+          const ctr = plan.center || b;
+          wrappedDetonationAt(ctr, A?.type || 1);
+          for (let offset = -1; offset <= 1; offset++) {
+            const rr = Math.max(0, Math.min(ROWS - 1, ctr.r + offset));
+            const cc = Math.max(0, Math.min(COLS - 1, ctr.c + offset));
+            rocketSweepAt({ r: rr, c: cc });
           }
-        }
-      }
-    } else if (
-      (A?.special === "wrapped" && B?.special === "striped") ||
-      (B?.special === "wrapped" && A?.special === "striped")
-    ) {
-      const center = A.special === "wrapped" ? a : b;
-      for (let offset = -1; offset <= 1; offset++) {
-        for (let c = 0; c < COLS; c++) if (inBounds(center.r + offset, c)) cells.add(center.r + offset + "," + c);
-        for (let r = 0; r < ROWS; r++) if (inBounds(r, center.c + offset)) cells.add(r + "," + (center.c + offset));
-      }
-    } else if (A?.special === "wrapped" || B?.special === "wrapped") {
-      const center = A?.special === "wrapped" ? a : b;
-      for (let r = center.r - 1; r <= center.r + 1; r++) {
-        for (let c = center.c - 1; c <= center.c + 1; c++) {
-          if (inBounds(r, c)) cells.add(r + "," + c);
-        }
-      }
-    } else if (A?.special === "striped" && B?.special === "striped") {
-      addCross(a);
-      addCross(b);
-    } else if (A?.special === "color" || B?.special === "color") {
-      const other = A.special === "color" ? B : A;
-      const target = other?.type;
-      if (target) {
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            if (state.grid[r][c]?.type === target) {
-              cells.add(r + "," + c);
-              if (other.special === "striped") addCross({ r, c });
+        } else if (plan.comboType === "rocket_rocket") {
+          rocketSweepAt(a);
+          rocketSweepAt(b);
+        } else if (plan.comboType === "bomb_bomb") {
+          wrappedDetonationAt(a, A?.type || 1);
+          wrappedDetonationAt(b, B?.type || 1);
+        } else if (plan.comboType === "color_rocket" || plan.comboType === "color_bomb") {
+          colorChainAt(A?.special === "color" ? a : b, plan.targetColor);
+          // Clear the two swapped anchors first
+          for (const anc of [a, b]) {
+            const item = state.grid[anc.r]?.[anc.c];
+            if (item) {
+              if (item.mesh && !item.mesh.isDisposed?.()) {
+                burstAt(item.mesh.position, item.type);
+                item.mesh.dispose();
+              }
+              state.grid[anc.r][anc.c] = null;
+              state.score += 100;
             }
           }
+          // Convert every matching-color candy into Rockets or Bombs visually
+          const targets = (plan.chainTargets || []).slice(0, 12);
+          for (const t of targets) {
+            const cellItem = state.grid[t.r]?.[t.c];
+            if (!cellItem || cellItem.obs || cellItem.ice > 0) continue;
+            cellItem.special = plan.convertTo;
+            if (cellItem.mesh && !cellItem.mesh.isDisposed?.()) cellItem.mesh.dispose();
+            cellItem.mesh = candyMesh(t.r, t.c, cellItem.type, plan.convertTo, 0, null);
+          }
+          await wait(120);
+          // Detonate each converted piece in rapid 90ms chain reactions!
+          for (const t of targets) {
+            if (plan.convertTo === "striped") {
+              rocketSweepAt(t);
+              playSfx("rocket");
+              window.CMREventBus?.emit?.("rocket:used", { source: "color_rocket_chain", cell: t });
+            } else {
+              wrappedDetonationAt(t, plan.targetColor);
+              playSfx("bomb");
+            }
+            triggerHaptic(12);
+            const blastCells = new Set();
+            if (plan.convertTo === "striped") {
+              for (let col = 0; col < COLS; col++) blastCells.add(t.r + "," + col);
+              for (let row = 0; row < ROWS; row++) blastCells.add(row + "," + t.c);
+            } else {
+              for (let rr = t.r - 1; rr <= t.r + 1; rr++) {
+                for (let cc = t.c - 1; cc <= t.c + 1; cc++) {
+                  if (inBounds(rr, cc)) blastCells.add(rr + "," + cc);
+                }
+              }
+            }
+            for (const key of blastCells) {
+              const [rr, cc] = key.split(",").map(Number);
+              const it = state.grid[rr]?.[cc];
+              if (!it) continue;
+              if (it.ice > 0 || it.obs) {
+                damageIceAt(rr, cc, 30, "booster");
+              } else {
+                if (it.mesh && !it.mesh.isDisposed?.()) {
+                  burstAt(it.mesh.position, it.type);
+                  it.mesh.dispose();
+                }
+                state.grid[rr][cc] = null;
+                state.score += 70;
+              }
+            }
+            updateHud();
+            await wait(plan.chainDelayMs || 90);
+          }
+          return;
+        } else {
+          if (A?.special === "wrapped") wrappedDetonationAt(a, A.type);
+          else if (A?.special === "striped") rocketSweepAt(a);
+          else if (A?.special === "color") colorChainAt(a, B?.type || null);
+          if (B?.special === "wrapped") wrappedDetonationAt(b, B.type);
+          else if (B?.special === "striped") rocketSweepAt(b);
+          else if (B?.special === "color") colorChainAt(b, A?.type || null);
         }
-      }
-    } else {
-      if (A?.special === "striped") addCross(a);
-      if (B?.special === "striped") addCross(b);
-    }
 
-    for (const key of cells) {
-      const [r, c] = key.split(",").map(Number);
-      const it = state.grid[r]?.[c];
-      if (!it) continue;
-      if (it.ice > 0 || it.obs) {
-        damageIceAt(r, c, 25, "booster");
-      } else {
-        if (it.mesh && !it.mesh.isDisposed?.()) {
-          burstAt(it.mesh.position, it.type);
-          it.mesh.dispose();
+        for (const key of plan.cells) {
+          const [r, c] = key.split(",").map(Number);
+          const it = state.grid[r]?.[c];
+          if (!it) continue;
+          if (it.ice > 0 || it.obs) {
+            damageIceAt(r, c, 30, "booster");
+          } else {
+            if (it.mesh && !it.mesh.isDisposed?.()) {
+              burstAt(it.mesh.position, it.type);
+              it.mesh.dispose();
+            }
+            state.grid[r][c] = null;
+            state.score += plan.isSuperCombo ? 85 : 60;
+          }
         }
-        state.grid[r][c] = null;
-        state.score += 60;
+        return;
       }
+
+      // Safe fallback if Systems is unavailable
+      const cells = new Set([a.r + "," + a.c, b.r + "," + b.c]);
+      for (const key of cells) {
+        const [r, c] = key.split(",").map(Number);
+        const it = state.grid[r]?.[c];
+        if (!it) continue;
+        if (it.ice > 0 || it.obs) damageIceAt(r, c, 25, "booster");
+        else {
+          if (it.mesh && !it.mesh.isDisposed?.()) {
+            burstAt(it.mesh.position, it.type);
+            it.mesh.dispose();
+          }
+          state.grid[r][c] = null;
+          state.score += 60;
+        }
+      }
+    } finally {
+      updateHud();
+      await wait(120);
     }
-    updateHud();
-    await wait(140);
   }
 
   function isObjectiveCompletedNow() {
     state.iceRemaining = countObstacles();
-    return state.levelReady && state.obstacleGoal > 0 && state.iceRemaining === 0;
+    const bossDefeated = Boolean(state.bossBattleState?.getState?.().defeated);
+    return state.levelReady && (bossDefeated || (state.obstacleGoal > 0 && state.iceRemaining === 0));
   }
 
   async function settle(actionToken) {
@@ -1381,7 +1699,14 @@
       if (matches.size === 0) break;
 
       chain++;
-      playSfx("match");
+      const pitchRate = Systems?.computeComboPitchRate ? Systems.computeComboPitchRate(chain) : 1;
+      playSfx("match", { playbackRate: pitchRate });
+
+      if (chain >= 2) {
+        const callout = Systems?.getComboCallout?.(chain);
+        if (callout) showComboCallout(callout.text, callout.tier, callout.accent);
+        if (chain >= 3) showCharacterSpeech("big_combo");
+      }
 
       const matchedSpecials = [];
       for (const key of matches) {
@@ -1395,18 +1720,27 @@
             for (let x = c - 1; x <= c + 1; x++) if (inBounds(y, x)) matches.add(y + "," + x);
           }
           playSfx("bomb");
+          triggerHaptic(30);
+          triggerBoardShake();
           wrappedDetonationAt({ r, c }, item.type);
+          if (Core.getStageMeta(state.level).isBossStage) damageBossFromBoard("bomb", { r, c }, 1);
         } else if (item.special === "striped") {
           for (let x = 0; x < COLS; x++) matches.add(r + "," + x);
           for (let y = 0; y < ROWS; y++) matches.add(y + "," + c);
           playSfx("rocket");
+          triggerHaptic(30);
+          triggerBoardShake();
+          window.CMREventBus?.emit?.("rocket:used", { source: "cascade", cell: { r, c } });
           rocketSweepAt({ r, c });
+          if (Core.getStageMeta(state.level).isBossStage) damageBossFromBoard("rocket", { r, c }, 1);
         } else if (item.special === "color") {
           for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) if (state.grid[y][x]?.type === item.type) matches.add(y + "," + x);
           }
           playSfx("color");
+          triggerHaptic(12);
           colorChainAt({ r, c }, item.type);
+          if (Core.getStageMeta(state.level).isBossStage) damageBossFromBoard("color", { r, c }, 1);
         }
       }
 
@@ -1462,11 +1796,15 @@
         it.special = groupSpecial;
         if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
         it.mesh = candyMesh(keep.r, keep.c, it.type, groupSpecial, it.ice || 0, it.obs || null);
+        triggerHaptic(12);
       }
 
       if (chain > 1) {
         state.score += matches.size * 10;
       }
+      const isSpecialMove = Boolean(groupSpecial || matchedSpecials.length > 0 || matches.size >= 4 || chain >= 2);
+      chargeHeroes(isSpecialMove ? "special" : chain > 1 ? "cascade" : "normal", 1);
+      window.CMRHeroBossVFX?.onHeroReaction?.(isSpecialMove ? "special" : "normal");
       triggerCharacterCombo(chain);
       updateHud();
 
@@ -1504,6 +1842,9 @@
   async function swap(a, b) {
     if (!canInteractWithBoard() || !inBounds(a.r, a.c) || !inBounds(b.r, b.c)) return;
     if (Math.abs(a.r - b.r) + Math.abs(a.c - b.c) !== 1) return;
+    if (window.CMRQueenTutorial && !window.CMRQueenTutorial.isSwapAllowed(a, b)) {
+      return;
+    }
     const A = state.grid[a.r]?.[a.c];
     const B = state.grid[b.r]?.[b.c];
     if (!A || !B || isCellLocked(A) || isCellLocked(B)) {
@@ -1513,6 +1854,10 @@
     }
 
     if (!stateMachine.beginResolving()) return;
+    clearHintOverlay();
+    state.lastMoveUsedBooster = false;
+    state.turnBrokeObstacle = false;
+    state.turnConsumedMove = false;
     const token = stateMachine.getToken();
     syncPhaseAttributes();
     clearSelection();
@@ -1529,6 +1874,7 @@
 
       if (A.special || B.special) {
         state.moves = Math.max(0, state.moves - 1);
+        state.turnConsumedMove = true;
         updateHud();
         await activateSpecial(a, b);
         if (stateMachine.getToken() !== token) return;
@@ -1542,6 +1888,7 @@
         if (B.mesh) B.mesh.metadata = { r: b.r, c: b.c, candy: true };
       } else {
         state.moves = Math.max(0, state.moves - 1);
+        state.turnConsumedMove = true;
         updateHud();
         await settle(token);
       }
@@ -1573,6 +1920,8 @@
     if (!anchor) return;
 
     if (!stateMachine.beginResolving()) return;
+    clearHintOverlay();
+    state.lastMoveUsedBooster = true;
     const token = stateMachine.getToken();
     syncPhaseAttributes();
     clearSelection();
@@ -1590,6 +1939,7 @@
           say("اختر حلوى بجوار لون مختلف.");
           stateMachine.finishResolvingToPlaying();
           syncPhaseAttributes();
+          resetIdleHintTimer();
           return;
         }
         const newType = state.grid[target[0]][target[1]].type;
@@ -1601,6 +1951,7 @@
         state.score += 40;
         state.moves = Math.max(0, state.moves - 1);
         playSfx("booster");
+        triggerHaptic(12);
         say("تم تغيير لون الحلوى!");
       } else {
         const cells = new Set();
@@ -1619,6 +1970,12 @@
         }
         if (anchor.mesh) shockwaveAt(anchor.mesh.position, kind);
         playSfx(kind);
+        if (kind === "bomb" || kind === "rocket") {
+          triggerHaptic(30);
+          triggerBoardShake();
+        } else {
+          triggerHaptic(12);
+        }
         for (const key of cells) {
           const [r, c] = key.split(",").map(Number);
           const it = state.grid[r]?.[c];
@@ -1635,7 +1992,10 @@
           state.score += kind === "color" ? 75 : 85;
         }
         if (kind === "bomb") state.hammer--;
-        if (kind === "rocket") state.rockets--;
+        if (kind === "rocket") {
+          state.rockets--;
+          window.CMREventBus?.emit?.("rocket:used", { source: "booster", cell });
+        }
         if (kind === "color") state.colors--;
         state.moves = Math.max(0, state.moves - 1);
         say(
@@ -1671,35 +2031,333 @@
     }
   }
 
-  function finalizeTurn() {
+  async function runVictoryBonusTimeAndShowModal() {
+    if (state.bonusTimeRunning) return;
+    state.bonusTimeRunning = true;
+    clearHintOverlay();
+    window.CMRQueenTutorial?.cancelAll?.();
+
+    const banner = $("bonusTimeBanner");
+    const rocketLayer = $("bonusRocketLayer");
+    const remaining = Math.max(0, Math.floor(Number(state.moves) || 0));
+    state.earnedMovesForStars = remaining;
+    state.lastBonusTimeCoins = 0;
+
+    try {
+      if (remaining > 0) {
+        const totalBonusCoins = remaining * 25;
+        state.lastBonusTimeCoins = totalBonusCoins;
+        if (banner) {
+          banner.classList.remove("hidden");
+          void banner.offsetWidth;
+          banner.classList.add("is-show");
+        }
+        playSfx("coin");
+        const blasts = Math.min(10, remaining);
+        const coinsPerBlast = Math.floor(totalBonusCoins / blasts);
+        let coinsAdded = 0;
+        let movesRemainingVisual = remaining;
+
+        for (let i = 0; i < blasts; i++) {
+          if (stateMachine.phase !== Core.GAME_STATES.WON) break;
+          const r = Math.floor(Math.random() * ROWS);
+          const c = Math.floor(Math.random() * COLS);
+          const it = state.grid[r]?.[c];
+          if (rocketLayer) {
+            const fly = document.createElement("img");
+            fly.className = "bonus-flying-rocket";
+            fly.src = "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png";
+            fly.alt = "";
+            fly.style.setProperty("--tx", `${((c + 0.5) / COLS) * 100}%`);
+            fly.style.setProperty("--ty", `${((r + 0.5) / ROWS) * 100}%`);
+            rocketLayer.appendChild(fly);
+            setTimeout(() => fly.remove(), 420);
+          }
+          if (it?.mesh && !it.mesh.isDisposed?.()) {
+            burstAt(it.mesh.position, it.type);
+            shockwaveAt(it.mesh.position, i % 2 === 0 ? "rocket" : "bomb");
+          }
+          playSfx("rocket", { playbackRate: Math.min(1.6, 1 + i * 0.06) });
+          triggerHaptic(12);
+          const moveDrop = i === blasts - 1 ? movesRemainingVisual : Math.max(1, Math.floor(remaining / blasts));
+          movesRemainingVisual = Math.max(0, movesRemainingVisual - moveDrop);
+          state.moves = movesRemainingVisual;
+          const addNow = i === blasts - 1 ? totalBonusCoins - coinsAdded : coinsPerBlast;
+          coinsAdded += addNow;
+          state.coins += addNow;
+          state.score += 100;
+          updateHud();
+          await wait(160);
+        }
+        await wait(220);
+      }
+    } catch (err) {
+      console.error("[CMR] Bonus Time error:", err);
+    } finally {
+      if (banner) {
+        banner.classList.remove("is-show");
+        banner.classList.add("hidden");
+      }
+      if (rocketLayer) rocketLayer.textContent = "";
+      state.bonusTimeRunning = false;
+      showOutcomeModal(true);
+    }
+  }
+
+  // ---- Hero Ultimate Power & Boss HP Battle Orchestration ----
+  function syncHeroChargeUI() {
+    if (!state.heroChargeTracker) return;
+    const c = state.heroChargeTracker.getState();
+    window.CMRHeroBossVFX?.updateChargeRingDOM?.("left", c.left);
+    window.CMRHeroBossVFX?.updateChargeRingDOM?.("right", c.right);
+  }
+
+  function chargeHeroes(kind, count = 1) {
+    if (!state.heroChargeTracker || Core.getStageMeta(state.level).isBossStage) return;
+    if (kind === "special") state.heroChargeTracker.onSpecialOrObstacleBreak(count);
+    else if (kind === "cascade") state.heroChargeTracker.onCascadeMatch();
+    else state.heroChargeTracker.onNormalMatch();
+    syncHeroChargeUI();
+  }
+
+  function damageBossFromBoard(source, cell, magnitude = 1) {
+    if (!state.bossBattleState || !state.bossBattleState.isBossStage) return;
+    const res = state.bossBattleState.applyDamage(source, magnitude);
+    if (res.orbsCount > 0) {
+      window.CMRHeroBossVFX?.fireGoldenEnergyOrbsToBoss?.(cell, res.orbsCount, () => {
+        triggerBoardShake();
+        triggerHaptic([20, 35, 20]);
+        window.CMRHeroBossVFX?.updateBossHpBarDOM?.(state.bossBattleState.getState().hpPercent);
+      });
+    } else {
+      window.CMRHeroBossVFX?.updateBossHpBarDOM?.(res.hpPercent);
+    }
+  }
+
+  async function triggerHeroUltimate(side) {
+    if (!HeroBossEngine || !state.heroChargeTracker) return false;
+    if (Core.getStageMeta(state.level).isBossStage) return false;
+    if (!canInteractWithBoard()) return false;
+    const ch = state.heroChargeTracker.getState();
+    if ((side === "left" && !ch.leftReady) || (side === "right" && !ch.rightReady)) return false;
+
+    if (!stateMachine.beginResolving()) return false;
+    clearHintOverlay();
+    clearSelection();
+    clearActiveBooster();
+    state.turnConsumedMove = false;
+    state.turnBrokeObstacle = false;
+    const token = stateMachine.getToken();
+    syncPhaseAttributes();
+
+    try {
+      state.heroChargeTracker.consume(side);
+      syncHeroChargeUI();
+      const setup = HeroBossEngine.getStageCharacterSetup(state.level);
+
+      if (side === "right") {
+        // Crystal Dragon: Cyan-Gold Crystal Energy Beam onto high-density obstacle cluster
+        const plan = HeroBossEngine.pickDragonBeamTargets(state.grid, ROWS, COLS);
+        say("⚡ تنين الكريستال أطلق شعاع الطاقة الكريستالي!");
+        showComboCallout("شعاع التنين! ⚡", 5, "#38bdf8");
+        await new Promise((resolve) => {
+          window.CMRHeroBossVFX?.fireDragonCrystalBeam?.(plan.anchor, plan.targets, () => {
+            triggerBoardShake();
+            triggerHaptic(30);
+            for (const t of plan.targets) {
+              const it = state.grid[t.r]?.[t.c];
+              if (!it) continue;
+              if (it.ice > 0 || it.obs) {
+                damageIceAt(t.r, t.c, 45, "booster");
+                if (state.grid[t.r]?.[t.c]?.ice > 0) damageIceAt(t.r, t.c, 45, "booster");
+              } else {
+                if (it.mesh && !it.mesh.isDisposed?.()) {
+                  burstAt(it.mesh.position, it.type);
+                  it.mesh.dispose();
+                }
+                state.grid[t.r][t.c] = null;
+                state.score += 90;
+              }
+            }
+            updateHud();
+            resolve();
+          });
+        });
+        await wait(240);
+        if (stateMachine.getToken() !== token) return true;
+        await settle(token);
+      } else if (setup.leftHeroId === "pharaoh_boy") {
+        // Pharaoh Boy: Ankh staff blasts 1 layer off ALL active obstacles
+        const obsTargets = HeroBossEngine.pickPharaohAnkhTargets(state.grid, ROWS, COLS);
+        say("✨ الأمير الفرعوني أطلق قوة مفتاح العنخ على جميع العوائق!");
+        showComboCallout("قوة العنخ! ✨", 5, "#fde047");
+        const boltTargets = obsTargets.slice(0, 6);
+        await new Promise((resolve) => {
+          window.CMRHeroBossVFX?.fireLeftHeroMagicBolts?.(
+            "pharaoh_boy",
+            boltTargets,
+            () => {},
+            () => {
+              triggerBoardShake();
+              triggerHaptic(30);
+              for (const t of obsTargets) {
+                damageIceAt(t.r, t.c, 40, "booster");
+              }
+              updateHud();
+              resolve();
+            }
+          );
+        });
+        await wait(200);
+        if (stateMachine.getToken() !== token) return true;
+        await settle(token);
+      } else {
+        // Queen Luma: 3 pink-gold magic bolts transform 3 random candies into Candy Rockets
+        const rocketTargets = HeroBossEngine.pickQueenRocketTargets(state.grid, ROWS, COLS, 3);
+        say("🪄 الملكة لوما حوّلت 3 قطع إلى صواريخ كاندي!");
+        showComboCallout("سحر الملكة! 🪄", 5, "#f472b6");
+        await new Promise((resolve) => {
+          window.CMRHeroBossVFX?.fireLeftHeroMagicBolts?.(
+            "queen_luma",
+            rocketTargets,
+            (cell) => {
+              const it = state.grid[cell.r]?.[cell.c];
+              if (!it || it.obs || it.ice > 0) return;
+              it.special = "striped";
+              if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+              it.mesh = candyMesh(cell.r, cell.c, it.type, "striped", 0, null);
+              playSfx("rocket");
+              triggerHaptic(12);
+            },
+            () => {
+              updateHud();
+              resolve();
+            }
+          );
+        });
+        await wait(160);
+      }
+      return true;
+    } catch (err) {
+      console.error("[CMR] Hero ultimate error:", err);
+      return false;
+    } finally {
+      if (stateMachine.getToken() === token) {
+        finalizeTurn();
+      }
+    }
+  }
+
+  async function runBossPunishmentCounterAttack() {
+    if (!HeroBossEngine || !state.bossBattleState || !state.bossBattleState.isBossStage) return;
+    if (state.bossBattleState.getState().defeated) return;
+    const targets = HeroBossEngine.pickBossLightningTargets(state.grid, ROWS, COLS, 3);
+    if (!targets.length) {
+      state.bossBattleState.resetCounterMoves();
+      return;
+    }
+    const cfg = Core.getLevelConfig(state.level);
+    const spawnObs = cfg.obstacles[0] || "single_ice";
+    const def = OBSTACLE_DEFS[spawnObs] || OBSTACLE_DEFS.single_ice;
+
+    say("⚡ زعيم ملك الحلوى يشن هجوم البرق الغاضب!");
+    triggerBoardShake();
+
+    await new Promise((resolve) => {
+      window.CMRHeroBossVFX?.playBossPunishmentAttack?.(
+        targets,
+        () => {
+          triggerBoardShake();
+          triggerHaptic([30, 40, 30]);
+          for (const t of targets) {
+            const it = state.grid[t.r]?.[t.c];
+            if (!it || it.obs || it.ice > 0) continue;
+            it.obs = spawnObs;
+            it.originObs = spawnObs;
+            it.ice = Math.max(1, def.introHp || 1);
+            it.special = null;
+            if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+            it.mesh = candyMesh(t.r, t.c, it.type, null, it.ice, it.obs);
+            const targetRow = (state.missionTargets || []).find((m) => m.id === spawnObs);
+            if (targetRow) targetRow.required += 1;
+          }
+          state.iceRemaining = countObstacles();
+          state.obstacleGoal = Math.max(state.obstacleGoal, state.obstaclesCleared + state.iceRemaining);
+          state.bossBattleState.resetCounterMoves();
+          updateHud();
+        },
+        resolve
+      );
+    });
+  }
+
+  async function finalizeTurn() {
     state.iceRemaining = countObstacles();
+    const meta = Core.getStageMeta(state.level);
+
+    // On Boss stages: defeating the Boss via 0% HP OR clearing all obstacles wins!
+    let bossDefeatedNow = Boolean(state.bossBattleState?.getState?.().defeated);
+    if (meta.isBossStage && state.bossBattleState && state.iceRemaining === 0 && !bossDefeatedNow) {
+      const drained = state.bossBattleState.drainRemainingToZero();
+      window.CMRHeroBossVFX?.updateBossHpBarDOM?.(0);
+      if (drained.orbsCount > 0) {
+        window.CMRHeroBossVFX?.fireGoldenEnergyOrbsToBoss?.({ r: 3, c: 3 }, drained.orbsCount);
+      }
+      bossDefeatedNow = true;
+    }
     updateHud();
 
     const outcome = stateMachine.evaluateOutcome({
       levelReady: state.levelReady,
       obstacleGoal: state.obstacleGoal,
-      remainingObstacles: state.iceRemaining,
+      remainingObstacles: bossDefeatedNow ? 0 : state.iceRemaining,
       movesLeft: state.moves,
     });
 
     if (outcome === Core.GAME_STATES.WON) {
       cancelAllAnimations();
-      showOutcomeModal(true);
+      if (meta.isBossStage) {
+        window.CMRHeroBossVFX?.updateBossHpBarDOM?.(0);
+        window.CMRHeroBossVFX?.playBossDefeat?.();
+        await wait(480);
+      }
+      void runVictoryBonusTimeAndShowModal();
       return;
     }
 
     if (outcome === Core.GAME_STATES.LOST) {
       cancelAllAnimations();
+      clearHintOverlay();
       showOutcomeModal(false);
       return;
+    }
+
+    // Boss 5-Move (4-Move in Palace 3+) Punishment Attack if no obstacle broken
+    if (meta.isBossStage && state.bossBattleState && state.turnConsumedMove) {
+      const punish = state.bossBattleState.recordMoveOutcome(Boolean(state.turnBrokeObstacle));
+      state.turnConsumedMove = false;
+      state.turnBrokeObstacle = false;
+      if (punish.shouldCounterAttack) {
+        await runBossPunishmentCounterAttack();
+      }
     }
 
     stateMachine.finishResolvingToPlaying();
     syncPhaseAttributes();
 
+    if (state.moves === 3) {
+      showCharacterSpeech("low_moves");
+    }
+
     if (state.moves > 0 && !hasPossibleMove()) {
       shuffle(true);
     }
+
+    const usedBooster = Boolean(state.lastMoveUsedBooster);
+    state.lastMoveUsedBooster = false;
+    window.CMRQueenTutorial?.onTutorialMoveResolved?.({ usedBooster });
+
+    resetIdleHintTimer();
     saveProgress(false);
   }
 
@@ -1897,6 +2555,7 @@
     const cyan = new BABYLON.Color3(0.16, 0.82, 1);
     beamBetween(pos(cell.r, 0), pos(cell.r, COLS - 1), cyan, 260);
     beamBetween(pos(0, cell.c), pos(ROWS - 1, cell.c), cyan, 260);
+    window.CMREventBus?.emit?.("rocket:used", { source: "striped", cell });
   }
 
   function wrappedDetonationAt(cell, type) {
@@ -2015,6 +2674,11 @@
     if (scoreEl) scoreEl.textContent = state.score.toLocaleString("en-US");
     const movesEl = $("moves");
     if (movesEl) movesEl.textContent = String(state.moves);
+    const hudPanelMoves = $("hudPanelMoves");
+    if (hudPanelMoves) {
+      hudPanelMoves.textContent = String(state.moves);
+      hudPanelMoves.classList.toggle("is-low", state.moves <= 5);
+    }
     const heartEl = $("heartCount");
     if (heartEl) heartEl.textContent = String(state.lives);
     const coinEl = $("coinCount");
@@ -2026,6 +2690,31 @@
     const levelLabelEl = $("levelLabel");
     if (levelLabelEl) levelLabelEl.textContent = `المرحلة ${state.level}`;
 
+    // Render Top Objective Mission HUD (3 recessed dark-blue slots + bottom pill sockets)
+    const targets = Array.isArray(state.missionTargets) ? state.missionTargets : [];
+    for (let i = 0; i < 3; i++) {
+      const slotEl = $("missionSlot" + i);
+      const imgEl = $("missionSlotImg" + i);
+      const pillEl = $("missionSlotPill" + i);
+      const target = targets[i];
+      if (!slotEl || !imgEl || !pillEl) continue;
+      if (!target) {
+        slotEl.classList.add("is-empty");
+        slotEl.classList.remove("is-done");
+        imgEl.removeAttribute("src");
+        imgEl.alt = "";
+        pillEl.textContent = "";
+      } else {
+        const doneCount = Math.min(target.required, target.broken);
+        const completed = doneCount >= target.required;
+        slotEl.classList.remove("is-empty");
+        slotEl.classList.toggle("is-done", completed);
+        if (imgEl.getAttribute("src") !== target.imgSrc) imgEl.src = target.imgSrc;
+        imgEl.alt = target.nameAr;
+        pillEl.textContent = completed ? "✓" : `${doneCount}/${target.required}`;
+      }
+    }
+
     const objective = $("obstacleObjective");
     if (objective) {
       const done = Math.min(state.obstaclesCleared, state.obstacleGoal);
@@ -2035,12 +2724,18 @@
 
     const db = $("difficultyBadge");
     if (db) {
+      db.classList.remove("is-boss", "is-hard", "is-super-hard");
       if (meta.isBossStage) {
-        db.textContent = `👑 ${meta.bossName} · القصر ${meta.palaceNumber}`;
+        db.textContent = `👑 زعيم`;
         db.classList.add("is-boss");
+      } else if (cfg.isSuperHard) {
+        db.textContent = `⚡ خارق`;
+        db.classList.add("is-super-hard");
+      } else if (cfg.isHard) {
+        db.textContent = `🔥 صعبة`;
+        db.classList.add("is-hard");
       } else {
-        db.textContent = `القصر ${meta.palaceNumber} · مرحلة ${meta.stageInPalace} (${cfg.diffLabel})`;
-        db.classList.remove("is-boss");
+        db.textContent = `م ${meta.stageInPalace}`;
       }
       db.hidden = false;
     }
@@ -2185,12 +2880,37 @@
 
   function hideResultModal() {
     clearVictoryConfetti();
+    window.CMROutcomeUI?.cancelPending?.();
     const modal = $("resultModal");
     const winView = $("victoryView");
     const lossView = $("defeatView");
     if (winView) winView.classList.add("hidden");
     if (lossView) lossView.classList.add("hidden");
     if (modal) modal.classList.add("hidden");
+    if (!document.body.classList.contains("map-open")) {
+      window.CMRResumeGameRender?.();
+    }
+  }
+
+  function commitStageLossHeartCost() {
+    if (!state.lossHandled) {
+      pityTracker?.recordFail?.(state.level);
+      state.lives = Math.max(0, state.lives - 1);
+      state.lossHandled = true;
+      if (state.lives < Core.MAX_LIVES && !state.lastHeartAt) {
+        state.lastHeartAt = Date.now();
+      }
+      updateHud();
+      saveProgress(false);
+    }
+    if (state.pendingDefeatFail) {
+      state.pendingDefeatFail = false;
+      window.CMREventBus?.emit?.("stage:fail", {
+        level: state.level,
+        livesLeft: state.lives,
+        usedExtraMoves: false,
+      });
+    }
   }
 
   function showOutcomeModal(won) {
@@ -2199,7 +2919,6 @@
     const lossView = $("defeatView");
     const title = $("resultTitle");
     const message = $("resultText");
-    const starsEl = $("resultStars");
     const defeatSubtext = $("defeatSubtext");
     const meta = Core.getStageMeta(state.level);
 
@@ -2211,48 +2930,105 @@
     const activeToast = $("toast");
     if (activeToast) activeToast.classList.remove("show");
 
+    let victoryPayload = null;
+    let outOfMovesPayload = null;
+
     try {
+      const cfg = Core.getLevelConfig(state.level);
       if (won) {
+        pityTracker?.recordWin?.(state.level);
         state.obstaclesCleared = state.obstacleGoal;
+        for (const t of state.missionTargets || []) t.broken = t.required;
         state.lossHandled = false;
-        const earnedStars = state.moves >= 12 ? 3 : state.moves >= 6 ? 2 : 1;
-        if (!state.stageStars || typeof state.stageStars !== "object") state.stageStars = {};
-        const prevStageStars = Number(state.stageStars[String(state.level)] || 0);
-        state.stageStars[String(state.level)] = Math.max(prevStageStars, earnedStars);
+        state.pendingDefeatFail = false;
+
+        const starMoves = state.earnedMovesForStars !== null ? state.earnedMovesForStars : state.moves;
+        const earnedStars = OutcomeEngine
+          ? OutcomeEngine.calculateStarsEarned({
+              score: state.score,
+              remainingMoves: starMoves,
+              level: state.level,
+              isBoss: meta.isBossStage,
+              objectivesCleared: true,
+            })
+          : starMoves >= 6
+          ? 3
+          : starMoves >= 3
+          ? 2
+          : 1;
+
+        const mergedStars = OutcomeEngine
+          ? OutcomeEngine.mergeStageStars(state.stageStars, state.level, earnedStars)
+          : (() => {
+              const map = state.stageStars && typeof state.stageStars === "object" ? { ...state.stageStars } : {};
+              const prev = Number(map[String(state.level)] || 0);
+              const best = Math.max(prev, earnedStars);
+              map[String(state.level)] = best;
+              return { stageStars: map, prevStars: prev, bestStars: best, starDelta: Math.max(0, best - prev) };
+            })();
+        state.stageStars = mergedStars.stageStars;
+
         const rewardGranted = safeClaimLevelReward(state.level);
-        const coinReward = meta.isBossStage ? 250 : 150;
-        const gemReward = meta.isBossStage ? 5 : 2;
+        const baseCoins = meta.isBossStage ? 250 : 150;
+        const mult = cfg.coinMultiplier || 1;
+        const coinReward = Math.round(baseCoins * mult);
+        const gemReward = meta.isBossStage ? 5 : cfg.isSuperHard ? 4 : cfg.isHard ? 3 : 2;
         if (rewardGranted) {
           state.stars += earnedStars;
           state.coins += coinReward;
           state.gems += gemReward;
-        } else if (earnedStars > prevStageStars) {
-          state.stars += earnedStars - prevStageStars;
+        } else if (mergedStars.starDelta > 0) {
+          state.stars += mergedStars.starDelta;
         }
-        state.highestUnlocked = Math.max(
-          state.highestUnlocked,
-          Math.min(Core.TOTAL_STAGES, state.level + 1)
-        );
+        const nextStageNum = Math.min(Core.TOTAL_STAGES, state.level + 1);
+        state.highestUnlocked = Math.max(state.highestUnlocked, nextStageNum);
+        state.lastCompletedVictory = {
+          completedStage: state.level,
+          nextStage: nextStageNum,
+          starsEarned: earnedStars,
+        };
+
         updateHud();
         saveProgress(true);
-        window.CMRProfile?.vibrate?.([28, 35, 28]);
+        triggerHaptic([28, 35, 28]);
         window.CMRProfile?.onGameplayProgress?.();
+        window.CMREventBus?.emit?.("stage:win", {
+          level: state.level,
+          stars: earnedStars,
+          isBoss: meta.isBossStage,
+        });
 
         winView.classList.remove("hidden");
         lossView.classList.add("hidden");
         modal.classList.remove("is-defeat");
+        modal.classList.add("is-victory");
 
-        if (title) {
-          title.textContent = meta.isBossStage
-            ? `هزمت ${meta.bossName}!`
-            : `المرحلة ${meta.stageInPalace} مكتملة · ${meta.palace.name}`;
-        }
-        if (starsEl) starsEl.textContent = "⭐".repeat(earnedStars) + "☆".repeat(3 - earnedStars);
-        if (message) {
-          message.textContent = rewardGranted
-            ? `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · المكافأة: +${coinReward} عملة و+${gemReward} جوهرة · النقاط: ${state.score.toLocaleString("en-US")}`
-            : `الأهداف: ${state.obstacleGoal}/${state.obstacleGoal} · النقاط: ${state.score.toLocaleString("en-US")} (تم استلام مكافأة المرحلة سابقاً)`;
-        }
+        const stageSubtitle = meta.isBossStage
+          ? `هزمت ${meta.bossName}!`
+          : `المرحلة ${meta.stageInPalace} مكتملة · ${meta.palace.name}`;
+        const bonusNote =
+          state.lastBonusTimeCoins > 0
+            ? `مكافأة الحركات المتبقية: +${state.lastBonusTimeCoins} عملة ✨`
+            : `أكملت جميع الأهداف (${state.obstacleGoal}/${state.obstacleGoal}) بنجاح!`;
+
+        if (title) title.textContent = stageSubtitle;
+        if (message) message.textContent = bonusNote;
+
+        const totalCoinsShown = (rewardGranted ? coinReward : 0) + (state.lastBonusTimeCoins || 0);
+        const totalGemsShown = rewardGranted ? gemReward : 0;
+        const isMilestone = meta.isBossStage || cfg.isHard || cfg.isSuperHard || meta.stageInPalace % 10 === 0;
+
+        victoryPayload = {
+          starsEarned: earnedStars,
+          score: state.score,
+          coins: Math.max(totalCoinsShown, coinReward),
+          gems: totalGemsShown,
+          isBoss: meta.isBossStage,
+          ribbonTitle: meta.isBossStage || earnedStars === 3 ? "انتصار ساحق!" : "فوز ملكي!",
+          stageSubtitle,
+          bonusNote,
+          showGems: isMilestone || totalGemsShown > 0,
+        };
 
         state.lastWinCoinReward = rewardGranted ? coinReward : 0;
         state.lastWinDoubled = false;
@@ -2273,15 +3049,9 @@
         triggerCharacterResult(true);
         playSfx("win");
       } else {
-        if (!state.lossHandled) {
-          state.lives = Math.max(0, state.lives - 1);
-          state.lossHandled = true;
-          if (state.lives < Core.MAX_LIVES && !state.lastHeartAt) {
-            state.lastHeartAt = Date.now();
-          }
-        }
+        // Defer 1-Heart deduction until player taps Quit/Retry so Ad/Gem Revive keeps their heart intact!
+        state.lossHandled = false;
         updateHud();
-        saveProgress(false);
 
         winView.classList.add("hidden");
         lossView.classList.remove("hidden");
@@ -2289,14 +3059,46 @@
         modal.classList.add("is-defeat");
 
         const remainingObs = countObstacles();
+        const temptation = OutcomeEngine
+          ? OutcomeEngine.formatRemainingObjectiveTemptation(state.missionTargets, remainingObs)
+          : {
+              totalRemaining: Math.max(1, remainingObs),
+              primaryObstacleId: state.missionTargets?.[0]?.id || "single_ice",
+              primaryRemaining: Math.max(1, remainingObs),
+              primaryRequired: Math.max(1, state.obstacleGoal || remainingObs),
+              headlineAr:
+                remainingObs === 1
+                  ? "باقي عائق واحد فقط على الفوز!"
+                  : remainingObs === 2
+                  ? "باقي عائقان فقط على الفوز!"
+                  : `باقي ${remainingObs} عوائق فقط على الفوز!`,
+            };
+        const obsDef = OBSTACLE_DEFS[temptation.primaryObstacleId] || OBSTACLE_DEFS.single_ice;
+        const obsIcon = obsDef?.imgSrc || `./assets/packs/blockers/${obsDef?.img || "1"}.png`;
+
+        outOfMovesPayload = {
+          temptation,
+          obstacleIconSrc: obsIcon,
+          obstacleLabelAr: obsDef?.nameAr || "عائق",
+          gemsBalance: state.gems,
+          gemCost: OutcomeEngine?.REVIVE_GEMS_COST || 15,
+          livesLeft: state.lives,
+          maxLives: Core.MAX_LIVES,
+        };
+
         if (defeatSubtext) {
           defeatSubtext.textContent =
             state.lives > 0
-              ? `تبقى ${remainingObs} عوائق · قلوبك المتبقية: ${state.lives}/${Core.MAX_LIVES}`
-              : `تبقى ${remainingObs} عوائق · نفدت قلوبك! استخدم المساعدة أو المتجر لاستعادة القلوب.`;
+              ? `الخسارة تخصم قلباً واحداً · قلوبك الحالية: ${state.lives}/${Core.MAX_LIVES}`
+              : "تابع الآن بإعلان أو جواهر دون خسارة أي قلب!";
         }
 
         window.CMRAdMob?.syncOfflineAdButtons?.();
+        state.pendingDefeatFail = true;
+        window.CMREventBus?.emit?.("stage:fail-prompt", {
+          level: state.level,
+          livesLeft: state.lives,
+        });
         triggerCharacterResult(false);
         playSfx("lose");
       }
@@ -2305,12 +3107,19 @@
     }
 
     syncPhaseAttributes();
+    window.CMRPauseGameRender?.();
     modal.classList.remove("hidden");
     if (won) {
       triggerVictoryConfetti();
+      if (victoryPayload) {
+        window.CMROutcomeUI?.triggerVictoryPresentation?.(victoryPayload);
+      }
     } else {
       clearVictoryConfetti();
       modal.classList.add("is-defeat");
+      if (outOfMovesPayload) {
+        window.CMROutcomeUI?.triggerOutOfMovesPresentation?.(outOfMovesPayload);
+      }
     }
   }
 
@@ -2477,6 +3286,8 @@
   // ---- Stage Lifecycle: Launch, Restart, Next Stage, Exit to Map ----
   function startFreshBoardForCurrentLevel() {
     cancelAllAnimations();
+    clearHintOverlay();
+    window.CMRQueenTutorial?.cancelAll?.();
     clearSelection();
     clearActiveBooster();
     hideResultModal();
@@ -2487,11 +3298,29 @@
     state.lossHandled = false;
     state.levelReady = false;
     state.score = 0;
+    state.lastBonusTimeCoins = 0;
+    state.earnedMovesForStars = null;
+    state.bonusTimeRunning = false;
 
     const meta = Core.getStageMeta(state.level);
+    const cfg = Core.getLevelConfig(state.level);
     setBoardBackground(state.level);
     buildGrid();
     state.levelReady = true;
+    state.turnBrokeObstacle = false;
+    state.turnConsumedMove = false;
+
+    if (HeroBossEngine) {
+      state.heroChargeTracker = HeroBossEngine.createHeroChargeTracker();
+      state.bossBattleState = meta.isBossStage
+        ? HeroBossEngine.createBossBattleState(state.level, state.obstacleGoal)
+        : null;
+      window.CMRHeroBossVFX?.configureForStage?.(state.level);
+      syncHeroChargeUI();
+      if (state.bossBattleState) {
+        window.CMRHeroBossVFX?.updateBossHpBarDOM?.(100);
+      }
+    }
 
     refreshBoosterBadges();
     updateHud();
@@ -2499,7 +3328,22 @@
 
     if (meta.isBossStage) {
       playSfx("boss");
+      const multTxt = cfg.coinMultiplier ? `×${cfg.coinMultiplier}` : "×2";
+      showStageDifficultyBanner(`👑 ${meta.bossName} · ${multTxt} عملات`, "boss");
       say(`👑 مواجهة ${meta.bossName} في ${meta.palace.name}!`);
+    } else if (cfg.isSuperHard) {
+      showStageDifficultyBanner(`${cfg.difficultyTagAr} · ×2.5 عملات`, "super_hard");
+    } else if (cfg.isHard) {
+      showStageDifficultyBanner(`${cfg.difficultyTagAr} · ×2 عملات`, "hard");
+    }
+
+    // First-time Stage 1 triggers the 6-Step Guided Queen Spotlight Tutorial
+    if (state.level === 1 && window.CMRQueenTutorial && !window.CMRQueenTutorial.isTutorialDone()) {
+      window.CMRQueenTutorial.beginStage1Tutorial();
+    } else if (window.CMRQueenTutorial?.checkAndShowNewObstacles) {
+      window.CMRQueenTutorial.checkAndShowNewObstacles(cfg.obstacles, () => resetIdleHintTimer());
+    } else {
+      resetIdleHintTimer();
     }
   }
 
@@ -2547,6 +3391,9 @@
 
   function exitToWorldMap() {
     cancelAllAnimations();
+    clearHintOverlay();
+    window.CMRQueenTutorial?.cancelAll?.();
+    window.CMRHeroBossVFX?.stopAll?.();
     clearSelection();
     clearActiveBooster();
     hideResultModal();
@@ -2556,6 +3403,32 @@
     state.levelReady = false;
     saveProgress(false);
     window.CMRShowWorldMap?.();
+  }
+
+  function exitToPalaceWithVictoryTransition() {
+    const payload = state.lastCompletedVictory || {
+      completedStage: state.level,
+      nextStage: Math.min(Core.TOTAL_STAGES, state.level + 1),
+      starsEarned: Number(state.stageStars?.[String(state.level)] || 3),
+    };
+    state.lastCompletedVictory = null;
+    cancelAllAnimations();
+    clearHintOverlay();
+    window.CMRQueenTutorial?.cancelAll?.();
+    window.CMRHeroBossVFX?.stopAll?.();
+    clearSelection();
+    clearActiveBooster();
+    hideResultModal();
+    closeConfirmModal(false);
+    closeSettingsModal();
+    stateMachine.resetToPlaying();
+    state.levelReady = false;
+    saveProgress(true);
+    if (typeof window.CMROpenPalaceWithVictoryTransition === "function") {
+      window.CMROpenPalaceWithVictoryTransition(payload);
+    } else {
+      advanceToNextStage();
+    }
   }
 
   // ---- Gameplay Settings & Heart Confirmation Flow ----
@@ -2618,6 +3491,7 @@
       if (document.body.classList.contains("map-open")) return;
       if (stateMachine.isTerminal()) return;
     }
+    clearHintOverlay();
     state.settingsOpen = true;
     state.settingsContext = context;
     syncAudioUI();
@@ -2769,15 +3643,18 @@
 
   function applyRewardedAdGrant(reward) {
     if (!reward) return;
-    if (reward.extraMoves && stateMachine.phase === Core.GAME_STATES.LOST) {
+    const resultOpen = !$("resultModal")?.classList.contains("hidden");
+    if (reward.extraMoves && (stateMachine.phase === Core.GAME_STATES.LOST || state.pendingDefeatFail || resultOpen)) {
       state.moves += reward.extraMoves;
       state.lossHandled = false;
+      state.pendingDefeatFail = false;
       stateMachine.resetToPlaying();
       hideResultModal();
       updateHud();
       saveProgress(false);
       playSfx("coin");
-      say(`تمت إضافة +${reward.extraMoves} حركات إضافية! تابع اللعب الآن!`);
+      window.CMROutcomeUI?.showReviveCelebrateFlash?.(reward.extraMoves);
+      say(`✨ تمت إضافة +${reward.extraMoves} حركات إضافية! تابع اللعب الآن!`);
       return;
     }
     const nextInv = Core.applyRewardToInventory(getInventorySnapshot(), reward);
@@ -3096,6 +3973,14 @@
     bind("menuSettingsBtn", () => openSettingsModal("menu"));
     bind("menuShopBtn", () => openStoreModal("coins"));
 
+    // Hero Ultimate Charge Ring portrait taps (No move cost!)
+    bind("heroLeftBtn", () => {
+      void triggerHeroUltimate("left");
+    });
+    bind("heroRightBtn", () => {
+      void triggerHeroUltimate("right");
+    });
+
     // Login modal controls
     bind("loginCloseBtn", closeLoginModal);
     bind("loginAsGuestBtn", () => {
@@ -3150,7 +4035,9 @@
         playSfx("coin");
         say(`أهلاً بك يا ${name}! تم حفظ حسابك بنجاح.`);
         window.CMRProfile?.refresh?.();
-        if (document.body.dataset.state === "title") {
+        if (window.CMRQueenTutorial && !window.CMRQueenTutorial.isTutorialDone()) {
+          window.CMRQueenTutorial.startWelcomeToStage1(name);
+        } else if (document.body.dataset.state === "title") {
           window.CMRLaunchGame?.();
         }
       });
@@ -3299,7 +4186,7 @@
     bind("winNextBtn", async () => {
       playSfx("tap");
       await runPostWinInterstitial();
-      advanceToNextStage();
+      exitToPalaceWithVictoryTransition();
     });
     bind("winReplayBtn", () => {
       playSfx("tap");
@@ -3311,11 +4198,14 @@
       exitToWorldMap();
     });
 
-    // Defeat Transparent PNG Hotspots + Help Button
+    // Out-of-Moves Modal Actions: Primary Ad Revive (+5 Free Moves), 15-Gem Revive, Subtle Quit/Retry
     bind("lossWatchAdBtn", async () => {
       playSfx("tap");
       const btn = $("lossWatchAdBtn");
       const grantMoves = () => {
+        state.pendingDefeatFail = false;
+        state.lossHandled = false;
+        window.CMREventBus?.emit?.("stage:revive", { level: state.level, extraMoves: 5, method: "ad" });
         applyRewardedAdGrant({ extraMoves: 5 });
       };
       if (window.CMRAdMob && typeof window.CMRAdMob.showRewardedAd === "function") {
@@ -3333,12 +4223,37 @@
         window.CMRAdManager?.openRewardedAdModal?.("extra_moves", grantMoves);
       }
     });
+    bind("lossGemReviveBtn", () => {
+      playSfx("tap");
+      const gemCost = OutcomeEngine?.REVIVE_GEMS_COST || 15;
+      const extraMoves = OutcomeEngine?.REVIVE_EXTRA_MOVES || 5;
+      const res = OutcomeEngine
+        ? OutcomeEngine.applyGemRevive({ gems: state.gems, moves: state.moves }, gemCost, extraMoves)
+        : state.gems >= gemCost
+        ? { ok: true, gems: state.gems - gemCost, moves: state.moves + extraMoves, cost: gemCost, addedMoves: extraMoves }
+        : { ok: false, reason: "insufficient_gems" };
+      if (!res.ok) {
+        say(`تحتاج ${gemCost} جوهرة للمتابعة — يمكنك مشاهدة إعلان مجاني أو زيارة المتجر!`);
+        openStoreModal("gems");
+        return;
+      }
+      state.gems = res.gems;
+      state.pendingDefeatFail = false;
+      state.lossHandled = false;
+      window.CMREventBus?.emit?.("stage:revive", { level: state.level, extraMoves, method: "gems" });
+      applyRewardedAdGrant({ extraMoves });
+      syncMenuUI();
+      refreshShop();
+      window.CMRRefreshWorldMap?.();
+    });
     bind("lossRetryBtn", () => {
       playSfx("tap");
+      commitStageLossHeartCost();
       restartFromResultModal();
     });
     bind("lossMapBtn", () => {
       playSfx("tap");
+      commitStageLossHeartCost();
       exitToWorldMap();
     });
     bind("lossHelpBtn", () => {
@@ -3502,6 +4417,127 @@
     setFrame: setShopFrameTheme,
   };
 
+  // ---- Stage 1 Scripted Interactive Tutorial Board Builder ----
+  function fillCleanNoMatchBoard(keepIceCells) {
+    const iceSet = new Set((keepIceCells || []).map((p) => p.r + "," + p.c));
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        // Deterministic Latin-like pattern with zero accidental 3-matches
+        const type = ((r * 2 + c) % 6) + 1;
+        const isIce = iceSet.has(r + "," + c);
+        state.grid[r][c] = {
+          type,
+          special: null,
+          ice: isIce ? 1 : 0,
+          obs: isIce ? "single_ice" : null,
+          originObs: isIce ? "single_ice" : null,
+          mesh: null,
+        };
+      }
+    }
+  }
+
+  function setupTutorialStep(stepKey) {
+    if (!state.grid || !state.grid.length) return null;
+    // Keep 2 safe top-row ice tiles so tutorial never ends prematurely before Step 6
+    const safeIce = [
+      { r: 0, c: 0 },
+      { r: 0, c: 6 },
+    ];
+    let result = null;
+
+    if (stepKey === "match3") {
+      fillCleanNoMatchBoard([
+        { r: 3, c: 1 },
+        { r: 0, c: 0 },
+        { r: 0, c: 6 },
+      ]);
+      // Swap (3,3) left to (3,2) -> forms vertical 3-match of type 1 at (2,2),(3,2),(4,2) next to ice at (3,1)
+      state.grid[2][2].type = 1;
+      state.grid[4][2].type = 1;
+      state.grid[3][2].type = 3;
+      state.grid[3][3].type = 1;
+      state.grid[2][3].type = 5;
+      state.grid[4][3].type = 4;
+      result = { from: { r: 3, c: 3 }, to: { r: 3, c: 2 } };
+    } else if (stepKey === "rocket_create") {
+      fillCleanNoMatchBoard(safeIce);
+      // Swap (4,3) up to (3,3) -> horizontal 4-match of type 2 at row 3 cols 1,2,3,4
+      state.grid[3][1].type = 2;
+      state.grid[3][2].type = 2;
+      state.grid[3][3].type = 5;
+      state.grid[3][4].type = 2;
+      state.grid[4][3].type = 2;
+      state.grid[2][3].type = 4;
+      result = { from: { r: 4, c: 3 }, to: { r: 3, c: 3 } };
+    } else if (stepKey === "rocket_activate") {
+      fillCleanNoMatchBoard(safeIce);
+      state.grid[3][3].type = 2;
+      state.grid[3][3].special = "striped";
+      state.grid[3][4].type = 4;
+      result = { from: { r: 3, c: 3 }, to: { r: 3, c: 4 } };
+    } else if (stepKey === "bomb_create") {
+      fillCleanNoMatchBoard(safeIce);
+      // Swap (2,3) down to (3,3) -> T-match of type 3 at (3,2),(3,3),(3,4) & (3,3),(4,3),(5,3)
+      state.grid[3][2].type = 3;
+      state.grid[3][4].type = 3;
+      state.grid[4][3].type = 3;
+      state.grid[5][3].type = 3;
+      state.grid[3][3].type = 6;
+      state.grid[2][3].type = 3;
+      result = { from: { r: 2, c: 3 }, to: { r: 3, c: 3 } };
+    } else if (stepKey === "bomb_activate") {
+      fillCleanNoMatchBoard(safeIce);
+      state.grid[3][3].type = 3;
+      state.grid[3][3].special = "wrapped";
+      state.grid[3][4].type = 5;
+      result = { from: { r: 3, c: 3 }, to: { r: 3, c: 4 } };
+    } else if (stepKey === "color_create") {
+      fillCleanNoMatchBoard(safeIce);
+      // Swap (4,3) up to (3,3) -> horizontal 5-match of type 4 at row 3 cols 1,2,3,4,5
+      state.grid[3][1].type = 4;
+      state.grid[3][2].type = 4;
+      state.grid[3][3].type = 1;
+      state.grid[3][4].type = 4;
+      state.grid[3][5].type = 4;
+      state.grid[4][3].type = 4;
+      result = { from: { r: 4, c: 3 }, to: { r: 3, c: 3 } };
+    } else if (stepKey === "color_activate") {
+      fillCleanNoMatchBoard(safeIce);
+      state.grid[3][3].type = 4;
+      state.grid[3][3].special = "color";
+      state.grid[3][4].type = 1;
+      result = { from: { r: 3, c: 3 }, to: { r: 3, c: 4 } };
+    }
+
+    if (result) {
+      rebuildGridMeshes();
+      const iceNow = countObstacles();
+      state.iceRemaining = iceNow;
+      state.obstacleGoal = Math.max(state.obstacleGoal, iceNow);
+      state.missionTargets = [
+        {
+          id: "single_ice",
+          imgSrc: OBSTACLE_DEFS.single_ice.imgSrc || "./assets/packs/blockers/1.png",
+          nameAr: OBSTACLE_DEFS.single_ice.nameAr || "طبقة الجليد",
+          required: state.obstacleGoal,
+          broken: Math.max(0, state.obstacleGoal - iceNow),
+        },
+      ];
+      updateHud();
+    }
+    return result;
+  }
+
+  function grantFreeTutorialBooster(kind) {
+    if (kind === "rocket") state.rockets = Math.max(1, state.rockets + 1);
+    else if (kind === "bomb") state.hammer = Math.max(1, state.hammer + 1);
+    else if (kind === "color") state.colors = Math.max(1, state.colors + 1);
+    else if (kind === "paint") state.paints = Math.max(1, state.paints + 1);
+    refreshBoosterBadges();
+    updateHud();
+  }
+
   // Expose clean diagnostic/interaction API for verification & cross-module sync
   window.CMRGame = {
     getState: () => ({
@@ -3521,6 +4557,7 @@
       obstacleGoal: state.obstacleGoal,
       obstaclesRemaining: countObstacles(),
       obstaclesCleared: state.obstaclesCleared,
+      missionTargets: state.missionTargets,
       settingsOpen: state.settingsOpen,
       meta: Core.getStageMeta(state.level),
       profile: ensureGuestIdentity(),
@@ -3539,6 +4576,46 @@
     },
     getCellScreenPos: cellScreenPos,
     findFirstValidMove,
+    setupTutorialStep,
+    grantFreeTutorialBooster,
+    showSmartHintNow: renderSmartHint,
+    triggerComboCallout: showComboCallout,
+    triggerCharacterSpeech: (t) => showCharacterSpeech(t, true),
+    getHeroCharge: () => state.heroChargeTracker?.getState?.() || { left: 0, right: 0, leftReady: false, rightReady: false },
+    setHeroCharge: (side, pct) => {
+      if (!state.heroChargeTracker) return null;
+      const next = state.heroChargeTracker.setCharge(side, pct);
+      syncHeroChargeUI();
+      return next;
+    },
+    triggerHeroUltimate,
+    getBossState: () => state.bossBattleState?.getState?.() || null,
+    damageBossTest: (source = "bomb", mag = 1) => {
+      damageBossFromBoard(source, { r: 3, c: 3 }, mag);
+      return state.bossBattleState?.getState?.() || null;
+    },
+    triggerBossPunishment: () => runBossPunishmentCounterAttack(),
+    previewVictoryModal: ({ remainingMoves = 6, score = 3600 } = {}) => {
+      state.score = score;
+      state.moves = remainingMoves;
+      state.earnedMovesForStars = remainingMoves;
+      state.lastBonusTimeCoins = remainingMoves * 25;
+      stateMachine.resetToPlaying();
+      stateMachine.beginResolve?.();
+      stateMachine.evaluateOutcome({ remainingObstacles: 0, remainingMoves });
+      showOutcomeModal(true);
+    },
+    previewOutOfMovesModal: () => {
+      state.moves = 0;
+      stateMachine.resetToPlaying();
+      stateMachine.beginResolve?.();
+      stateMachine.evaluateOutcome({ remainingObstacles: Math.max(1, countObstacles()), remainingMoves: 0 });
+      showOutcomeModal(false);
+    },
+    getPityState: (lvl) => ({
+      fails: pityTracker?.getFailCount?.(lvl || state.level) || 0,
+      bias: pityTracker?.getSpawnBias?.(lvl || state.level) || 0,
+    }),
     openSettings: openSettingsModal,
     closeSettings: closeSettingsModal,
     openOutOfHeartsModal,

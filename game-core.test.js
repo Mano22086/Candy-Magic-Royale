@@ -28,7 +28,8 @@ test("10 palaces x 100 stages = 1,000 stages with Candy King boss at stage 50 of
     const lastMeta = core.getStageMeta(lastStage);
     assert.equal(lastMeta.palaceIndex, p);
     assert.equal(lastMeta.stageInPalace, 100);
-    assert.equal(lastMeta.isBossStage, false);
+    assert.equal(lastMeta.isBossStage, true);
+    assert.equal(lastMeta.bossName, "ملك الحلوى الأعظم");
   }
 });
 
@@ -499,6 +500,45 @@ test("Capacitor AndroidManifest.xml and package.json are properly configured for
   assert.ok(manifest.includes('android:name="com.google.android.gms.ads.APPLICATION_ID"'));
   assert.ok(manifest.includes('android:value="ca-app-pub-7895931535988996~2281008271"'));
 });
+
+test("all 4 Royal UI frame PNGs exist on disk and milestone achievements (obstacles, rockets, 3-star streaks) evaluate accurately", () => {
+  assert.ok(core.ROYAL_MODAL_FRAMES, "ROYAL_MODAL_FRAMES must be exported");
+  const expectedKeys = ["mail", "achievements", "calendar", "champions"];
+  for (const key of expectedKeys) {
+    const rel = core.ROYAL_MODAL_FRAMES[key];
+    assert.ok(rel && rel.endsWith(".png"), `Missing PNG path for royal frame ${key}`);
+    assert.ok(fs.existsSync(path.join(__dirname, rel)), `Royal frame PNG not found on disk: ${rel}`);
+  }
+
+  const evaluated = core.evaluateAchievements(
+    {
+      highestUnlocked: 105,
+      stars: 260,
+      obstaclesBroken: 120,
+      rocketsCreated: 30,
+      stageStars: { 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2 },
+      profileCustomized: true,
+    },
+    {}
+  );
+
+  const obs = evaluated.find((a) => a.id === "obstacles_100");
+  assert.ok(obs, "obstacles_100 achievement must exist");
+  assert.equal(obs.unlocked, true);
+  assert.equal(obs.current, 100);
+  assert.equal(obs.percent, 100);
+
+  const rkt = evaluated.find((a) => a.id === "rockets_25");
+  assert.ok(rkt, "rockets_25 achievement must exist");
+  assert.equal(rkt.unlocked, true);
+  assert.equal(rkt.current, 25);
+
+  const streak = evaluated.find((a) => a.id === "three_star_streak_5");
+  assert.ok(streak, "three_star_streak_5 achievement must exist");
+  assert.equal(streak.unlocked, true);
+  assert.equal(streak.current, 5);
+});
+
 
 
 

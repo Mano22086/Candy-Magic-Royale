@@ -113,6 +113,7 @@
   }
 
   async function mountIfNeeded() {
+    if (window.CMRHeroBossVFX) return;
     if (mounted || loading) return;
     if (!window.BABYLON || !window.BABYLON.SceneLoader) return;
 

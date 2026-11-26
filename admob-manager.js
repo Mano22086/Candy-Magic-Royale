@@ -367,6 +367,7 @@
     free_coins: "عملات مجانية",
     free_booster: "معزز مجاني",
     reward_chest: "صندوق الهدايا",
+    secret_vault_key: "+1 مفتاح مجاني (غرفة الكنز)",
   });
 
   async function showRewardedAd(placementId = "rewarded", onRewarded, options = {}) {

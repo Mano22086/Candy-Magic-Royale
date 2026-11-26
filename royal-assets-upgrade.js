@@ -203,11 +203,11 @@
     }
   }
 
-  function playSfx(channel) {
+  function playSfx(channel, options) {
     if (adPaused || !settings.sfxEnabled || settings.sfxVolume <= 0.001 || document.hidden) return;
     const key = SFX_MAP[channel] ? channel : "click";
     const now = performance.now();
-    const minGap = key === "match" || key === "ice" || key === "pop" ? 75 : 55;
+    const minGap = key === "match" || key === "ice" || key === "pop" ? 65 : 55;
     if (lastPlayedAt[key] && now - lastPlayedAt[key] < minGap) return;
     lastPlayedAt[key] = now;
 
@@ -216,6 +216,14 @@
     if (!audio) return;
     try {
       audio.volume = Math.max(0, Math.min(1, settings.sfxVolume));
+      const rate =
+        options && typeof options.playbackRate === "number" && Number.isFinite(options.playbackRate)
+          ? Math.max(0.7, Math.min(1.6, options.playbackRate))
+          : 1.0;
+      if ("preservesPitch" in audio) audio.preservesPitch = false;
+      if ("mozPreservesPitch" in audio) audio.mozPreservesPitch = false;
+      if ("webkitPreservesPitch" in audio) audio.webkitPreservesPitch = false;
+      audio.playbackRate = rate;
       audio.currentTime = 0;
       const p = audio.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
@@ -331,6 +339,7 @@
     setSfxVolume,
     setMuted,
     isMuted,
+    isSfxEnabled: () => Boolean(settings.sfxEnabled && settings.sfxVolume > 0.001),
     onChange(fn) {
       if (typeof fn === "function") listeners.add(fn);
       return () => listeners.delete(fn);

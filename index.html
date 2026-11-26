@@ -183,14 +183,65 @@
         <strong id="moves">25</strong>
       </div>
 
-      <!-- Center-Left Oval Slot: Queen Luma -->
-      <div class="art-hero art-queen" aria-label="الملكة لوما">
-        <img id="queen" src="./assets/Picsart_26-11-17_02-37-45-792.png" alt="الملكة لوما">
-      </div>
+      <!-- Center-Left Circular Hero Slot: Queen Luma (Odd Palaces) or Pharaoh Boy (Even Palaces) + Magenta-Gold Ultimate Charge Ring -->
+      <button type="button" class="art-hero art-queen hero-ult-btn" id="heroLeftBtn" aria-label="الملكة لوما — القوة الخارقة" data-charge="0">
+        <svg class="hero-charge-svg" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="heroLeftRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f472b6"/>
+              <stop offset="50%" stop-color="#fde047"/>
+              <stop offset="100%" stop-color="#d946ef"/>
+            </linearGradient>
+          </defs>
+          <circle class="hero-ring-track" cx="50" cy="50" r="45"/>
+          <circle class="hero-ring-fill is-magenta-gold" id="heroLeftRingFill" cx="50" cy="50" r="45" stroke="url(#heroLeftRingGrad)"/>
+        </svg>
+        <div class="hero-sprite-stage">
+          <div id="heroLeftSprite" class="cmr-sprite-4x4 is-hero-breath" role="img" aria-label="الملكة لوما"></div>
+        </div>
+        <span class="hero-ult-ready-badge hidden" id="heroLeftReadyBadge">جاهز! اضغط</span>
+      </button>
+      <div class="char-speech-bubble is-queen hidden" id="queenSpeechBubble" aria-hidden="true"></div>
 
-      <!-- Center-Right Oval Slot: 3D Pharaoh Dragon (with 2D fallback inside slot) -->
-      <div class="art-hero art-dragon" aria-label="أمير التنين">
-        <img id="dragon" src="./assets/Picsart_26-11-17_02-38-02-164.png" alt="أمير التنين">
+      <!-- Center-Right Circular Hero Slot: Crystal Dragon + Cyan-Gold Ultimate Charge Ring -->
+      <button type="button" class="art-hero art-dragon hero-ult-btn" id="heroRightBtn" aria-label="تنين الكريستال — القوة الخارقة" data-charge="0">
+        <svg class="hero-charge-svg" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="heroRightRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8"/>
+              <stop offset="50%" stop-color="#fde047"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <circle class="hero-ring-track" cx="50" cy="50" r="45"/>
+          <circle class="hero-ring-fill is-cyan-gold" id="heroRightRingFill" cx="50" cy="50" r="45" stroke="url(#heroRightRingGrad)"/>
+        </svg>
+        <div class="hero-sprite-stage">
+          <div id="heroRightSprite" class="cmr-sprite-4x4 is-dragon-hover" role="img" aria-label="تنين الكريستال"></div>
+        </div>
+        <span class="hero-ult-ready-badge is-cyan hidden" id="heroRightReadyBadge">جاهز! اضغط</span>
+      </button>
+      <div class="char-speech-bubble is-dragon hidden" id="dragonSpeechBubble" aria-hidden="true"></div>
+
+      <!-- Centered Red Gummy Bear Candy King Boss Arena (Stage 50 & Stage 100 of EVERY Palace) -->
+      <div class="boss-arena-stage hidden" id="bossArenaStage" aria-label="معركة زعيم ملك الحلوى">
+        <div class="boss-throne-aura" aria-hidden="true"></div>
+        <div class="boss-sprite-wrap">
+          <div id="bossCenterSprite" class="cmr-sprite-4x4 is-boss-breath" role="img" aria-label="زعيم ملك الحلوى"></div>
+        </div>
+        <div class="boss-hp-bar-wrap" id="bossHpBarWrap" dir="ltr" aria-label="طاقة الزعيم">
+          <div class="boss-hp-track">
+            <div class="boss-hp-fill" id="bossHpFill"></div>
+          </div>
+          <img
+            class="boss-hp-frame"
+            src="./public/assets/aistudio/image_5ccfa143-19dc-4aab-9a34-835ffcc3baf5_96da28e9.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          >
+          <span class="boss-hp-text" id="bossHpText">HP: 100%</span>
+        </div>
       </div>
 
       <!-- Right Square Slot: Hearts / Lives -->
@@ -206,24 +257,73 @@
         <span class="art-stars" hidden><b id="stars">0</b></span>
       </div>
 
-      <!-- Clean Compact Objective & Stage Strip between upper portraits and board -->
-      <div class="art-objective-strip">
-        <span class="diff-tier-badge" id="difficultyBadge">القصر 1 · مرحلة 1</span>
-        <div class="art-objective" id="obstacleObjective">اكسر العوائق 0/2</div>
-        <div class="art-score" aria-label="النقاط">
-          <img src="./assets/packs/buttons/icon_star.png" alt="">
-          <b id="score">0</b>
-          <small id="iceGoal" hidden>0</small>
+      <!-- Top Objective Mission HUD (Exact 512x197 Transparent hud_objective_panel_empty.png) -->
+      <div class="mission-hud-panel" id="missionHudPanel" dir="ltr" aria-label="أهداف المرحلة والحركات المتبقية">
+        <img
+          class="mission-hud-bg"
+          src="./public/assets/aistudio/image_69bf8423-4605-4734-9fac-cdd0dee86c04_121d90de.png"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        >
+        <!-- Left Blue Cove: Stage / Score / Hard Indicator -->
+        <div class="mission-hud-meta" dir="rtl">
+          <span class="diff-tier-badge mission-stage-tag" id="difficultyBadge">م 1</span>
+          <div class="mission-score-mini" aria-label="النقاط">
+            <img src="./assets/packs/buttons/icon_star.png" alt="">
+            <b id="score">0</b>
+          </div>
         </div>
+
+        <!-- 3 Recessed Dark-Blue Objective Slots + Bottom Pill Sockets -->
+        <div class="mission-slot mission-slot-0 is-empty" id="missionSlot0" data-slot="0">
+          <div class="mission-slot-icon-box">
+            <img class="mission-slot-img" id="missionSlotImg0" alt="" draggable="false">
+          </div>
+          <span class="mission-slot-pill" id="missionSlotPill0"></span>
+        </div>
+        <div class="mission-slot mission-slot-1 is-empty" id="missionSlot1" data-slot="1">
+          <div class="mission-slot-icon-box">
+            <img class="mission-slot-img" id="missionSlotImg1" alt="" draggable="false">
+          </div>
+          <span class="mission-slot-pill" id="missionSlotPill1"></span>
+        </div>
+        <div class="mission-slot mission-slot-2 is-empty" id="missionSlot2" data-slot="2">
+          <div class="mission-slot-icon-box">
+            <img class="mission-slot-img" id="missionSlotImg2" alt="" draggable="false">
+          </div>
+          <span class="mission-slot-pill" id="missionSlotPill2"></span>
+        </div>
+
+        <!-- Golden Circular Badge on the Right: Remaining Moves -->
+        <div class="mission-moves-circle" aria-label="الحركات المتبقية">
+          <strong id="hudPanelMoves">25</strong>
+        </div>
+
+        <!-- Hidden legacy summary text kept for accessibility & backwards-compatible selectors -->
+        <div class="art-objective sr-only" id="obstacleObjective">اكسر العوائق 0/2</div>
+        <small id="iceGoal" hidden>0</small>
       </div>
 
       <div class="art-message sr-only" id="characterMessage" aria-live="polite">أهلاً بك في مملكة الحلوى!</div>
     </section>
 
+    <!-- Full-Stage 60 FPS HTML5 Canvas VFX Layer (Crystal Beam, Magic Bolts, Golden Orbs, Danger Smoke & Boss Lightning) -->
+    <canvas id="battleVfxCanvas" class="battle-vfx-canvas" aria-hidden="true"></canvas>
+
     <!-- Exact 7x8 Board Area (zero artificial rim/frame — sits directly on the HD board grid) -->
-    <section class="board-wrap art-board-wrap" aria-label="لوحة الحلوى">
+    <section class="board-wrap art-board-wrap" id="boardWrap" aria-label="لوحة الحلوى">
       <div class="board-rim art-board-rim">
         <canvas id="renderCanvas" data-testid="game-canvas" touch-action="none"></canvas>
+        <!-- 5-Second Smart Auto-Hint Golden Pulsing Rings -->
+        <div class="board-hint-layer" id="boardHintLayer" aria-hidden="true"></div>
+        <!-- Center Board Glossy Arabic Combo & Super Combo Callout Banner -->
+        <div class="combo-callout-banner" id="comboCalloutBanner" dir="rtl" aria-hidden="true"></div>
+        <!-- Pre-Stage Hard / Super Hard Banner Tag -->
+        <div class="stage-diff-banner hidden" id="stageDiffBanner" dir="rtl" aria-hidden="true"></div>
+        <!-- Victory Bonus Time Fireworks Banner & Flying Rockets -->
+        <div class="bonus-time-banner hidden" id="bonusTimeBanner" dir="rtl" aria-hidden="true">وقت المكافأة! ✨</div>
+        <div class="bonus-rocket-layer" id="bonusRocketLayer" aria-hidden="true"></div>
         <div class="board-loading" id="loading">جاري تجهيز لوحة الحلوى...</div>
       </div>
     </section>
@@ -387,120 +487,190 @@
     </div>
   </div>
 
-  <!-- Professional Victory & Defeat Modal (Supplied Transparent PNGs + Flying Confetti) -->
+  <!-- Royal Kingdom Victory & Out-of-Moves Modal (Supplied Transparent PNGs + Star Slam + Confetti) -->
   <div class="modal hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
     <div class="victory-confetti" id="victoryConfetti" aria-hidden="true"></div>
 
-    <!-- Victory Screen View -->
-    <div class="result-art-view victory-view hidden" id="victoryView">
+    <!-- 1. Royal Victory Screen View (ui_victory_frame.png + 3 icon_victory_star.png Sockets) -->
+    <div class="result-art-view victory-view rk-outcome-view hidden" id="victoryView" dir="rtl">
       <div class="victory-royal-aura" aria-hidden="true"></div>
 
-      <!-- Queen Luma Celebrating Companion Accent -->
-      <div class="victory-queen-badge" aria-hidden="true">
-        <img src="./assets/Picsart_26-11-17_02-37-45-792.png" alt="">
-        <span>الملكة لوما تهنئك!</span>
-      </div>
-
-      <!-- Aspect-Locked Transparent Victory Artwork with Pixel-Aligned Interactive Buttons -->
-      <div class="artwork-stage victory-stage">
+      <div class="rk-outcome-stage rk-victory-frame-stage" id="rkVictoryStage">
         <img
-          src="./public/assets/aistudio/Picsart_26-11-24_21-58-55-365_00747e2e.png"
-          alt="فوز ملكي — شاشة الانتصار"
-          class="artwork-png"
+          src="./public/assets/aistudio/ui_victory_frame_dfff79ac.png"
+          alt="فوز ملكي — إطار الانتصار"
+          class="rk-outcome-frame-img"
+          draggable="false"
         >
-        <button
-          type="button"
-          id="winNextBtn"
-          class="art-hotspot hs-win-next"
-          aria-label="المرحلة التالية"
-          title="المرحلة التالية"
-        ></button>
-        <button
-          type="button"
-          id="winReplayBtn"
-          class="art-hotspot hs-win-replay"
-          aria-label="إعادة اللعب"
-          title="إعادة اللعب"
-        ></button>
-        <button
-          type="button"
-          id="winMapBtn"
-          class="art-hotspot hs-win-map"
-          aria-label="العودة إلى الخريطة"
-          title="العودة إلى الخريطة"
-        ></button>
 
-        <!-- Dynamic Live Rewards & Objectives Summary in Transparent Bottom Margin -->
-        <div class="win-summary-bar" id="winSummaryBar">
-          <div class="win-summary-head">
-            <strong id="resultTitle">فوز ملكي!</strong>
-            <span class="win-stars-inline" id="resultStars" aria-label="النجوم المكتسبة">⭐⭐⭐</span>
+        <!-- 3 Recessed Golden Star Sockets Aligned Precisely Over Top of Frame -->
+        <div class="rk-victory-stars-row" id="resultStars" aria-label="النجوم المكتسبة">
+          <div class="rk-victory-star-socket is-left is-empty" id="rkVictoryStarSlot1">
+            <img
+              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              alt="نجمة 1"
+              class="rk-victory-star-img"
+              draggable="false"
+            >
           </div>
-          <p id="resultText">أكملت أهداف المرحلة وحصلت على مكافآتك الملكية!</p>
+          <div class="rk-victory-star-socket is-center is-empty" id="rkVictoryStarSlot2">
+            <img
+              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              alt="نجمة 2"
+              class="rk-victory-star-img"
+              draggable="false"
+            >
+          </div>
+          <div class="rk-victory-star-socket is-right is-empty" id="rkVictoryStarSlot3">
+            <img
+              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              alt="نجمة 3"
+              class="rk-victory-star-img"
+              draggable="false"
+            >
+          </div>
+        </div>
+
+        <!-- Top Golden Ribbon Title ("فوز ملكي!" / "انتصار ساحق!") -->
+        <h2 class="rk-victory-ribbon-title" id="rkVictoryRibbonTitle">فوز ملكي!</h2>
+
+        <!-- Inner Royal Purple Panel Content -->
+        <div class="rk-victory-inner">
+          <div class="rk-victory-stage-pill">
+            <strong id="resultTitle">المرحلة 1 مكتملة</strong>
+            <small id="resultText">أكملت جميع الأهداف ببراعة ملكية!</small>
+          </div>
+
+          <!-- Animated Count-Up Score, Coins & Rare Gems -->
+          <div class="rk-victory-stats-grid" aria-label="نتائج ومكافآت المرحلة">
+            <div class="rk-vstat-card is-score">
+              <span class="rk-vstat-label">النقاط</span>
+              <strong class="rk-vstat-val" id="winStatScore">0</strong>
+            </div>
+            <div class="rk-vstat-card is-coins">
+              <span class="rk-vstat-label">عملات</span>
+              <div class="rk-vstat-row">
+                <img src="./public/assets/aistudio/06_shop_gold_coin_50095eb1.png" alt="" draggable="false">
+                <strong class="rk-vstat-val" id="winStatCoins">+150</strong>
+              </div>
+            </div>
+            <div class="rk-vstat-card is-gems" id="winStatGemsChip">
+              <span class="rk-vstat-label">جواهر</span>
+              <div class="rk-vstat-row">
+                <img src="./assets/packs/buttons/icon_gem.png" alt="" draggable="false">
+                <strong class="rk-vstat-val" id="winStatGems">+2</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional x2 Coins Rewarded Ad Booster -->
           <button
             type="button"
             id="winDoubleCoinsBtn"
-            class="win-double-coins-btn"
+            class="rk-victory-double-btn"
             data-ad-button="true"
             aria-label="مشاهدة إعلان لمضاعفة عملات الفوز"
           >
-            <img src="./public/assets/aistudio/06_shop_gold_coin_50095eb1.png" alt="">
-            <span id="winDoubleCoinsLabel">🎬 ×2 عملات</span>
+            <img src="./public/assets/aistudio/06_shop_gold_coin_50095eb1.png" alt="" draggable="false">
+            <span id="winDoubleCoinsLabel">🎬 ×2 عملات إضافية</span>
           </button>
+
+          <!-- Primary Big Glowing Green/Gold Next Stage CTA -->
+          <button
+            type="button"
+            id="winNextBtn"
+            class="rk-victory-next-btn"
+            aria-label="المرحلة التالية"
+          >
+            <span>المرحلة التالية</span>
+            <span class="rk-btn-arrow" aria-hidden="true">◀</span>
+          </button>
+
+          <!-- Compact Secondary Actions: Replay & Map -->
+          <div class="rk-victory-sub-actions">
+            <button type="button" id="winReplayBtn" class="rk-victory-mini-btn">
+              <span>↻ إعادة</span>
+            </button>
+            <button type="button" id="winMapBtn" class="rk-victory-mini-btn">
+              <span>🗺️ الخريطة</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Defeat Screen View -->
-    <div class="result-art-view defeat-view hidden" id="defeatView">
+    <!-- 2. Tempting Out-of-Moves Screen View (ui_out_of_moves_frame.png) -->
+    <div class="result-art-view defeat-view rk-outcome-view hidden" id="defeatView" dir="rtl">
       <div class="defeat-fantasy-aura" aria-hidden="true"></div>
 
-      <!-- Sad / Disappointed Dragon Companion -->
-      <div class="defeat-dragon-badge" id="defeatDragonBadge">
-        <img src="./assets/Picsart_26-11-17_02-38-02-164.png" alt="التنين البنفسجي حزين">
-        <div class="defeat-dragon-copy">
-          <strong>لا تستسلم يا بطل!</strong>
-          <small id="defeatSubtext">انتهت الحركات قبل كسر جميع العوائق</small>
-        </div>
-      </div>
-
-      <!-- Aspect-Locked Transparent Defeat Artwork with Pixel-Aligned Interactive Buttons -->
-      <div class="artwork-stage defeat-stage">
+      <div class="rk-outcome-stage rk-oom-frame-stage" id="rkOutOfMovesStage">
         <img
-          src="./public/assets/aistudio/Picsart_26-11-24_02-32-44-943_5bb9cc15.png"
-          alt="خسارة — انتهت الحركات"
-          class="artwork-png"
+          src="./public/assets/aistudio/ui_out_of_moves_frame_a6e09c8a.png"
+          alt="لا تستسلم — انتهت الحركات"
+          class="rk-outcome-frame-img"
+          draggable="false"
         >
-        <button
-          type="button"
-          id="lossWatchAdBtn"
-          class="art-hotspot hs-loss-ad"
-          data-ad-button="true"
-          aria-label="مشاهدة فيديو (+5 حركات)"
-          title="مشاهدة فيديو (+5 حركات)"
-        ></button>
-        <button
-          type="button"
-          id="lossRetryBtn"
-          class="art-hotspot hs-loss-retry"
-          aria-label="حاول مرة أخرى"
-          title="حاول مرة أخرى"
-        ></button>
-        <button
-          type="button"
-          id="lossMapBtn"
-          class="art-hotspot hs-loss-map"
-          aria-label="العودة إلى الخريطة"
-          title="العودة إلى الخريطة"
-        ></button>
-      </div>
 
-      <!-- Dedicated Functional Help Action -->
-      <div class="defeat-help-row">
-        <button type="button" id="lossHelpBtn" class="royal-help-btn">
-          <img src="./assets/packs/buttons/icon_cart.png" alt="">
-          <span>احصل على مساعدة (المتجر والمعززات)</span>
-        </button>
+        <!-- Top Red-Gold Curved Ribbon Title ("لا تستسلم!") -->
+        <h2 class="rk-oom-ribbon-title">لا تستسلم!</h2>
+
+        <!-- Inner Deep Burgundy-Purple Panel -->
+        <div class="rk-oom-inner">
+          <!-- Urgent Remaining Objective Temptation Card with Real Obstacle Icon -->
+          <div class="rk-oom-urgency-card" id="oomUrgencyCard">
+            <div class="rk-oom-obs-thumb">
+              <img
+                id="oomObstacleIcon"
+                src="./assets/packs/blockers/1.png"
+                alt="العائق المتبقي"
+                draggable="false"
+              >
+            </div>
+            <div class="rk-oom-urgency-copy">
+              <strong id="oomUrgencyHeadline">باقي عائقان فقط على الفوز!</strong>
+              <span id="oomUrgencyProgress">تبقى 2 من 4 — أنت قريب جداً!</span>
+            </div>
+          </div>
+
+          <!-- Primary Huge Glowing Ad Revive CTA (+5 Free Moves) -->
+          <button
+            type="button"
+            id="lossWatchAdBtn"
+            class="rk-oom-ad-cta"
+            data-ad-button="true"
+            aria-label="شاهد إعلان (+5 حركات مجاناً!)"
+          >
+            <span class="rk-oom-play-badge" aria-hidden="true">▶</span>
+            <span class="rk-oom-ad-copy">
+              <strong>شاهد إعلان</strong>
+              <small>(+5 حركات مجاناً!)</small>
+            </span>
+          </button>
+
+          <!-- Secondary Option: Continue with 15 Rare Gems (+5 Moves) -->
+          <button
+            type="button"
+            id="lossGemReviveBtn"
+            class="rk-oom-gem-cta"
+            aria-label="استمرار بـ 15 جوهرة (+5 حركات)"
+          >
+            <img src="./assets/packs/buttons/icon_gem.png" alt="" draggable="false">
+            <span>استمرار بـ <b id="lossGemReviveCost">15</b> جوهرة (+5 حركات)</span>
+          </button>
+
+          <p class="rk-oom-heart-hint" id="defeatSubtext">الخسارة تخصم قلباً واحداً · تابع اللعب دون خسارة قلب!</p>
+
+          <!-- Subtle Exit Links at Bottom -->
+          <div class="rk-oom-exit-row">
+            <button type="button" id="lossRetryBtn" class="rk-oom-exit-link">
+              خسارة / إعادة المحاولة
+            </button>
+            <span class="rk-oom-exit-sep" aria-hidden="true">·</span>
+            <button type="button" id="lossMapBtn" class="rk-oom-exit-link is-map">
+              العودة للخريطة
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -678,8 +848,23 @@
   <script src="./ad-manager.js?v=cmr-master-20261125"></script>
   <script src="./cmr-profile-system.js?v=cmr-master-20261125"></script>
   <script src="./cmr-lucky-wheel.js?v=cmr-master-20261125"></script>
-  <script src="./world-map.js?v=cmr-master-20261125"></script>
-  <script src="./game.js?v=cmr-master-20261125"></script>
+  <script src="./js/events/event-bus.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/events/royal-vault.js?v=cmr-events-p1-20261126"></script>
+  <script src="./js/events/rocket-rush.js?v=cmr-events-p1-20261126"></script>
+  <script src="./js/events/secret-vault.js?v=cmr-events-p1-20261126"></script>
+  <script src="./js/events/lava-quest.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/systems/card-album.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/social/teams.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/events/nile-league.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/events/coop-sphinx.js?v=cmr-events-p23-20261126"></script>
+  <script src="./js/gameplay/match3-systems.js?v=cmr-juice-20261126"></script>
+  <script src="./js/gameplay/queen-tutorial.js?v=cmr-juice-20261126"></script>
+  <script src="./js/gameplay/hero-boss-engine.js?v=cmr-boss-ult-20261126"></script>
+  <script src="./js/gameplay/hero-boss-vfx.js?v=cmr-boss-ult-20261126"></script>
+  <script src="./js/gameplay/outcome-celebration-engine.js?v=cmr-outcome-20261126"></script>
+  <script src="./js/gameplay/outcome-celebration-ui.js?v=cmr-outcome-20261126"></script>
+  <script src="./world-map.js?v=cmr-outcome-20261126"></script>
+  <script src="./game.js?v=cmr-outcome-20261126"></script>
   <script src="./royal-character-engine.js?v=cmr-master-20261125"></script>
   <script src="./dragon-3d-character.js?v=cmr-master-20261125"></script>
   <script src="./candy-pack-addon.js?v=cmr-master-20261125"></script>

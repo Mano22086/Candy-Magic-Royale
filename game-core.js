@@ -11,6 +11,7 @@
   const STAGES_PER_PALACE = 100;
   const TOTAL_STAGES = PALACES_COUNT * STAGES_PER_PALACE;
   const BOSS_STAGE_IN_PALACE = 50;
+  const BOSS_STAGES_IN_PALACE = Object.freeze([50, 100]);
   const MAX_LIVES = 5;
 
   const GAME_STATES = Object.freeze({
@@ -203,7 +204,8 @@
     const palaceIndex = Math.floor((stage - 1) / STAGES_PER_PALACE);
     const stageInPalace = ((stage - 1) % STAGES_PER_PALACE) + 1;
     const palace = PALACES[palaceIndex] || PALACES[0];
-    const isBossStage = stageInPalace === BOSS_STAGE_IN_PALACE;
+    const isBossStage = BOSS_STAGES_IN_PALACE.includes(stageInPalace);
+    const bossNumber = isBossStage ? palaceIndex * 2 + (stageInPalace === 50 ? 1 : 2) : 0;
     const variantIndex = (stageInPalace - 1) % 5; // 0..4 => 5 HD boards per palace
     const boardNumber = palace.boardStart + variantIndex; // 1..50
     const padded = String(boardNumber).padStart(2, "0");
@@ -215,55 +217,163 @@
       stageInPalace,
       palace,
       isBossStage,
-      bossName: isBossStage ? "زعيم ملك الحلوى" : null,
+      bossNumber,
+      bossName: isBossStage ? (stageInPalace === 100 ? "ملك الحلوى الأعظم" : "زعيم ملك الحلوى") : null,
       boardNumber,
       boardImagePath,
     };
   }
 
+  const HARD_MILESTONE_STAGES = Object.freeze([10, 40, 75]);
+  const SUPER_HARD_MILESTONE_STAGES = Object.freeze([25, 90]);
+
+  function getStageDifficultyTier(stageInPalace) {
+    const s = Math.max(1, Math.min(STAGES_PER_PALACE, Math.floor(Number(stageInPalace) || 1)));
+    if (BOSS_STAGES_IN_PALACE.includes(s)) {
+      return {
+        tier: "boss",
+        isHard: false,
+        isSuperHard: false,
+        isBoss: true,
+        tagAr: s === 100 ? "ملك الحلوى الأعظم 👑" : "زعيم ملك الحلوى 👑",
+        coinMultiplier: s === 100 ? 3 : 2,
+      };
+    }
+    if (SUPER_HARD_MILESTONE_STAGES.includes(s)) {
+      return {
+        tier: "super_hard",
+        isHard: false,
+        isSuperHard: true,
+        isBoss: false,
+        tagAr: "تحدي فرعوني خارق ⚡",
+        coinMultiplier: 2.5,
+      };
+    }
+    if (HARD_MILESTONE_STAGES.includes(s)) {
+      return {
+        tier: "hard",
+        isHard: true,
+        isSuperHard: false,
+        isBoss: false,
+        tagAr: "مرحلة صعبة 🔥",
+        coinMultiplier: 2,
+      };
+    }
+    return {
+      tier: "normal",
+      isHard: false,
+      isSuperHard: false,
+      isBoss: false,
+      tagAr: null,
+      coinMultiplier: 1,
+    };
+  }
+
+  // Palace-by-Palace progressive introduction of the 12 new Egyptian obstacles (obs_09..obs_20)
+  const PALACE_OBSTACLE_THEMES = Object.freeze([
+    ["single_ice", "caramel_jar", "sandstone_block"], // Palace 1 (introduces sandstone + caramel)
+    ["double_ice", "scarab_gem_box", "bubble_gum"], // Palace 2 (scarab box + bubble gum)
+    ["rope_net", "crystal_egg", "pharaoh_vase"], // Palace 3 (crystal egg + pharaoh vase)
+    ["stone_wall", "mummy_bandage", "fire_brazier"], // Palace 4 (mummy bandage + fire brazier)
+    ["roots", "lotus_flower", "sandstone_block"], // Palace 5 (lotus flower)
+    ["golden_cage", "magic_lamp", "scarab_gem_box"], // Palace 6 (magic lamp!)
+    ["vault", "obsidian_shield", "pharaoh_vase"], // Palace 7 (obsidian shield booster-only!)
+    ["iron_cage", "pyramid_safe", "lotus_flower"], // Palace 8 (pyramid safe!)
+    ["whirlpool", "magic_lamp", "obsidian_shield"], // Palace 9 (high-tier mix)
+    ["pyramid_safe", "obsidian_shield", "fire_brazier"], // Palace 10 (Grand Sun Pyramid)
+  ]);
+
   function getLevelConfig(globalStage) {
     const meta = getStageMeta(globalStage);
     const L = meta.globalStage;
     const s = meta.stageInPalace;
+    const pIdx = meta.palaceIndex;
+    const diffTier = getStageDifficultyTier(s);
+
     let obstacles = ["single_ice"];
     let diffLabel = "سهل";
+    let introSingleLayer = false;
+    let baseObstacles = 4;
+    let moves = 25;
 
-    if (meta.isBossStage) {
-      obstacles = ["vault", "golden_cage", "double_ice", "stone_wall"];
-      diffLabel = "زعيم ملك الحلوى";
-    } else if (L <= 2) {
-      obstacles = ["single_ice"];
-      diffLabel = "سهل";
-    } else if (L <= 5) {
-      obstacles = ["single_ice", "double_ice"];
-      diffLabel = "سهل";
-    } else if (L <= 10) {
-      obstacles = ["double_ice", "stone_wall"];
-      diffLabel = "سهل";
-    } else if (s <= 25) {
-      obstacles = ["single_ice", "rope_net"];
-      diffLabel = "متوسط";
-    } else if (s <= 45) {
-      obstacles = ["double_ice", "roots", "stone_wall"];
-      diffLabel = "متوسط";
-    } else if (s <= 70) {
-      obstacles = ["stone_wall", "vault", "golden_cage"];
-      diffLabel = "صعب";
-    } else if (s <= 90) {
-      obstacles = ["roots", "iron_cage", "whirlpool"];
-      diffLabel = "صعب جداً";
+    if (L <= 10) {
+      // Easy First 10 Stages (Palace 1 Intro): 1-layer light obstacles & generous +22..+28 moves
+      introSingleLayer = true;
+      if (L === 1) {
+        obstacles = ["single_ice"];
+        baseObstacles = 4;
+        moves = 28;
+      } else if (L <= 3) {
+        obstacles = ["single_ice"];
+        baseObstacles = 4 + (L - 1);
+        moves = 27;
+      } else if (L <= 6) {
+        obstacles = ["single_ice", "caramel_jar"];
+        baseObstacles = 5 + Math.floor((L - 3) / 2);
+        moves = 25;
+      } else if (L <= 9) {
+        obstacles = ["single_ice", "sandstone_block"];
+        baseObstacles = 6 + Math.floor((L - 6) / 2);
+        moves = 24;
+      } else {
+        // Stage 10: First Hard Milestone — still friendly 1-layer intro mix, x2 coins!
+        obstacles = ["single_ice", "caramel_jar", "sandstone_block"];
+        baseObstacles = 9;
+        moves = 22;
+      }
+      diffLabel = diffTier.isHard ? "مرحلة صعبة 🔥" : "سهل";
+    } else if (meta.isBossStage) {
+      // Stage 50 Boss: combines palace signature obstacles + obsidian shield in Palace 5+
+      const theme = PALACE_OBSTACLE_THEMES[pIdx] || PALACE_OBSTACLE_THEMES[0];
+      obstacles =
+        pIdx >= 4
+          ? [theme[0], "obsidian_shield", "pyramid_safe"]
+          : [theme[0], "vault", "golden_cage"];
+      diffLabel = "زعيم ملك الحلوى 👑";
+      baseObstacles = Math.min(20, 12 + pIdx);
+      moves = Math.max(22, 28 - Math.floor(pIdx / 3));
     } else {
-      obstacles = ["vault", "golden_cage", "iron_cage", "whirlpool"];
-      diffLabel = "ملكي";
+      // Stages 11–1,000: Gradual scaling introducing 1–2 new obstacles per Palace
+      const theme = PALACE_OBSTACLE_THEMES[pIdx] || PALACE_OBSTACLE_THEMES[0];
+      const prevTheme = PALACE_OBSTACLE_THEMES[Math.max(0, pIdx - 1)] || theme;
+
+      if (diffTier.isSuperHard) {
+        // Super Hard (25, 90): reserves obsidian_shield for Palace 3+ or late stages
+        obstacles =
+          pIdx >= 2 || s >= 90
+            ? [theme[1], theme[2], "obsidian_shield"]
+            : [theme[0], theme[1], "stone_wall"];
+        diffLabel = "تحدي فرعوني خارق ⚡";
+      } else if (diffTier.isHard) {
+        obstacles =
+          pIdx >= 3 && s >= 75
+            ? [theme[0], theme[2], "obsidian_shield"]
+            : [theme[0], theme[1], theme[2]];
+        diffLabel = "مرحلة صعبة 🔥";
+      } else if (s <= 30) {
+        obstacles = [theme[0], theme[1]];
+        diffLabel = pIdx === 0 ? "سهل" : "متوسط";
+      } else if (s <= 65) {
+        obstacles = [theme[1], theme[2]];
+        diffLabel = "متوسط";
+      } else {
+        obstacles = [prevTheme[1], theme[1], theme[2]];
+        diffLabel = "صعب";
+      }
+
+      const hardExtra = diffTier.isSuperHard ? 3 : diffTier.isHard ? 2 : 0;
+      baseObstacles = Math.min(
+        18,
+        5 + Math.floor((s - 1) / 10) + Math.min(4, Math.floor(pIdx / 2)) + hardExtra
+      );
+      moves = Math.max(
+        18,
+        Math.min(28, 25 - Math.floor((s - 1) / 16) - (diffTier.isSuperHard ? 2 : diffTier.isHard ? 1 : 0))
+      );
     }
 
-    const baseObstacles = meta.isBossStage
-      ? Math.min(20, 12 + meta.palaceIndex)
-      : Math.min(18, 2 + Math.floor((s - 1) / 8) + Math.min(4, Math.floor(meta.palaceIndex / 2)));
-
-    const moves = meta.isBossStage
-      ? Math.max(22, 28 - Math.floor(meta.palaceIndex / 3))
-      : Math.max(18, Math.min(30, 26 - Math.floor((s - 1) / 14)));
+    // Limit active mission types to max 3 distinct obstacles for the 3-slot Top Objective HUD
+    const uniqueObstacles = Array.from(new Set(obstacles)).slice(0, 3);
 
     return {
       level: L,
@@ -271,10 +381,18 @@
       palaceNumber: meta.palaceNumber,
       stageInPalace: s,
       isBossStage: meta.isBossStage,
+      isHard: diffTier.isHard,
+      isSuperHard: diffTier.isSuperHard,
+      isHardStage: diffTier.isHard,
+      isSuperHardStage: diffTier.isSuperHard,
+      difficultyTier: diffTier.tier,
+      difficultyTagAr: diffTier.tagAr,
+      coinMultiplier: diffTier.coinMultiplier,
+      introSingleLayer,
       bossName: meta.bossName,
       obstacleCount: Math.max(2, baseObstacles),
       moves,
-      obstacles,
+      obstacles: uniqueObstacles,
       diffLabel,
       boardImagePath: meta.boardImagePath,
       boardNumber: meta.boardNumber,
@@ -438,6 +556,13 @@
     royal_purple: "./public/assets/aistudio/shop_royal_kingdom_purple_02cd6eb8.png",
     candy_pink_blue: "./public/assets/aistudio/shop_candy_crush_pink_blue_56323b39.png",
     royal_open_azure: "./public/assets/aistudio/shop_royal_open_azure_a3f187e6.png",
+  });
+
+  const ROYAL_MODAL_FRAMES = Object.freeze({
+    mail: "./public/assets/aistudio/ui_1_royal_mail_270fc2e1.png",
+    achievements: "./public/assets/aistudio/ui_2_royal_achievements_5dc43009.png",
+    calendar: "./public/assets/aistudio/ui_3_daily_calendar_c966c2ca.png",
+    champions: "./public/assets/aistudio/ui_4_kingdom_champions_5dc36eea.png",
   });
 
   const SHOP_ICONS = Object.freeze({
@@ -1541,6 +1666,39 @@
       reward: { coins: 300, gems: 5 },
     },
     {
+      id: "obstacles_100",
+      badge: "./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png",
+      nameAr: "محطم العوائق",
+      nameEn: "Obstacle Breaker",
+      descAr: "اكسر 100 عائق وجليد عبر مراحل المملكة.",
+      descEn: "Break 100 obstacles and ice tiles across stages.",
+      metric: "obstaclesBroken",
+      target: 100,
+      reward: { coins: 350, gems: 5 },
+    },
+    {
+      id: "rockets_25",
+      badge: "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png",
+      nameAr: "صانع الصواريخ",
+      nameEn: "Rocket Crafter",
+      descAr: "كوّن أو أطلق 25 صاروخ حلوى سحرياً.",
+      descEn: "Create or launch 25 magical candy rockets.",
+      metric: "rocketsCreated",
+      target: 25,
+      reward: { coins: 300, gems: 4 },
+    },
+    {
+      id: "three_star_streak_5",
+      badge: "./assets/extracted/ui/icon_star_gold.png",
+      nameAr: "سلسلة الثلاث نجوم",
+      nameEn: "3-Star Streak Master",
+      descAr: "أكمل 5 مراحل بتقييم 3 نجوم كاملة.",
+      descEn: "Earn a perfect 3-star rating on 5 stages.",
+      metric: "threeStarStages",
+      target: 5,
+      reward: { coins: 400, gems: 6 },
+    },
+    {
       id: "profile_customized",
       badge: "./assets/extracted/ui/icon_papyrus_scroll.png",
       nameAr: "الهوية الملكية",
@@ -1564,6 +1722,23 @@
         bossesDefeated++;
       }
     }
+    const stageStars =
+      progressSnapshot.stageStars && typeof progressSnapshot.stageStars === "object"
+        ? progressSnapshot.stageStars
+        : {};
+    const threeStarStagesFromMap = Object.values(stageStars).filter((v) => Number(v) >= 3).length;
+    const threeStarStages = Math.max(
+      threeStarStagesFromMap,
+      Math.max(0, Math.floor(Number(progressSnapshot.threeStarStages) || 0))
+    );
+    const obstaclesBroken = Math.max(
+      completedStages * 6,
+      Math.max(0, Math.floor(Number(progressSnapshot.obstaclesBroken) || 0))
+    );
+    const rocketsCreated = Math.max(
+      completedStages * 2,
+      Math.max(0, Math.floor(Number(progressSnapshot.rocketsCreated) || 0))
+    );
     const prog = computePlayerProgression({
       completedStages,
       stars,
@@ -1576,6 +1751,9 @@
       palacesCompleted,
       bossesDefeated,
       playerLevel: prog.level,
+      obstaclesBroken,
+      rocketsCreated,
+      threeStarStages,
       profileCustomized: progressSnapshot.profileCustomized ? 1 : 0,
     };
 
@@ -1600,6 +1778,7 @@
     STAGES_PER_PALACE,
     TOTAL_STAGES,
     BOSS_STAGE_IN_PALACE,
+    BOSS_STAGES_IN_PALACE,
     MAX_LIVES,
     MAX_BOOSTER_STOCK,
     GAME_STATES,
@@ -1609,6 +1788,7 @@
     STORE_CATEGORIES,
     STORE_ITEMS,
     SHOP_FRAMES,
+    ROYAL_MODAL_FRAMES,
     SHOP_ICONS,
     SHOP_FEATURED_BUNDLE_ID,
     SHOP_SHOWCASE_IDS,
@@ -1618,6 +1798,10 @@
     REWARDED_AD_DAILY_TOTAL_LIMIT,
     clampStage,
     getStageMeta,
+    getStageDifficultyTier,
+    HARD_MILESTONE_STAGES,
+    SUPER_HARD_MILESTONE_STAGES,
+    PALACE_OBSTACLE_THEMES,
     getLevelConfig,
     getAvatarById,
     computePlayerProgression,
