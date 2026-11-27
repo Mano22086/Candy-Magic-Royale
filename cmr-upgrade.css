@@ -9860,3 +9860,938 @@ body.cmr-offline [data-ad-button="true"] {
   100% { opacity: 0; transform: translate(calc(-50% + var(--mx, 0px)), calc(-50% + var(--my, 0px))) scale(0.15); }
 }
 
+/* ============================================================================
+ * 18. ANUBIS MEGA PACK — 120Hz/144Hz UPGRADE, 8x8 BOARD, 50-FRAME CAST,
+ *     PHARAONIC UI, 7-SLOT DOCK, PRE-LEVEL MODAL & ENGLISH STREAK BANNER
+ * ========================================================================== */
+
+/* 1) Eliminate 1-second board flash on Start Screen & World Map */
+body[data-state="title"] #gameShell,
+body[data-state="map"] #gameShell,
+body:not(.game-started) #gameShell,
+#gameShell.is-hidden-shell {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 2) Enlarged Top-Left Settings Gear (48x48px touch target) */
+#settingsBtn.art-settings-btn {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transition: transform 0.14s ease;
+  will-change: transform;
+}
+
+#settingsBtn.art-settings-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#settingsBtn.art-settings-btn:active {
+  transform: scale(0.92);
+}
+
+/* 3) Strictly Responsive 9:16 WebP Artboard + Dedicated Bottom Booster Tray + Pixel-Aligned 8x8 Grid */
+.game-shell {
+  width: min(100vw, calc(100dvh * 9 / 18.285)) !important;
+  height: min(100dvh, calc(100vw * 18.285 / 9)) !important;
+  aspect-ratio: 9 / 18.285 !important;
+  background: linear-gradient(180deg, #1b0a36 0%, #14072b 86%, #0c031e 100%) !important;
+}
+
+.royal-artboard {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: 87.5% !important;
+  object-fit: fill !important;
+}
+
+/* Normal Stages (board_01..50.webp): exact inner 8x8 dark cell rectangle */
+.board-wrap.art-board-wrap {
+  position: absolute !important;
+  left: 13.3% !important;
+  top: 43.25% !important;
+  width: 73.4% !important;
+  max-width: 440px !important;
+  aspect-ratio: 1 / 1 !important;
+  height: auto !important;
+  margin: 0 !important;
+  z-index: 4 !important;
+}
+
+/* Boss Anubis Stages (boss_anubis_board_01..20.webp): exact inner 8x8 carved stone cell rectangle */
+.game-shell.is-boss-battle .board-wrap.art-board-wrap {
+  left: 11.4% !important;
+  top: 45.75% !important;
+  width: 77.2% !important;
+}
+
+.board-wrap.art-board-wrap .art-board-rim,
+.board-wrap.art-board-wrap #renderCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Position HUD elements cleanly in the upper courtyard above the golden 8x8 frame */
+.game-shell .art-moves,
+.game-shell .art-target {
+  top: 8.6% !important;
+  height: 9.6% !important;
+}
+
+.game-shell .art-hero {
+  top: 5.4% !important;
+  width: 22.8% !important;
+  height: 13.6% !important;
+}
+
+.game-shell .mission-hud-panel {
+  top: 23.8% !important;
+  width: 64% !important;
+  z-index: 9 !important;
+}
+
+.game-shell.is-boss-battle .boss-arena-stage {
+  top: 11.2% !important;
+  width: min(86vw, 356px) !important;
+}
+
+.game-shell.is-boss-battle .boss-sprite-wrap {
+  width: clamp(106px, 31cqw, 134px) !important;
+  height: clamp(106px, 31cqw, 134px) !important;
+  margin-bottom: -10px !important;
+}
+
+/* Dedicated Bottom Booster Tray sitting cleanly below the drawn golden 8x8 frame (ZERO row-7 overlap!) */
+.game-shell .art-boosters {
+  position: absolute !important;
+  left: 2.5% !important;
+  right: 2.5% !important;
+  top: auto !important;
+  bottom: 0.7% !important;
+  height: 11.4% !important;
+  z-index: 8 !important;
+  padding: 2px 4px !important;
+  gap: clamp(4px, 1.4cqw, 8px) !important;
+  align-items: stretch !important;
+}
+
+.game-shell .art-booster {
+  height: 100% !important;
+  padding: 3px 2px 4px !important;
+}
+
+/* 4) 50-Frame (10x5, 2000x1000) GPU-Composited Character Sprites & Anubis Altar Mist */
+.cmr-sprite-50 {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 1000% 500%;
+  background-position: 0% 0%;
+  will-change: background-position, transform;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+.boss-throne-aura.is-anubis-mist {
+  background: radial-gradient(
+    ellipse at 50% 62%,
+    rgba(56, 189, 248, 0.42) 0%,
+    rgba(168, 85, 247, 0.32) 44%,
+    rgba(30, 27, 75, 0) 74%
+  );
+  animation: anubisMistPulse 3.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes anubisMistPulse {
+  0%, 100% {
+    opacity: 0.72;
+    transform: translateX(-50%) scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.07);
+  }
+}
+
+/* 5) Pharaonic Palace Map Header (ui_pharaonic_palace_header.png) */
+.wm-pharaonic-header {
+  position: relative;
+  z-index: 12;
+  width: min(94vw, 396px);
+  min-height: 62px;
+  margin: 8px auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.55));
+}
+
+/* Keep Palace Map Header visibly pinned below topbar between left/right event rails */
+.wm-pharaonic-header:not(.is-palace-interior) {
+  position: fixed;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(64vw, 256px);
+  min-height: 50px;
+  margin: 0;
+  z-index: 26;
+}
+
+.wm-pharaonic-header.is-palace-interior {
+  margin: 6px auto 4px;
+}
+
+.wm-pharaonic-header-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.wm-pharaonic-header-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 20px;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.wm-pharaonic-header-copy strong {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: clamp(0.76rem, 3.2vw, 0.96rem);
+  font-weight: 900;
+  color: #fef08a;
+  text-shadow:
+    0 2px 0 #3b0764,
+    0 3px 8px rgba(0, 0, 0, 0.85);
+}
+
+.wm-pharaonic-header-copy small {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: clamp(0.6rem, 2.3vw, 0.72rem);
+  font-weight: 800;
+  color: #e0f2fe;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.88);
+}
+
+.vmap-infinite-portal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(92vw, 380px);
+  margin: 4px auto 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 2px solid #fde047;
+  background: linear-gradient(90deg, #4c1d95 0%, #0ea5e9 50%, #7e22ce 100%);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.84rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.45);
+  transition: transform 0.14s ease;
+}
+
+.vmap-infinite-portal-btn:active {
+  transform: scale(0.96);
+}
+
+/* 6) Exact 7-Slot Bottom Lobby Nav Bar (3 Right, Big Green Centered "اكمل", 3 Left) */
+.vmap-dock.is-7-slot {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(76px, 1.45fr) repeat(3, minmax(0, 1fr)) !important;
+  align-items: end;
+  justify-items: center;
+  gap: 2px !important;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+  width: min(100vw, 460px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(28, 12, 62, 0.94) 0%, rgba(14, 6, 36, 0.98) 100%);
+  border-top: 2px solid rgba(253, 224, 71, 0.72);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 26px rgba(0, 0, 0, 0.62);
+}
+
+.vmap-dock.is-7-slot .vmap-dock-icon {
+  position: relative;
+  width: 100%;
+  max-width: 54px;
+  height: 54px;
+  padding: 3px 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 14px;
+  background: rgba(59, 25, 118, 0.48);
+  border: 1px solid rgba(253, 224, 71, 0.34);
+  transition: transform 0.14s ease;
+  will-change: transform;
+}
+
+.vmap-dock.is-7-slot .vmap-dock-icon img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.vmap-dock-label {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.56rem;
+  font-weight: 900;
+  color: #fef3c7;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.vmap-dock.is-7-slot .vmap-dock-play.is-akmal-cta {
+  position: relative;
+  width: 100%;
+  min-width: 74px;
+  max-width: 104px;
+  height: 62px;
+  margin-top: -14px;
+  padding: 4px 6px;
+  border-radius: 20px;
+  border: 2.5px solid #fef08a;
+  background: linear-gradient(180deg, #4ade80 0%, #22c55e 46%, #15803d 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.58),
+    0 5px 0 #14532d,
+    0 0 20px rgba(74, 222, 128, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  animation: akmalBtnPulse 2.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.vmap-dock.is-7-slot .vmap-dock-play.is-akmal-cta:active {
+  transform: scale(0.94) translateY(2px);
+}
+
+.vmap-akmal-text {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.05;
+  text-shadow: 0 2px 3px rgba(5, 46, 22, 0.95);
+}
+
+.vmap-akmal-lvl {
+  position: static !important;
+  transform: none !important;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: rgba(5, 46, 22, 0.72);
+  border: 1px solid rgba(254, 240, 138, 0.85);
+  color: #fef08a;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+@keyframes akmalBtnPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+
+/* Clean Glowing/Bouncing Side-Rail Event Badges */
+.vmap-events-rail .vmap-ev-badge {
+  animation: evBadgeFloat 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.vmap-events-rail .vmap-ev-badge:nth-child(2n) {
+  animation-delay: 0.65s;
+}
+
+@keyframes evBadgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* 7) Pharaonic Pre-Level Modal (ui_prelevel_frame.png) */
+.modal.cmr-prelevel-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(10, 4, 26, 0.78);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.modal.cmr-prelevel-modal.hidden {
+  display: none !important;
+}
+
+.cmr-prelevel-stage {
+  position: relative;
+  width: min(92vw, 404px);
+  min-height: 468px;
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px 34px;
+  box-sizing: border-box;
+  filter: drop-shadow(0 20px 38px rgba(0, 0, 0, 0.76));
+  will-change: transform, opacity;
+}
+
+.cmr-prelevel-stage.is-pop-in {
+  animation: cmrPrelevelPop 0.28s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+@keyframes cmrPrelevelPop {
+  0% { opacity: 0; transform: scale(0.76); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.cmr-prelevel-frame-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cmr-prelevel-close {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 6;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #fef08a;
+  background: linear-gradient(180deg, #f87171 0%, #b91c1c 100%);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+}
+
+.cmr-prelevel-ribbon-title {
+  position: relative;
+  z-index: 4;
+  margin: -14px 0 4px;
+  padding: 4px 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(88, 28, 135, 0.92) 0%, rgba(46, 16, 101, 0.96) 100%);
+  border: 2px solid #fde047;
+  color: #fef08a;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: clamp(1rem, 4.4vw, 1.28rem);
+  font-weight: 900;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+.cmr-prelevel-tier-tag {
+  position: relative;
+  z-index: 4;
+  margin-bottom: 4px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dc2626 0%, #f59e0b 100%);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.cmr-prelevel-tier-tag.hidden {
+  display: none !important;
+}
+
+.cmr-prelevel-inner {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmr-prelevel-section-label {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #fef08a;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.88);
+}
+
+.cmr-prelevel-goals {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cmr-prelevel-goal-chip {
+  flex: 1 1 0;
+  max-width: 106px;
+  padding: 7px 5px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1.5px solid rgba(253, 224, 71, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.cmr-prelevel-goal-chip img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+
+.cmr-prelevel-goal-count {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.94rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.cmr-prelevel-goal-chip small {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 800;
+  color: #e9d5ff;
+  line-height: 1.1;
+}
+
+.cmr-prelevel-moves-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(30, 58, 138, 0.72);
+  border: 1.5px solid rgba(147, 197, 253, 0.65);
+  color: #e0f2fe;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.cmr-prelevel-moves-chip strong {
+  color: #fef08a;
+  font-size: 0.96rem;
+}
+
+.cmr-prelevel-boosters {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cmr-prelevel-booster-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cmr-prelevel-booster-main {
+  width: 100%;
+  padding: 8px 4px 10px;
+  border-radius: 16px;
+  border: 2px solid rgba(253, 224, 71, 0.55);
+  background: linear-gradient(180deg, rgba(49, 18, 99, 0.9) 0%, rgba(22, 8, 52, 0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+
+.cmr-prelevel-booster-slot.is-selected .cmr-prelevel-booster-main {
+  border-color: #4ade80;
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.65);
+  background: linear-gradient(180deg, rgba(20, 83, 45, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+}
+
+.cmr-prelevel-booster-main img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.cmr-prelevel-booster-name {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.64rem;
+  font-weight: 900;
+  color: #fffbeb;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.cmr-prelevel-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 2px solid #fef08a;
+  background: #1e3a8a;
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+.cmr-prelevel-count-badge.is-check {
+  background: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.cmr-prelevel-buy-plus {
+  margin-top: -10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1.5px solid #fef08a;
+  background: linear-gradient(180deg, #4ade80 0%, #15803d 100%);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+
+.cmr-prelevel-buy-plus.is-subtle {
+  opacity: 0.88;
+}
+
+.cmr-prelevel-start-btn {
+  margin-top: 6px;
+  width: 100%;
+  min-height: 50px;
+  padding: 10px 18px;
+  border-radius: 18px;
+  border: 2.5px solid #fef08a;
+  background: linear-gradient(180deg, #4ade80 0%, #22c55e 48%, #15803d 100%);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 1.12rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.55),
+    0 5px 0 #14532d,
+    0 0 22px rgba(74, 222, 128, 0.58);
+  text-shadow: 0 2px 3px rgba(5, 46, 22, 0.92);
+  transition: transform 0.14s ease;
+}
+
+.cmr-prelevel-start-btn:active {
+  transform: scale(0.96) translateY(2px);
+}
+
+/* 8) Queen Cleopatra Pharaonic Tutorial Dialog (ui_pharaonic_tutorial_dialog.png) */
+.cmr-tut-card.is-pharaonic-dialog {
+  position: relative;
+  width: min(94vw, 376px) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 32px 26px 28px 26px !important;
+  gap: 10px !important;
+  overflow: visible;
+}
+
+.cmr-tut-layer.is-card-top .cmr-tut-card.is-pharaonic-dialog {
+  top: 14px !important;
+}
+
+.cmr-tut-card.is-pharaonic-dialog .cmr-tut-body {
+  gap: 4px !important;
+}
+
+.cmr-tut-card.is-pharaonic-dialog .cmr-tut-queen-name {
+  font-size: 0.82rem !important;
+  line-height: 1.2 !important;
+}
+
+.cmr-tut-card.is-pharaonic-dialog .cmr-tut-text {
+  font-size: 0.78rem !important;
+  line-height: 1.32 !important;
+}
+
+.cmr-tut-card.is-pharaonic-dialog .cmr-tut-obstacle-showcase {
+  padding: 4px 7px !important;
+}
+
+.cmr-tut-card.is-pharaonic-dialog .cmr-tut-cta-btn {
+  padding: 5px 18px !important;
+  font-size: 0.82rem !important;
+  margin-top: 2px !important;
+}
+
+.cmr-tut-dialog-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.72));
+}
+
+.cmr-tut-card.is-pharaonic-dialog > *:not(.cmr-tut-dialog-frame) {
+  position: relative;
+  z-index: 2;
+}
+
+.cmr-tut-queen-avatar.is-cleopatra-crop {
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid #fde047;
+  background: radial-gradient(circle, #581c87 0%, #1e1b4b 100%);
+  box-shadow: 0 0 14px rgba(253, 224, 71, 0.65);
+  flex-shrink: 0;
+}
+
+.cmr-tut-cleopatra-sprite {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 1000% 500%;
+  background-position: 0% 0%;
+  transform: scale(1.24) translateY(4%);
+}
+
+/* 9) Pharaonic Rewarded Ad Buttons (ui_pharaonic_ad_button.png) */
+.cmr-pharaonic-ad-btn {
+  background-image: url("./mega_pack/09_pharaonic_ui_frames/ui_pharaonic_ad_button.png") !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.92) !important;
+}
+
+/* 10) Stage Start Mission Toast & 3D Gold-and-Purple English Streak Callout */
+.stage-start-mission-toast {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 54;
+  transform: translate(-50%, -50%) scale(0.84);
+  opacity: 0;
+  min-width: 220px;
+  max-width: 88%;
+  padding: 12px 18px;
+  border-radius: 20px;
+  border: 2.5px solid #fde047;
+  background: linear-gradient(180deg, rgba(59, 7, 100, 0.94) 0%, rgba(23, 8, 56, 0.96) 100%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.72), 0 0 24px rgba(253, 224, 71, 0.45);
+  text-align: center;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.stage-start-mission-toast.hidden {
+  display: none !important;
+}
+
+.stage-start-mission-toast.is-visible {
+  animation: ssmToastAnim 1.82s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes ssmToastAnim {
+  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.76); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  22% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  82% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -62%) scale(0.92); }
+}
+
+.ssm-toast-title {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: #fef08a;
+  line-height: 1.15;
+}
+
+.ssm-toast-sub {
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #e9d5ff;
+  margin-bottom: 6px;
+}
+
+.ssm-toast-targets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ssm-target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1.5px solid rgba(253, 224, 71, 0.65);
+  color: #ffffff;
+  font-family: "Cairo", system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.ssm-target-chip img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+/* 3D Gold-and-Purple English Streak Callout (SWEET! -> LEGENDARY!) */
+.english-streak-banner,
+.cmr-en-streak-banner {
+  position: absolute;
+  left: 50%;
+  top: 26%;
+  z-index: 62;
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  pointer-events: none;
+  font-family: "Cairo", "Arial Black", Impact, sans-serif;
+  font-size: clamp(1.75rem, 8.2vw, 2.55rem);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fef08a;
+  background: linear-gradient(180deg, #fffbeb 0%, #fde047 45%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(0 2px 0 #581c87)
+    drop-shadow(0 4px 0 #3b0764)
+    drop-shadow(0 7px 14px rgba(88, 28, 135, 0.9));
+  will-change: transform, opacity;
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
+}
+
+.english-streak-banner.hidden,
+.cmr-en-streak-banner.hidden {
+  display: none !important;
+}
+
+.english-streak-banner.is-visible,
+.cmr-en-streak-banner.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.english-streak-banner.is-fading,
+.cmr-en-streak-banner.is-fading {
+  opacity: 0;
+  transform: translate(-50%, -76%) scale(0.92);
+}
+
+/* 11) Larger Victory & Out-of-Moves Modals + Luxury Mobile Shop & Blank IAP Pill */
+.rk-victory-frame-stage {
+  width: min(92vw, 410px, calc(86dvh * 0.728)) !important;
+}
+
+.rk-oom-frame-stage {
+  width: min(92vw, 410px, calc(88dvh * 0.595)) !important;
+}
+
+.rk-shop-shell {
+  width: min(97vw, 444px);
+}
+
+.rk-shop-stage {
+  width: min(96vw, 434px, calc(80dvh * 0.63535));
+}
+
+.rk-offer-pill-btn.is-iap-blank {
+  min-height: 22px;
+  letter-spacing: 0;
+}
+
+.rk-offer-pill-btn.is-iap-blank .iap-blank-price {
+  display: inline-block;
+  min-width: 28px;
+  min-height: 12px;
+}
+
+

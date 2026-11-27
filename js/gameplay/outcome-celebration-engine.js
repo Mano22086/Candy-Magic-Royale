@@ -13,13 +13,13 @@
   "use strict";
 
   const OUTCOME_ASSETS = Object.freeze({
-    victoryFrame: "./public/assets/aistudio/ui_victory_frame_dfff79ac.png",
-    outOfMovesFrame: "./public/assets/aistudio/ui_out_of_moves_frame_a6e09c8a.png",
-    victoryStar: "./public/assets/aistudio/icon_victory_star_8b503f69.png",
+    victoryFrame: "./mega_pack/09_pharaonic_ui_frames/ui_victory_frame.png",
+    outOfMovesFrame: "./mega_pack/09_pharaonic_ui_frames/ui_out_of_moves_frame.png",
+    victoryStar: "./mega_pack/09_pharaonic_ui_frames/icon_victory_star.png",
+    adButton: "./mega_pack/09_pharaonic_ui_frames/ui_pharaonic_ad_button.png",
     goldCoin: "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png",
     gemIcon: "./assets/packs/buttons/icon_gem.png",
-    queenAvatar: "./assets/extracted/avatars/avatar_queen_luma.png",
-    pharaohAvatar: "./assets/extracted/avatars/avatar_pharaoh_boy.png",
+    cleopatraSheet: "./mega_pack/06_characters_50frames_10x5/sheet_cleopatra_queen_50frames_10x5.png",
   });
 
   const REVIVE_GEMS_COST = 15;
@@ -30,11 +30,11 @@
   const AVATAR_WALK_DURATION_MS = 900;
 
   /**
-   * Compute balanced score thresholds for 1, 2, and 3 stars on any stage 1..1000.
+   * Compute balanced score thresholds for 1, 2, and 3 stars on any stage 1..Infinity.
    */
   function getStarScoreThresholds(level = 1, isBoss = false) {
-    const lvl = Math.max(1, Math.min(1000, Math.floor(Number(level) || 1)));
-    const palaceIdx = Math.floor((lvl - 1) / 100);
+    const lvl = Math.max(1, Math.floor(Number(level) || 1));
+    const palaceIdx = Math.min(25, Math.floor((lvl - 1) / 100));
     const local = ((lvl - 1) % 100) + 1;
     const bossMul = isBoss ? 1.35 : 1;
     const base = Math.round((800 + palaceIdx * 240 + local * 14) * bossMul);

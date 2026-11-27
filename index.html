@@ -139,18 +139,18 @@
     </div>
   </div>
 
-  <!-- Main Gameplay Shell (Exact 9:16 Stage matching the 720x1280 HD Board Artwork) -->
-  <main class="game-shell" id="gameShell" data-phase="Playing" data-level="1" data-palace="1" data-boss="false">
+  <!-- Main Gameplay Shell (Strictly hidden on Title & Map to prevent 1s board flash!) -->
+  <main class="game-shell is-hidden-shell" id="gameShell" data-phase="Playing" data-level="1" data-palace="1" data-boss="false">
     <img
       id="royalArtboard"
       class="royal-artboard"
-      src="./assets/packs/boards/board_01_royal_castle_v1.jpg"
+      src="./mega_pack/07_boards_regular_50/board_01.webp"
       alt=""
       aria-hidden="true"
     >
 
     <section class="art-hud" aria-label="شريط معلومات المرحلة">
-      <!-- Top-Left Settings Button (aligned with built-in gear slot) -->
+      <!-- Enlarged Top-Left Settings Gear (48x48px) -->
       <button
         type="button"
         id="settingsBtn"
@@ -161,8 +161,8 @@
         <img src="./assets/packs/buttons/icon_settings.png" alt="الإعدادات">
       </button>
 
-      <!-- Top-Right Compact Wallet & Shop Bar -->
-      <div class="art-top-wallet" aria-label="العملات والجواهر والمتجر">
+      <!-- Clean Top-Right Wallet (Coins & Gems only — NO + and NO Shop cart during gameplay!) -->
+      <div class="art-top-wallet" aria-label="العملات والجواهر">
         <span class="wallet-chip" title="الجواهر">
           <img src="./assets/packs/buttons/icon_gem.png" alt="">
           <b id="gemCount">25</b>
@@ -171,10 +171,6 @@
           <img src="./public/assets/aistudio/06_shop_gold_coin_50095eb1.png" alt="">
           <b id="coinCount">500</b>
         </span>
-        <button type="button" id="plusCoins" class="wallet-mini-btn" aria-label="مكافأة يومية" title="مكافأة يومية">＋</button>
-        <button type="button" id="shopOpenBtn" class="wallet-mini-btn wallet-shop-btn" aria-label="المتجر الملكي" title="المتجر الملكي">
-          <img src="./assets/packs/buttons/icon_cart.png" alt="المتجر">
-        </button>
       </div>
 
       <!-- Left Square Slot: Remaining Moves -->
@@ -183,8 +179,8 @@
         <strong id="moves">25</strong>
       </div>
 
-      <!-- Center-Left Circular Hero Slot: Queen Luma (Odd Palaces) or Pharaoh Boy (Even Palaces) + Magenta-Gold Ultimate Charge Ring -->
-      <button type="button" class="art-hero art-queen hero-ult-btn" id="heroLeftBtn" aria-label="الملكة لوما — القوة الخارقة" data-charge="0">
+      <!-- Center-Left Circular Hero Slot: Queen Cleopatra (50-frame 10x5) + Magenta-Gold Ultimate Charge Ring -->
+      <button type="button" class="art-hero art-queen hero-ult-btn" id="heroLeftBtn" aria-label="الملكة كليوباترا — القوة الخارقة" data-charge="0">
         <svg class="hero-charge-svg" viewBox="0 0 100 100" aria-hidden="true">
           <defs>
             <linearGradient id="heroLeftRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -197,14 +193,14 @@
           <circle class="hero-ring-fill is-magenta-gold" id="heroLeftRingFill" cx="50" cy="50" r="45" stroke="url(#heroLeftRingGrad)"/>
         </svg>
         <div class="hero-sprite-stage">
-          <div id="heroLeftSprite" class="cmr-sprite-4x4 is-hero-breath" role="img" aria-label="الملكة لوما"></div>
+          <div id="heroLeftSprite" class="cmr-sprite-50 is-hero-breath" role="img" aria-label="الملكة كليوباترا"></div>
         </div>
         <span class="hero-ult-ready-badge hidden" id="heroLeftReadyBadge">جاهز! اضغط</span>
       </button>
       <div class="char-speech-bubble is-queen hidden" id="queenSpeechBubble" aria-hidden="true"></div>
 
-      <!-- Center-Right Circular Hero Slot: Crystal Dragon + Cyan-Gold Ultimate Charge Ring -->
-      <button type="button" class="art-hero art-dragon hero-ult-btn" id="heroRightBtn" aria-label="تنين الكريستال — القوة الخارقة" data-charge="0">
+      <!-- Center-Right Circular Hero Slot: Golden Dragon (50-frame 10x5) + Cyan-Gold Ultimate Charge Ring -->
+      <button type="button" class="art-hero art-dragon hero-ult-btn" id="heroRightBtn" aria-label="التنين الذهبي — القوة الخارقة" data-charge="0">
         <svg class="hero-charge-svg" viewBox="0 0 100 100" aria-hidden="true">
           <defs>
             <linearGradient id="heroRightRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -217,25 +213,25 @@
           <circle class="hero-ring-fill is-cyan-gold" id="heroRightRingFill" cx="50" cy="50" r="45" stroke="url(#heroRightRingGrad)"/>
         </svg>
         <div class="hero-sprite-stage">
-          <div id="heroRightSprite" class="cmr-sprite-4x4 is-dragon-hover" role="img" aria-label="تنين الكريستال"></div>
+          <div id="heroRightSprite" class="cmr-sprite-50 is-dragon-hover" role="img" aria-label="التنين الذهبي"></div>
         </div>
         <span class="hero-ult-ready-badge is-cyan hidden" id="heroRightReadyBadge">جاهز! اضغط</span>
       </button>
       <div class="char-speech-bubble is-dragon hidden" id="dragonSpeechBubble" aria-hidden="true"></div>
 
-      <!-- Centered Red Gummy Bear Candy King Boss Arena (Stage 50 & Stage 100 of EVERY Palace) -->
-      <div class="boss-arena-stage hidden" id="bossArenaStage" aria-label="معركة زعيم ملك الحلوى">
-        <div class="boss-throne-aura" aria-hidden="true"></div>
+      <!-- Centered King Anubis Boss Arena (Stage 50 & Stage 100 of EVERY Palace — 50-frame 10x5 + Cyan-Purple Altar Mist) -->
+      <div class="boss-arena-stage hidden" id="bossArenaStage" aria-label="معركة الملك أنوبيس">
+        <div class="boss-throne-aura is-anubis-mist" aria-hidden="true"></div>
         <div class="boss-sprite-wrap">
-          <div id="bossCenterSprite" class="cmr-sprite-4x4 is-boss-breath" role="img" aria-label="زعيم ملك الحلوى"></div>
+          <div id="bossCenterSprite" class="cmr-sprite-50 is-boss-breath" role="img" aria-label="الملك أنوبيس"></div>
         </div>
-        <div class="boss-hp-bar-wrap" id="bossHpBarWrap" dir="ltr" aria-label="طاقة الزعيم">
+        <div class="boss-hp-bar-wrap" id="bossHpBarWrap" dir="ltr" aria-label="طاقة الملك أنوبيس">
           <div class="boss-hp-track">
             <div class="boss-hp-fill" id="bossHpFill"></div>
           </div>
           <img
             class="boss-hp-frame"
-            src="./public/assets/aistudio/image_5ccfa143-19dc-4aab-9a34-835ffcc3baf5_96da28e9.png"
+            src="./mega_pack/09_pharaonic_ui_frames/ui_boss_hp_bar_empty.png"
             alt=""
             aria-hidden="true"
             draggable="false"
@@ -257,11 +253,11 @@
         <span class="art-stars" hidden><b id="stars">0</b></span>
       </div>
 
-      <!-- Top Objective Mission HUD (Exact 512x197 Transparent hud_objective_panel_empty.png) -->
+      <!-- Top Objective Mission HUD (Mega Pack hud_objective_panel_empty.png) -->
       <div class="mission-hud-panel" id="missionHudPanel" dir="ltr" aria-label="أهداف المرحلة والحركات المتبقية">
         <img
           class="mission-hud-bg"
-          src="./public/assets/aistudio/image_69bf8423-4605-4734-9fac-cdd0dee86c04_121d90de.png"
+          src="./mega_pack/09_pharaonic_ui_frames/hud_objective_panel_empty.png"
           alt=""
           aria-hidden="true"
           draggable="false"
@@ -311,14 +307,18 @@
     <!-- Full-Stage 60 FPS HTML5 Canvas VFX Layer (Crystal Beam, Magic Bolts, Golden Orbs, Danger Smoke & Boss Lightning) -->
     <canvas id="battleVfxCanvas" class="battle-vfx-canvas" aria-hidden="true"></canvas>
 
-    <!-- Exact 7x8 Board Area (zero artificial rim/frame — sits directly on the HD board grid) -->
-    <section class="board-wrap art-board-wrap" id="boardWrap" aria-label="لوحة الحلوى">
+    <!-- Responsive 8x8 Board Area (width: min(94vw, 440px); aspect-ratio: 1/1;) -->
+    <section class="board-wrap art-board-wrap" id="boardWrap" aria-label="لوحة الحلوى 8×8">
       <div class="board-rim art-board-rim">
         <canvas id="renderCanvas" data-testid="game-canvas" touch-action="none"></canvas>
         <!-- 5-Second Smart Auto-Hint Golden Pulsing Rings -->
         <div class="board-hint-layer" id="boardHintLayer" aria-hidden="true"></div>
+        <!-- Stage Start Pharaonic Mission Toast -->
+        <div class="stage-start-mission-toast hidden" id="stageStartMissionToast" dir="rtl" aria-hidden="true"></div>
         <!-- Center Board Glossy Arabic Combo & Super Combo Callout Banner -->
         <div class="combo-callout-banner" id="comboCalloutBanner" dir="rtl" aria-hidden="true"></div>
+        <!-- 10-Second English Streak Voice Callout (SWEET! / TASTY! / DELICIOUS! / DIVINE! / ROYAL! / LEGENDARY!) -->
+        <div class="english-streak-banner hidden" id="englishStreakBanner" dir="ltr" aria-hidden="true"></div>
         <!-- Pre-Stage Hard / Super Hard Banner Tag -->
         <div class="stage-diff-banner hidden" id="stageDiffBanner" dir="rtl" aria-hidden="true"></div>
         <!-- Victory Bonus Time Fireworks Banner & Flying Rockets -->
@@ -328,7 +328,7 @@
       </div>
     </section>
 
-    <!-- Bottom Booster Dock (New High-Resolution Transparent 03_Shop_Icons) -->
+    <!-- Bottom Booster Dock (Mega Pack High-Res Special Icons) -->
     <section class="art-boosters" aria-label="المساعدات السحرية">
       <button type="button" class="booster art-booster" id="paintBtn" aria-label="العصا السحرية">
         <img class="booster-icon" src="./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png" alt="">
@@ -341,17 +341,17 @@
         <small>∞</small>
       </button>
       <button type="button" class="booster art-booster" id="bombBtn" aria-label="قنبلة الحلوى">
-        <img class="booster-icon" src="./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png" alt="">
+        <img class="booster-icon" src="./mega_pack/04_special_bombs_6/bomb_purple.png" alt="">
         <span class="booster-name">قنبلة</span>
         <small>3</small>
       </button>
-      <button type="button" class="booster art-booster" id="colorBtn" aria-label="الحلوى المخططة">
-        <img class="booster-icon" src="./public/assets/aistudio/04_booster_striped_candy_7749b182.png" alt="">
-        <span class="booster-name">مخططة</span>
+      <button type="button" class="booster art-booster" id="colorBtn" aria-label="كرة الألوان">
+        <img class="booster-icon" src="./mega_pack/05_special_color_ball/special_color_ball.png" alt="">
+        <span class="booster-name">ألوان</span>
         <small>3</small>
       </button>
       <button type="button" class="booster art-booster" id="rocketBtn" aria-label="صاروخ الحلوى">
-        <img class="booster-icon" src="./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png" alt="">
+        <img class="booster-icon" src="./mega_pack/03_special_rockets_6/rocket_red.png" alt="">
         <span class="booster-name">صاروخ</span>
         <small>3</small>
       </button>
@@ -476,7 +476,7 @@
       <h2 id="oohTitle">نفدت قلوبك!</h2>
       <p id="oohMessage">شاهد إعلاناً قصيراً للحصول على قلب مجاني فوري ومتابعة المغامرة، أو زر المتجر الملكي.</p>
       <div class="ooh-actions">
-        <button type="button" id="oohFreeHeartBtn" class="royal-lime-btn ooh-free-heart-btn" data-ad-button="true">
+        <button type="button" id="oohFreeHeartBtn" class="royal-lime-btn ooh-free-heart-btn cmr-pharaonic-ad-btn" data-ad-button="true">
           <span>🎬 قلب مجاني (+1 قلب)</span>
         </button>
         <button type="button" id="oohOpenShopBtn" class="royal-action-btn royal-amber-btn">
@@ -497,7 +497,7 @@
 
       <div class="rk-outcome-stage rk-victory-frame-stage" id="rkVictoryStage">
         <img
-          src="./public/assets/aistudio/ui_victory_frame_dfff79ac.png"
+          src="./mega_pack/09_pharaonic_ui_frames/ui_victory_frame.png"
           alt="فوز ملكي — إطار الانتصار"
           class="rk-outcome-frame-img"
           draggable="false"
@@ -507,7 +507,7 @@
         <div class="rk-victory-stars-row" id="resultStars" aria-label="النجوم المكتسبة">
           <div class="rk-victory-star-socket is-left is-empty" id="rkVictoryStarSlot1">
             <img
-              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              src="./mega_pack/09_pharaonic_ui_frames/icon_victory_star.png"
               alt="نجمة 1"
               class="rk-victory-star-img"
               draggable="false"
@@ -515,7 +515,7 @@
           </div>
           <div class="rk-victory-star-socket is-center is-empty" id="rkVictoryStarSlot2">
             <img
-              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              src="./mega_pack/09_pharaonic_ui_frames/icon_victory_star.png"
               alt="نجمة 2"
               class="rk-victory-star-img"
               draggable="false"
@@ -523,7 +523,7 @@
           </div>
           <div class="rk-victory-star-socket is-right is-empty" id="rkVictoryStarSlot3">
             <img
-              src="./public/assets/aistudio/icon_victory_star_8b503f69.png"
+              src="./mega_pack/09_pharaonic_ui_frames/icon_victory_star.png"
               alt="نجمة 3"
               class="rk-victory-star-img"
               draggable="false"
@@ -563,11 +563,11 @@
             </div>
           </div>
 
-          <!-- Optional x2 Coins Rewarded Ad Booster -->
+          <!-- Optional x2 Coins Rewarded Ad Booster (Pharaonic Ad Button) -->
           <button
             type="button"
             id="winDoubleCoinsBtn"
-            class="rk-victory-double-btn"
+            class="rk-victory-double-btn cmr-pharaonic-ad-btn"
             data-ad-button="true"
             aria-label="مشاهدة إعلان لمضاعفة عملات الفوز"
           >
@@ -599,13 +599,13 @@
       </div>
     </div>
 
-    <!-- 2. Tempting Out-of-Moves Screen View (ui_out_of_moves_frame.png) -->
+    <!-- 2. Tempting Out-of-Moves Screen View (Mega Pack ui_out_of_moves_frame.png) -->
     <div class="result-art-view defeat-view rk-outcome-view hidden" id="defeatView" dir="rtl">
       <div class="defeat-fantasy-aura" aria-hidden="true"></div>
 
       <div class="rk-outcome-stage rk-oom-frame-stage" id="rkOutOfMovesStage">
         <img
-          src="./public/assets/aistudio/ui_out_of_moves_frame_a6e09c8a.png"
+          src="./mega_pack/09_pharaonic_ui_frames/ui_out_of_moves_frame.png"
           alt="لا تستسلم — انتهت الحركات"
           class="rk-outcome-frame-img"
           draggable="false"
@@ -621,7 +621,7 @@
             <div class="rk-oom-obs-thumb">
               <img
                 id="oomObstacleIcon"
-                src="./assets/packs/blockers/1.png"
+                src="./mega_pack/10_obstacles_all/obs_09_sandstone_block.png"
                 alt="العائق المتبقي"
                 draggable="false"
               >
@@ -632,11 +632,11 @@
             </div>
           </div>
 
-          <!-- Primary Huge Glowing Ad Revive CTA (+5 Free Moves) -->
+          <!-- Primary Huge Glowing Pharaonic Ad Revive CTA (+5 Free Moves) -->
           <button
             type="button"
             id="lossWatchAdBtn"
-            class="rk-oom-ad-cta"
+            class="rk-oom-ad-cta cmr-pharaonic-ad-btn"
             data-ad-button="true"
             aria-label="شاهد إعلان (+5 حركات مجاناً!)"
           >
@@ -842,32 +842,34 @@
   </script>
 
   <!-- Core & Game Modules in strict dependency order -->
-  <script src="./game-core.js?v=cmr-master-20261125"></script>
-  <script src="./royal-assets-upgrade.js?v=cmr-master-20261125"></script>
-  <script src="./admob-manager.js?v=cmr-master-20261125"></script>
-  <script src="./ad-manager.js?v=cmr-master-20261125"></script>
-  <script src="./cmr-profile-system.js?v=cmr-master-20261125"></script>
-  <script src="./cmr-lucky-wheel.js?v=cmr-master-20261125"></script>
-  <script src="./js/events/event-bus.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/events/royal-vault.js?v=cmr-events-p1-20261126"></script>
-  <script src="./js/events/rocket-rush.js?v=cmr-events-p1-20261126"></script>
-  <script src="./js/events/secret-vault.js?v=cmr-events-p1-20261126"></script>
-  <script src="./js/events/lava-quest.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/systems/card-album.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/social/teams.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/events/nile-league.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/events/coop-sphinx.js?v=cmr-events-p23-20261126"></script>
-  <script src="./js/gameplay/match3-systems.js?v=cmr-juice-20261126"></script>
-  <script src="./js/gameplay/queen-tutorial.js?v=cmr-juice-20261126"></script>
-  <script src="./js/gameplay/hero-boss-engine.js?v=cmr-boss-ult-20261126"></script>
-  <script src="./js/gameplay/hero-boss-vfx.js?v=cmr-boss-ult-20261126"></script>
-  <script src="./js/gameplay/outcome-celebration-engine.js?v=cmr-outcome-20261126"></script>
-  <script src="./js/gameplay/outcome-celebration-ui.js?v=cmr-outcome-20261126"></script>
-  <script src="./world-map.js?v=cmr-outcome-20261126"></script>
-  <script src="./game.js?v=cmr-outcome-20261126"></script>
-  <script src="./royal-character-engine.js?v=cmr-master-20261125"></script>
-  <script src="./dragon-3d-character.js?v=cmr-master-20261125"></script>
-  <script src="./candy-pack-addon.js?v=cmr-master-20261125"></script>
-  <script src="./user-assets-integration.js?v=cmr-master-20261125"></script>
+  <script src="./game-core.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/anubis-mega-pack-engine.js?v=cmr-anubis-20261127"></script>
+  <script src="./royal-assets-upgrade.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/anubis-audio-engine.js?v=cmr-anubis-20261127"></script>
+  <script src="./admob-manager.js?v=cmr-anubis-20261127"></script>
+  <script src="./ad-manager.js?v=cmr-anubis-20261127"></script>
+  <script src="./cmr-profile-system.js?v=cmr-anubis-20261127"></script>
+  <script src="./cmr-lucky-wheel.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/event-bus.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/royal-vault.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/rocket-rush.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/secret-vault.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/lava-quest.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/systems/card-album.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/social/teams.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/nile-league.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/events/coop-sphinx.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/match3-systems.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/queen-tutorial.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/hero-boss-engine.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/hero-boss-vfx.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/outcome-celebration-engine.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/outcome-celebration-ui.js?v=cmr-anubis-20261127"></script>
+  <script src="./js/gameplay/prelevel-modal-ui.js?v=cmr-anubis-20261127"></script>
+  <script src="./world-map.js?v=cmr-anubis-20261127"></script>
+  <script src="./game.js?v=cmr-anubis-20261127"></script>
+  <script src="./royal-character-engine.js?v=cmr-anubis-20261127"></script>
+  <script src="./candy-pack-addon.js?v=cmr-anubis-20261127"></script>
+  <script src="./user-assets-integration.js?v=cmr-anubis-20261127"></script>
 </body>
 </html>

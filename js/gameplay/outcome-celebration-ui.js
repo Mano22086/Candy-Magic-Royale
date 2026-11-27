@@ -209,6 +209,7 @@
     });
 
     // Sequential Star Slam (320ms apart) ONLY for earned stars (1..3)
+    window.CMRAnubisAudio?.playVictoryFanfare?.();
     const interval = Engine.STAR_SLAM_INTERVAL_MS || 320;
     for (let i = 0; i < earned; i++) {
       const slot = sockets[i];
@@ -218,6 +219,7 @@
         slot.classList.add("is-earned", "is-slamming");
         spawnStarSocketBurst(slot);
         playStarChime(i);
+        window.CMRAnubisAudio?.playStarSlam?.(i);
         try {
           if (navigator.vibrate && window.CMRAudio?.isSfxEnabled?.() !== false) {
             navigator.vibrate(14 + i * 6);
@@ -243,6 +245,7 @@
     maxLives = 5,
   } = {}) {
     cancelPending();
+    window.CMRAnubisAudio?.playLossDramatic?.();
     const stageEl = document.getElementById("rkOutOfMovesStage");
     if (stageEl) {
       stageEl.classList.remove("is-pop-in");

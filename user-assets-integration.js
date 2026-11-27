@@ -9,14 +9,18 @@
 
   const CORE_ASSETS = [
     "./public/assets/aistudio/Picsart_26-11-25_18-52-31-817_a4649afd.jpg",
-    "./assets/extracted/palaces/palace_01.png",
-    "./assets/extracted/ui/player_map_banner_clean.png",
-    "./01_star_gold.png",
-    "./02_heart_rainbow.png",
-    "./03_diamond_blue.png",
-    "./04_flower_purple.png",
-    "./05_crown_green.png",
-    "./06_lollipop_red.png",
+    "./mega_pack/09_pharaonic_ui_frames/ui_pharaonic_palace_header.png",
+    "./mega_pack/09_pharaonic_ui_frames/ui_prelevel_frame.png",
+    "./mega_pack/09_pharaonic_ui_frames/hud_objective_panel_empty.png",
+    "./mega_pack/07_boards_regular_50/board_01.webp",
+    "./mega_pack/06_characters_50frames_10x5/sheet_cleopatra_queen_50frames_10x5.png",
+    "./mega_pack/06_characters_50frames_10x5/sheet_golden_dragon_50frames_10x5.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_01_red_cupcake.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_02_blue_donut.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_03_green_macaron.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_04_yellow_star_cookie.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_05_purple_berry_tart.png",
+    "./mega_pack/01_candies_royal_desserts/dessert_06_orange_glaze_swirl.png",
   ];
 
   let launching = false;
@@ -26,9 +30,14 @@
     if (preloaded) return;
     preloaded = true;
     CORE_ASSETS.forEach((src) => {
-      const img = new Image();
-      img.src = src;
+      try {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = src;
+        if (typeof img.decode === "function") img.decode().catch(() => {});
+      } catch (_) {}
     });
+    window.CMRAnubisAudio?.preloadAll?.();
   }
 
   function showLaunchError(message) {
@@ -71,16 +80,24 @@
         } catch (_) {}
       }
 
-      if (overlay) overlay.classList.add("hidden");
-      if (startScreen) {
-        startScreen.classList.add("hidden");
-        startScreen.classList.remove("is-leaving");
-      }
-
+      const shell = document.getElementById("gameShell");
       if (options.autostartStage) {
+        if (overlay) overlay.classList.add("hidden");
+        if (startScreen) {
+          startScreen.classList.add("hidden");
+          startScreen.classList.remove("is-leaving");
+        }
         await window.CMRStartSelectedHouse?.(options.autostartStage);
       } else {
+        // Show World Map BEFORE hiding Start Screen and keep #gameShell strictly hidden -> ZERO 1s board flash!
+        if (shell) shell.classList.add("is-hidden-shell");
+        document.body.classList.remove("game-started");
         window.CMRShowWorldMap();
+        if (overlay) overlay.classList.add("hidden");
+        if (startScreen) {
+          startScreen.classList.add("hidden");
+          startScreen.classList.remove("is-leaving");
+        }
       }
     } catch (err) {
       console.error("[CMR launch]", err);
@@ -96,6 +113,9 @@
   function showMainMenu() {
     const startScreen = document.getElementById("startScreen");
     const overlay = document.getElementById("loadingVideoOverlay");
+    const shell = document.getElementById("gameShell");
+    if (shell) shell.classList.add("is-hidden-shell");
+    document.body.classList.remove("game-started");
     window.CMRAudio?.setMapMusicActive?.(false);
     window.CMRHideWorldMap?.();
     window.CMRPauseGameRender?.();

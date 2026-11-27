@@ -55,8 +55,42 @@
     { id: "card_09_sphinx", titleAr: "أبو الهول", stars: 5, img: ASSETS.card09Sphinx },
   ]);
 
+  const INFINITE_SET_THEMES = Object.freeze([
+    { nameAr: "ألبوم الفراعنة", tierTagAr: "المجموعة 1", accent: "#fbbf24" },
+    { nameAr: "كنوز كليوباترا", tierTagAr: "المجموعة 2", accent: "#f472b6" },
+    { nameAr: "أسرار الملك أنوبيس", tierTagAr: "المجموعة 3", accent: "#22d3ee" },
+    { nameAr: "تاج التنين الذهبي", tierTagAr: "المجموعة 4", accent: "#a855f7" },
+    { nameAr: "أهرامات الخلود", tierTagAr: "المجموعة 5", accent: "#34d399" },
+    { nameAr: "سجلات عين حورس", tierTagAr: "المجموعة 6", accent: "#60a5fa" },
+  ]);
+
+  function getAlbumSetMeta(setNumber = 1) {
+    const n = Math.max(1, Math.floor(Number(setNumber) || 1));
+    const theme = INFINITE_SET_THEMES[(n - 1) % INFINITE_SET_THEMES.length];
+    const bonusMul = 1 + Math.min(10, n - 1) * 0.25;
+    const grandReward = {
+      coins: Math.round(CONFIG.GRAND_REWARD.coins * bonusMul),
+      gems: Math.round(CONFIG.GRAND_REWARD.gems + (n - 1) * 3),
+      rockets: CONFIG.GRAND_REWARD.rockets + Math.min(4, Math.floor((n - 1) / 2)),
+      paints: CONFIG.GRAND_REWARD.paints + Math.min(4, Math.floor((n - 1) / 2)),
+    };
+    const tierSuffix = n > 1 ? ` · السلسلة ${n}` : "";
+    return {
+      setNumber: n,
+      titleAr: n <= INFINITE_SET_THEMES.length ? theme.nameAr : `${theme.nameAr} ${n}`,
+      tierTagAr: `السلسلة ${n}`,
+      accent: theme.accent,
+      grandReward,
+      cards: CARD_CATALOG.map((c) => ({
+        ...c,
+        titleAr: `${c.titleAr}${tierSuffix}`,
+        stars: Math.min(5, c.stars + Math.min(2, Math.floor((n - 1) / 2))),
+      })),
+    };
+  }
+
   // =========================================================================
-  // PURE LOGIC ENGINE (Unit-Tested)
+  // PURE LOGIC ENGINE (Unit-Tested — Infinite Procedural Card Sets 1..Infinity)
   // =========================================================================
   function createCardAlbumEngine(initial = {}, rng = Math.random) {
     const validIds = new Set(CARD_CATALOG.map((c) => c.id));
@@ -65,6 +99,7 @@
       : [];
 
     let state = {
+      currentSet: Math.max(1, Math.floor(Number(initial.currentSet) || 1)),
       packs:
         initial.packs === undefined
           ? CONFIG.STARTING_FREE_PACKS
@@ -83,7 +118,8 @@
     };
 
     function getState() {
-      const cards = CARD_CATALOG.map((c) => ({
+      const setMeta = getAlbumSetMeta(state.currentSet);
+      const cards = setMeta.cards.map((c) => ({
         ...c,
         unlocked: state.ownedSet.has(c.id),
         duplicates: Math.max(0, Math.floor(Number(state.duplicateCounts[c.id]) || 0)),
@@ -93,6 +129,11 @@
       const isComplete = unlockedCount >= totalCards;
       const canClaimGrand = isComplete && !state.grandRewardClaimed;
       return {
+        currentSet: state.currentSet,
+        setTitleAr: setMeta.titleAr,
+        setTierTagAr: setMeta.tierTagAr,
+        setAccent: setMeta.accent,
+        grandReward: setMeta.grandReward,
         packs: state.packs,
         winsTowardPack: state.winsTowardPack,
         winsPerPack: CONFIG.WINS_PER_PACK,
@@ -129,18 +170,19 @@
       }
       state.packs -= 1;
 
-      const missing = CARD_CATALOG.filter((c) => !state.ownedSet.has(c.id));
+      const setMeta = getAlbumSetMeta(state.currentSet);
+      const catalog = setMeta.cards;
+      const missing = catalog.filter((c) => !state.ownedSet.has(c.id));
       const drawn = [];
       let duplicateBonusCoins = 0;
 
-      // Guarantee at least 1-2 new cards per pack whenever missing cards exist so collection feels generous & rewarding
       for (let i = 0; i < CONFIG.CARDS_PER_PACK; i++) {
         let picked = null;
         if (missing.length > 0 && (i < 2 || rng() < 0.7)) {
           const idx = Math.floor(rng() * missing.length);
           picked = missing.splice(idx, 1)[0];
         } else {
-          picked = CARD_CATALOG[Math.floor(rng() * CARD_CATALOG.length)];
+          picked = catalog[Math.floor(rng() * catalog.length)];
         }
         const isNew = !state.ownedSet.has(picked.id);
         if (isNew) {
@@ -171,17 +213,31 @@
       if (state.grandRewardClaimed) {
         return { ok: false, reason: "already_claimed", reward: null, state: getState() };
       }
+      const setMeta = getAlbumSetMeta(state.currentSet);
       state.grandRewardClaimed = true;
       state.albumsCompleted += 1;
       return {
         ok: true,
-        reward: { ...CONFIG.GRAND_REWARD },
+        reward: { ...setMeta.grandReward },
         state: getState(),
       };
     }
 
+    function advanceToNextSet() {
+      if (!state.grandRewardClaimed) {
+        return { ok: false, reason: "claim_grand_first", state: getState() };
+      }
+      state.currentSet += 1;
+      state.ownedSet = new Set();
+      state.duplicateCounts = {};
+      state.grandRewardClaimed = false;
+      state.packs += 1; // Bonus starter pack for entering the new infinite card tier!
+      return { ok: true, currentSet: state.currentSet, state: getState() };
+    }
+
     function exportState() {
       return {
+        currentSet: state.currentSet,
         packs: state.packs,
         winsTowardPack: state.winsTowardPack,
         ownedCards: Array.from(state.ownedSet),
@@ -191,7 +247,15 @@
       };
     }
 
-    return { getState, recordStageWin, addPacks, openPack, claimGrandReward, exportState };
+    return {
+      getState,
+      recordStageWin,
+      addPacks,
+      openPack,
+      claimGrandReward,
+      advanceToNextSet,
+      exportState,
+    };
   }
 
   // =========================================================================
@@ -306,15 +370,26 @@
     modalEl.querySelector("#caOpenPackBtn").addEventListener("click", startPackOpening);
 
     modalEl.querySelector("#caGrandChestBtn").addEventListener("click", () => {
+      const preState = engine.getState();
+      if (preState.grandRewardClaimed) {
+        const adv = engine.advanceToNextSet();
+        if (adv.ok) {
+          savePersisted(engine.exportState());
+          window.CMRAudio?.playSfx?.("reward");
+          fx?.showToast?.(`🌟 تم فتح ${adv.setMeta.titleAr} (${adv.setMeta.tierTagAr})! حظاً موفقاً في المجموعة الجديدة!`);
+          render();
+          notifyBadgeUpdate();
+        }
+        return;
+      }
       const res = engine.claimGrandReward();
       if (!res.ok) {
         const st = engine.getState();
-        if (res.reason === "already_claimed") {
-          fx?.showToast?.("🏆 لقد استلمت جائزة إكمال ألبوم الفراعنة الكبرى!");
-        } else {
-          window.CMRAudio?.playSfx?.("invalid");
-          fx?.showToast?.(`اجمع البطاقات الـ ${st.totalCards - st.unlockedCount} المتبقية لفتح الصندوق الملكي (+3,500 عملة و15 جوهرة)!`);
-        }
+        window.CMRAudio?.playSfx?.("invalid");
+        const gr = st.grandReward || CONFIG.GRAND_REWARD;
+        fx?.showToast?.(
+          `اجمع البطاقات الـ ${st.totalCards - st.unlockedCount} المتبقية لفتح الصندوق الملكي (+${Number(gr.coins || 3500).toLocaleString()} عملة و+${gr.gems || 15} جوهرة)!`
+        );
         return;
       }
       savePersisted(engine.exportState());
@@ -324,7 +399,9 @@
       fx?.spawnSparkleBurst?.(chestBtn, { count: 28 });
       fx?.launchCoinBurst?.(chestBtn, { count: 24, iconSrc: ASSETS.coinIcon, targetKind: "coins" });
       fx?.grantReward?.(res.reward);
-      fx?.showToast?.("👑 ألبوم مكتمل! حصلت على +3,500 عملة و+15 جوهرة ومعززات ملكية!");
+      fx?.showToast?.(
+        `👑 ${preState.setTitleAr || "ألبوم مكتمل"}! حصلت على +${Number(res.reward.coins || 3500).toLocaleString()} عملة و+${res.reward.gems || 15} جوهرة! اضغط الصندوق مجدداً لبدء المجموعة التالية ✨`
+      );
       render();
       notifyBadgeUpdate();
     });
@@ -463,6 +540,7 @@
     if (!modalEl) return;
     const st = engine.getState();
 
+    const titleEl = modalEl.querySelector("#cardAlbumTitle");
     const countEl = modalEl.querySelector("#caCountVal");
     const progTxt = modalEl.querySelector("#caPackProgressText");
     const progFill = modalEl.querySelector("#caProgFill");
@@ -473,14 +551,21 @@
     const openBtn = modalEl.querySelector("#caOpenPackBtn");
     const openLbl = modalEl.querySelector("#caOpenPackLabel");
 
+    if (titleEl) {
+      titleEl.textContent = `${st.setTitleAr || "ألبوم الفراعنة"} · ${st.setTierTagAr || "المجموعة 1"}`;
+    }
     if (countEl) countEl.textContent = `${st.unlockedCount} / ${st.totalCards}`;
     if (progTxt) progTxt.textContent = `حزمة كل 5 انتصارات (${st.winsTowardPack}/${st.winsPerPack})`;
     if (progFill) progFill.style.width = `${Math.round((st.unlockedCount / st.totalCards) * 100)}%`;
 
     if (grandBtn && grandTag) {
-      grandBtn.classList.toggle("is-claimable", st.canClaimGrand);
+      grandBtn.classList.toggle("is-claimable", st.canClaimGrand || st.grandRewardClaimed);
       grandBtn.classList.toggle("is-claimed", st.grandRewardClaimed);
-      grandTag.textContent = st.grandRewardClaimed ? "تم ✓" : st.canClaimGrand ? "استلام!" : `${st.unlockedCount}/9`;
+      grandTag.textContent = st.grandRewardClaimed
+        ? "المجموعة التالية ⏭"
+        : st.canClaimGrand
+          ? "استلام!"
+          : `${st.unlockedCount}/9`;
     }
 
     if (packsLbl) {
@@ -537,11 +622,21 @@
   return {
     CONFIG,
     CARD_CATALOG,
+    getAlbumSetMeta,
     createCardAlbumEngine,
     getState: () => engine.getState(),
+    advanceToNextSet: () => {
+      const res = engine.advanceToNextSet();
+      if (res.ok) {
+        savePersisted(engine.exportState());
+        if (modalEl && !modalEl.classList.contains("hidden")) render();
+        notifyBadgeUpdate();
+      }
+      return res;
+    },
     hasNotification: () => {
       const st = engine.getState();
-      return st.packs > 0 || st.canClaimGrand;
+      return st.packs > 0 || st.canClaimGrand || st.grandRewardClaimed;
     },
     addFreePacks: (n = 1) => {
       const st = engine.addPacks(n);

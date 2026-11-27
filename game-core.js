@@ -194,33 +194,58 @@
     },
   ]);
 
+  const INFINITE_REALM_TITLES_AR = Object.freeze([
+    "معبد الخلود الذهبي",
+    "هرم أوزوريس السماوي",
+    "واحة حورس اللانهائية",
+    "بوابة الشمس الأبدية",
+    "عرش كليوباترا النجمي",
+    "قصر النيل الكريستالي",
+  ]);
+
   function clampStage(stage) {
     const n = Math.floor(Number(stage) || 1);
-    return Math.max(1, Math.min(TOTAL_STAGES, n));
+    return Math.max(1, n);
   }
 
   function getStageMeta(globalStage) {
     const stage = clampStage(globalStage);
     const palaceIndex = Math.floor((stage - 1) / STAGES_PER_PALACE);
     const stageInPalace = ((stage - 1) % STAGES_PER_PALACE) + 1;
-    const palace = PALACES[palaceIndex] || PALACES[0];
+    const basePalace = PALACES[palaceIndex % PALACES_COUNT] || PALACES[0];
+    const isInfiniteRealm = palaceIndex >= PALACES_COUNT;
+    const palace = isInfiniteRealm
+      ? {
+          ...basePalace,
+          index: palaceIndex,
+          name: `${INFINITE_REALM_TITLES_AR[(palaceIndex - PALACES_COUNT) % INFINITE_REALM_TITLES_AR.length]} #${palaceIndex + 1}`,
+          nameEn: `Eternal Realm #${palaceIndex + 1}`,
+          tag: `القصر اللانهائي ${palaceIndex + 1}`,
+          tagEn: `Infinite Palace ${palaceIndex + 1}`,
+        }
+      : basePalace;
     const isBossStage = BOSS_STAGES_IN_PALACE.includes(stageInPalace);
     const bossNumber = isBossStage ? palaceIndex * 2 + (stageInPalace === 50 ? 1 : 2) : 0;
-    const variantIndex = (stageInPalace - 1) % 5; // 0..4 => 5 HD boards per palace
-    const boardNumber = palace.boardStart + variantIndex; // 1..50
-    const padded = String(boardNumber).padStart(2, "0");
-    const boardImagePath = `./assets/packs/boards/board_${padded}_${palace.boardPrefix}_v${variantIndex + 1}.jpg`;
+    const variantIndex = (stageInPalace - 1) % 5; // 0..4 => 5 WebP boards per palace
+    const boardNumber = ((basePalace.boardStart - 1 + variantIndex) % 50) + 1; // 1..50
+    const bossBoardNumber = isBossStage ? ((bossNumber - 1) % 20) + 1 : 0;
+    const boardImagePath = isBossStage
+      ? `./mega_pack/08_boards_boss_anubis_20/boss_anubis_board_${String(bossBoardNumber).padStart(2, "0")}.webp`
+      : `./mega_pack/07_boards_regular_50/board_${String(boardNumber).padStart(2, "0")}.webp`;
     return {
       globalStage: stage,
       palaceIndex,
       palaceNumber: palaceIndex + 1,
       stageInPalace,
       palace,
+      isInfiniteRealm,
       isBossStage,
       bossNumber,
-      bossName: isBossStage ? (stageInPalace === 100 ? "ملك الحلوى الأعظم" : "زعيم ملك الحلوى") : null,
+      bossBoardNumber,
+      bossName: isBossStage ? (stageInPalace === 100 ? "الملك أنوبيس الأعظم" : "الملك أنوبيس") : null,
       boardNumber,
       boardImagePath,
+      candyTheme: (palaceIndex + 1) % 2 === 1 ? "royal_desserts" : "pharaonic_relics",
     };
   }
 
@@ -235,7 +260,7 @@
         isHard: false,
         isSuperHard: false,
         isBoss: true,
-        tagAr: s === 100 ? "ملك الحلوى الأعظم 👑" : "زعيم ملك الحلوى 👑",
+        tagAr: s === 100 ? "الملك أنوبيس الأعظم 👑" : "الملك أنوبيس 👑",
         coinMultiplier: s === 100 ? 3 : 2,
       };
     }
@@ -269,18 +294,18 @@
     };
   }
 
-  // Palace-by-Palace progressive introduction of the 12 new Egyptian obstacles (obs_09..obs_20)
+  // Palace-by-Palace progressive introduction of ALL 22 Standalone Animated 3D Obstacles
   const PALACE_OBSTACLE_THEMES = Object.freeze([
-    ["single_ice", "caramel_jar", "sandstone_block"], // Palace 1 (introduces sandstone + caramel)
-    ["double_ice", "scarab_gem_box", "bubble_gum"], // Palace 2 (scarab box + bubble gum)
-    ["rope_net", "crystal_egg", "pharaoh_vase"], // Palace 3 (crystal egg + pharaoh vase)
-    ["stone_wall", "mummy_bandage", "fire_brazier"], // Palace 4 (mummy bandage + fire brazier)
-    ["roots", "lotus_flower", "sandstone_block"], // Palace 5 (lotus flower)
-    ["golden_cage", "magic_lamp", "scarab_gem_box"], // Palace 6 (magic lamp!)
-    ["vault", "obsidian_shield", "pharaoh_vase"], // Palace 7 (obsidian shield booster-only!)
-    ["iron_cage", "pyramid_safe", "lotus_flower"], // Palace 8 (pyramid safe!)
-    ["whirlpool", "magic_lamp", "obsidian_shield"], // Palace 9 (high-tier mix)
-    ["pyramid_safe", "obsidian_shield", "fire_brazier"], // Palace 10 (Grand Sun Pyramid)
+    ["hieroglyph_tile", "caramel_jar", "sandstone_block"], // Palace 1: clean intro + sandstone/caramel/hieroglyph
+    ["bubble_gum", "scarab_gem_box", "golden_spiderweb"], // Palace 2: bubble gum + scarab + spiderweb
+    ["crystal_egg", "pharaoh_vase", "surprise_coffin"], // Palace 3: crystal egg + vase + surprise coffin
+    ["mummy_bandage", "fire_brazier", "quicksand"], // Palace 4: mummy bandage + fire brazier + quicksand
+    ["lotus_flower", "magic_mirror", "color_lock_stone"], // Palace 5: lotus + 90° mirror + color-locked stone
+    ["magic_lamp", "sleeping_sphinx", "scarab_gem_box"], // Palace 6: magic lamp + 2x2 sleeping sphinx
+    ["obsidian_shield", "jumping_bastet", "pharaoh_vase"], // Palace 7: obsidian shield + jumping bastet
+    ["pyramid_safe", "chocolate_fountain", "lotus_flower"], // Palace 8: pyramid safe + chocolate fountain
+    ["cursed_hourglass", "magic_lamp", "obsidian_shield"], // Palace 9: 6-move cursed hourglass + lamp + shield
+    ["sleeping_sphinx", "cursed_hourglass", "pyramid_safe"], // Palace 10: grand Anubis citadel mix
   ]);
 
   function getLevelConfig(globalStage) {
@@ -296,53 +321,55 @@
     let baseObstacles = 4;
     let moves = 25;
 
+    const themeIdx = pIdx % PALACE_OBSTACLE_THEMES.length;
+    const prevThemeIdx = (pIdx - 1 + PALACE_OBSTACLE_THEMES.length) % PALACE_OBSTACLE_THEMES.length;
+
     if (L <= 10) {
-      // Easy First 10 Stages (Palace 1 Intro): 1-layer light obstacles & generous +22..+28 moves
+      // Tactical yet friendly First 10 Stages (Palace 1 Intro): 1-layer obstacles & Candy Crush pacing (8..13 tiles, 22..26 moves)
       introSingleLayer = true;
       if (L === 1) {
-        obstacles = ["single_ice"];
-        baseObstacles = 4;
-        moves = 28;
-      } else if (L <= 3) {
-        obstacles = ["single_ice"];
-        baseObstacles = 4 + (L - 1);
-        moves = 27;
-      } else if (L <= 6) {
-        obstacles = ["single_ice", "caramel_jar"];
-        baseObstacles = 5 + Math.floor((L - 3) / 2);
+        obstacles = ["hieroglyph_tile", "sandstone_block"];
+        baseObstacles = 8;
         moves = 25;
-      } else if (L <= 9) {
-        obstacles = ["single_ice", "sandstone_block"];
-        baseObstacles = 6 + Math.floor((L - 6) / 2);
+      } else if (L <= 3) {
+        obstacles = ["hieroglyph_tile", "caramel_jar"];
+        baseObstacles = 8 + (L - 1);
         moves = 24;
+      } else if (L <= 6) {
+        obstacles = ["caramel_jar", "sandstone_block"];
+        baseObstacles = 10 + Math.floor((L - 3) / 2);
+        moves = 23;
+      } else if (L <= 9) {
+        obstacles = ["hieroglyph_tile", "sandstone_block", "bubble_gum"];
+        baseObstacles = 11 + Math.floor((L - 6) / 2);
+        moves = 22;
       } else {
-        // Stage 10: First Hard Milestone — still friendly 1-layer intro mix, x2 coins!
-        obstacles = ["single_ice", "caramel_jar", "sandstone_block"];
-        baseObstacles = 9;
+        // Stage 10: First Hard Milestone — tactical 1-layer mix, x2 coins!
+        obstacles = ["caramel_jar", "sandstone_block", "scarab_gem_box"];
+        baseObstacles = 13;
         moves = 22;
       }
       diffLabel = diffTier.isHard ? "مرحلة صعبة 🔥" : "سهل";
     } else if (meta.isBossStage) {
-      // Stage 50 Boss: combines palace signature obstacles + obsidian shield in Palace 5+
-      const theme = PALACE_OBSTACLE_THEMES[pIdx] || PALACE_OBSTACLE_THEMES[0];
+      // Stage 50 & 100 Boss (King Anubis): palace signature obstacles + high-stakes tactical count
+      const theme = PALACE_OBSTACLE_THEMES[themeIdx] || PALACE_OBSTACLE_THEMES[0];
       obstacles =
         pIdx >= 4
           ? [theme[0], "obsidian_shield", "pyramid_safe"]
-          : [theme[0], "vault", "golden_cage"];
-      diffLabel = "زعيم ملك الحلوى 👑";
-      baseObstacles = Math.min(20, 12 + pIdx);
-      moves = Math.max(22, 28 - Math.floor(pIdx / 3));
+          : [theme[0], theme[2], "scarab_gem_box"];
+      diffLabel = s === 100 ? "الملك أنوبيس الأعظم 👑" : "الملك أنوبيس 👑";
+      baseObstacles = Math.min(24, 15 + Math.min(8, pIdx));
+      moves = Math.max(22, 27 - Math.floor(Math.min(12, pIdx) / 3));
     } else {
-      // Stages 11–1,000: Gradual scaling introducing 1–2 new obstacles per Palace
-      const theme = PALACE_OBSTACLE_THEMES[pIdx] || PALACE_OBSTACLE_THEMES[0];
-      const prevTheme = PALACE_OBSTACLE_THEMES[Math.max(0, pIdx - 1)] || theme;
+      // Stages 11 -> Infinity: Balanced Candy Crush tactical pacing introducing all 22 3D obstacles
+      const theme = PALACE_OBSTACLE_THEMES[themeIdx] || PALACE_OBSTACLE_THEMES[0];
+      const prevTheme = PALACE_OBSTACLE_THEMES[prevThemeIdx] || theme;
 
       if (diffTier.isSuperHard) {
-        // Super Hard (25, 90): reserves obsidian_shield for Palace 3+ or late stages
         obstacles =
           pIdx >= 2 || s >= 90
             ? [theme[1], theme[2], "obsidian_shield"]
-            : [theme[0], theme[1], "stone_wall"];
+            : [theme[0], theme[1], "fire_brazier"];
         diffLabel = "تحدي فرعوني خارق ⚡";
       } else if (diffTier.isHard) {
         obstacles =
@@ -361,14 +388,15 @@
         diffLabel = "صعب";
       }
 
-      const hardExtra = diffTier.isSuperHard ? 3 : diffTier.isHard ? 2 : 0;
+      const hardExtra = diffTier.isSuperHard ? 4 : diffTier.isHard ? 2 : 0;
+      const infiniteExtra = pIdx >= PALACES_COUNT ? Math.min(4, Math.floor((pIdx - PALACES_COUNT + 1) / 2)) : 0;
       baseObstacles = Math.min(
-        18,
-        5 + Math.floor((s - 1) / 10) + Math.min(4, Math.floor(pIdx / 2)) + hardExtra
+        22,
+        9 + Math.floor((s - 1) / 10) + Math.min(4, Math.floor(pIdx / 2)) + hardExtra + infiniteExtra
       );
       moves = Math.max(
         18,
-        Math.min(28, 25 - Math.floor((s - 1) / 16) - (diffTier.isSuperHard ? 2 : diffTier.isHard ? 1 : 0))
+        Math.min(26, 25 - Math.floor((s - 1) / 18) - (diffTier.isSuperHard ? 2 : diffTier.isHard ? 1 : 0))
       );
     }
 
@@ -897,10 +925,10 @@
     {
       id: "offer_boss_slayer",
       category: "offers",
-      name: "حزمة قاهر زعيم ملك الحلوى",
-      shortTitle: "قاهر الزعيم",
+      name: "حزمة قاهر الملك أنوبيس",
+      shortTitle: "قاهر أنوبيس",
       shortQty: "×8 معززات + 5 قلوب",
-      description: "استعد للمرحلة 50: +3 قنابل، +3 صواريخ، +2 حلوى مخططة، وتعبئة قلوب!",
+      description: "استعد لمعركة الملك أنوبيس: +3 قنابل، +3 صواريخ، +2 كرة ألوان، وتعبئة قلوب!",
       image: SHOP_ICONS.combo3,
       currency: "gems",
       price: 14,
@@ -919,6 +947,52 @@
       price: 420,
       badge: "وفر 35%",
       reward: { hammer: 2, rockets: 2, paints: 2, gems: 4 },
+    },
+    // High-value Real-Money Packs — BLANK/EMPTY priceLabel ready for Google Play Billing!
+    {
+      id: "iap_pharaoh_starter",
+      category: "offers",
+      name: "حزمة الفراعنة الملكية",
+      shortTitle: "حزمة الفراعنة",
+      shortQty: "1,500 عملة + 25 جوهرة + ×6 معززات",
+      description: "حزمة قيمة ملكية جاهزة للشراء المباشر عبر المتجر الرسمي.",
+      image: SHOP_ICONS.combo4,
+      currency: "real_money",
+      price: 0,
+      priceLabel: "",
+      sku: "cmr_pharaoh_starter_pack",
+      badge: "قيمة فائقة",
+      reward: { coins: 1500, gems: 25, rockets: 2, hammer: 2, colors: 2 },
+    },
+    {
+      id: "iap_anubis_vault",
+      category: "offers",
+      name: "خزينة أنوبيس الذهبية",
+      shortTitle: "خزينة أنوبيس",
+      shortQty: "4,000 عملة + 75 جوهرة + ×12 معززات",
+      description: "كنز ضخم من العملات والجواهر النادرة والمعززات الملكية.",
+      image: SHOP_ICONS.chest,
+      currency: "real_money",
+      price: 0,
+      priceLabel: "",
+      sku: "cmr_anubis_golden_vault",
+      badge: "الأكثر قيمة",
+      reward: { coins: 4000, gems: 75, rockets: 4, hammer: 4, colors: 4, fillLives: true },
+    },
+    {
+      id: "iap_cleopatra_treasury",
+      category: "gems",
+      name: "خزانة الملكة كليوباترا",
+      shortTitle: "خزانة كليوباترا",
+      shortQty: "10,000 عملة + 200 جوهرة + ×20 معززات",
+      description: "أضخم كنز ملكي في مملكة الحلوى الفرعونية.",
+      image: SHOP_ICONS.combo3,
+      currency: "real_money",
+      price: 0,
+      priceLabel: "",
+      sku: "cmr_cleopatra_royal_treasury",
+      badge: "أسطوري 👑",
+      reward: { coins: 10000, gems: 200, rockets: 8, hammer: 6, colors: 6, fillLives: true },
     },
   ]);
 
@@ -1150,6 +1224,16 @@
             inventory,
             adPlacement: item.adPlacement,
             message: "هذا العرض يتطلب مشاهدة إعلان مكافأ بالكامل.",
+          };
+        }
+
+        if (item.currency === "real_money") {
+          return {
+            ok: false,
+            reason: "requires_play_billing",
+            inventory,
+            sku: item.sku || item.id,
+            message: "حزمة جاهزة للربط مع Google Play Billing فور نشر التطبيق على المتجر.",
           };
         }
 
@@ -1527,7 +1611,7 @@
   }
 
   function getPalaceProgressSummary(palaceIndex, highestUnlocked, stageStarsMap = {}) {
-    const pIdx = Math.max(0, Math.min(PALACES_COUNT - 1, Math.floor(Number(palaceIndex) || 0)));
+    const pIdx = Math.max(0, Math.floor(Number(palaceIndex) || 0));
     const startStage = pIdx * STAGES_PER_PALACE + 1;
     const endStage = (pIdx + 1) * STAGES_PER_PALACE;
     const unlocked = clampStage(highestUnlocked);

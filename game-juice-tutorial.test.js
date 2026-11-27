@@ -75,7 +75,7 @@ test("Super Booster Combos plan 3x3 cross, 5x5 bomb, cross rockets, and color+ro
   const cr = Systems.computeSuperComboPlan(grid4, 8, 7, { r: 2, c: 2 }, { r: 2, c: 3 });
   assert.equal(cr.comboType, "color_rocket");
   assert.equal(cr.convertTo, "striped");
-  assert.equal(cr.chainDelayMs, 90);
+  assert.equal(cr.chainDelayMs, 75);
   assert.ok(cr.chainTargets.length >= 6);
 });
 

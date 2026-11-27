@@ -7,27 +7,29 @@
     return;
   }
 
-  const COLS = 7;
+  const COLS = 8;
   const ROWS = 8;
   const SPACING = 1.0;
   const TYPES = 6;
-  const CANDY_FIT = 0.88;
+  const CANDY_FIT = 0.86;
   const SAVE_KEY = "cmr_reborn_v1";
   const PLAYER_KEY = "cmr_player_identity_v1";
   const CLAIMED_KEY = "cmr_claimed_levels_v1";
 
+  // Color indices 1..6 match Mega Pack color order: red, blue, green, yellow, purple, orange
   const palette = [
-    { name: "Ruby Heart", color: new BABYLON.Color3(0.96, 0.12, 0.31) },
-    { name: "Sun Drop", color: new BABYLON.Color3(1, 0.48, 0.055) },
-    { name: "Star Sugar", color: new BABYLON.Color3(1, 0.79, 0.12) },
-    { name: "Emerald Leaf", color: new BABYLON.Color3(0.12, 0.78, 0.38) },
-    { name: "Sky Diamond", color: new BABYLON.Color3(0.12, 0.61, 1) },
-    { name: "Violet Jelly", color: new BABYLON.Color3(0.68, 0.25, 0.96) },
+    { name: "Ruby Red", color: new BABYLON.Color3(0.95, 0.16, 0.28) },
+    { name: "Sapphire Blue", color: new BABYLON.Color3(0.14, 0.62, 1.0) },
+    { name: "Emerald Green", color: new BABYLON.Color3(0.14, 0.82, 0.42) },
+    { name: "Golden Yellow", color: new BABYLON.Color3(1.0, 0.82, 0.14) },
+    { name: "Amethyst Purple", color: new BABYLON.Color3(0.68, 0.25, 0.96) },
+    { name: "Amber Orange", color: new BABYLON.Color3(1.0, 0.52, 0.08) },
   ];
 
   const Systems = window.CMRMatch3Systems || null;
   const HeroBossEngine = window.CMRHeroBossEngine || null;
   const OutcomeEngine = window.CMROutcomeEngine || null;
+  const AnubisPack = window.CMRAnubisPack || null;
 
   const OBSTACLE_DEFS = Systems?.OBSTACLE_CATALOG
     ? { ...Systems.OBSTACLE_CATALOG }
@@ -45,33 +47,35 @@
 
   const pityTracker = Systems?.createPityTracker ? Systems.createPityTracker() : null;
 
+  // Dynamic dual candy palette (Odd Palaces = Royal Desserts, Even Palaces = Pharaonic Relics)
+  let activeCandyTheme = "royal_desserts";
   const candyImages = {
-    1: "./01_star_gold.png",
-    2: "./02_heart_rainbow.png",
-    3: "./03_diamond_blue.png",
-    4: "./04_flower_purple.png",
-    5: "./05_crown_green.png",
-    6: "./06_lollipop_red.png",
+    1: "./mega_pack/01_candies_royal_desserts/dessert_01_red_cupcake.png",
+    2: "./mega_pack/01_candies_royal_desserts/dessert_02_blue_donut.png",
+    3: "./mega_pack/01_candies_royal_desserts/dessert_03_green_macaron.png",
+    4: "./mega_pack/01_candies_royal_desserts/dessert_04_yellow_star_cookie.png",
+    5: "./mega_pack/01_candies_royal_desserts/dessert_05_purple_berry_tart.png",
+    6: "./mega_pack/01_candies_royal_desserts/dessert_06_orange_glaze_swirl.png",
   };
-  const candyImageRatios = { 1: 1.01, 2: 0.99, 3: 0.84, 4: 1.24, 5: 1.0, 6: 1.02 };
+  const candyImageRatios = { 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0, 6: 1.0 };
 
   const specialSpriteSources = {
     wrapped: {
-      1: "./14_bag_gold.png",
-      2: "./15_bag_rainbow.png",
-      3: "./16_bag_diamond_blue.png",
-      4: "./17_bag_flower_purple.png",
-      5: "./18_bag_crown_green.png",
-      6: "./19_bag_lollipop_red.png",
+      1: "./mega_pack/04_special_bombs_6/bomb_red.png",
+      2: "./mega_pack/04_special_bombs_6/bomb_blue.png",
+      3: "./mega_pack/04_special_bombs_6/bomb_green.png",
+      4: "./mega_pack/04_special_bombs_6/bomb_yellow.png",
+      5: "./mega_pack/04_special_bombs_6/bomb_purple.png",
+      6: "./mega_pack/04_special_bombs_6/bomb_orange.png",
     },
-    color: "./13_chocolate_ball.png",
+    color: "./mega_pack/05_special_color_ball/special_color_ball.png",
     striped: {
-      1: "./21_rocket_crown_gold.png",
-      2: "./22_rocket_crown_rainbow.png",
-      3: "./23_rocket_diamond_blue.png",
-      4: "./24_rocket_flower_purple.png",
-      5: "./25_rocket_crown_green.png",
-      6: "./26_rocket_lollipop_red.png",
+      1: "./mega_pack/03_special_rockets_6/rocket_red.png",
+      2: "./mega_pack/03_special_rockets_6/rocket_blue.png",
+      3: "./mega_pack/03_special_rockets_6/rocket_green.png",
+      4: "./mega_pack/03_special_rockets_6/rocket_yellow.png",
+      5: "./mega_pack/03_special_rockets_6/rocket_purple.png",
+      6: "./mega_pack/03_special_rockets_6/rocket_orange.png",
     },
   };
 
@@ -164,6 +168,24 @@
   const speechTimers = { queen: null, dragon: null };
 
   function playSfx(kind, options) {
+    const anubisAudio = window.CMRAnubisAudio;
+    if (anubisAudio) {
+      if (kind === "match") {
+        const cascadeStep = Math.max(1, Number(options?.cascadeStep || 1));
+        const pitchRate = Math.min(1.6, 1 + (cascadeStep - 1) * 0.08);
+        anubisAudio.playMatch?.(pitchRate);
+      } else if (kind === "rocket") anubisAudio.playRocket?.();
+      else if (kind === "bomb") anubisAudio.playBomb?.();
+      else if (kind === "color") anubisAudio.playColorBall?.();
+      else if (kind === "ice" || kind === "obstacle") anubisAudio.playObstacleBreak?.();
+      else if (kind === "boss") anubisAudio.playBossLaugh?.();
+      else if (kind === "win") (anubisAudio.playVictory || anubisAudio.playVictoryFanfare)?.();
+      else if (kind === "lose") (anubisAudio.playLose || anubisAudio.playLossDramatic)?.();
+      else if (kind === "tap" || kind === "click") anubisAudio.playClick?.();
+      else if (kind === "shuffle") anubisAudio.playShuffle?.();
+      else if (kind === "wand" || kind === "paint") anubisAudio.playWand?.();
+      else if (kind === "special_create") anubisAudio.playSpecialCreate?.();
+    }
     const map = {
       match: "match",
       swap: "swap",
@@ -371,7 +393,11 @@
   }
 
   function isCellLocked(cell) {
-    return Boolean(cell && (cell.obs || cell.ice > 0));
+    if (!cell) return true;
+    if (AnubisPack?.isCellSwapLockedByObstacle && cell.obs) {
+      if (AnubisPack.isCellSwapLockedByObstacle(cell)) return true;
+    }
+    return Boolean(cell.obs || cell.ice > 0);
   }
 
   function countObstacles() {
@@ -533,9 +559,20 @@
     return mat;
   }
 
-  function makeObstacleMaterial(type, hp) {
+  const LOCK_COLOR_HEX = {
+    1: "#ef4444",
+    2: "#3b82f6",
+    3: "#22c55e",
+    4: "#eab308",
+    5: "#a855f7",
+    6: "#f97316",
+  };
+
+  function makeObstacleMaterial(type, hp, meta = null) {
     const t = OBSTACLE_DEFS[type] ? type : "single_ice";
-    const key = t + "_" + hp;
+    const cdKey = meta?.countdown > 0 ? `_cd${meta.countdown}` : "";
+    const colKey = meta?.lockColor ? `_lc${meta.lockColor}` : "";
+    const key = t + "_" + hp + cdKey + colKey;
     if (obstacleMaterials[key]) return obstacleMaterials[key];
     const def = OBSTACLE_DEFS[t];
     const mat = new BABYLON.StandardMaterial("obsMat_" + key, scene);
@@ -543,21 +580,30 @@
     dt.hasAlpha = true;
     const ctx = dt.getContext();
 
-    // Immediate clean crystalline fallback before PNG finishes loading
+    // Immediate clean golden-stone fallback before PNG finishes decoding
     ctx.clearRect(0, 0, 256, 256);
-    ctx.fillStyle = "rgba(155, 224, 255, 0.55)";
-    ctx.fillRect(14, 14, 228, 228);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.lineWidth = 8;
-    ctx.strokeRect(18, 18, 220, 220);
+    ctx.fillStyle = "rgba(45, 28, 86, 0.45)";
+    ctx.fillRect(16, 16, 224, 224);
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(20, 20, 216, 216);
     dt.update();
 
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       ctx.clearRect(0, 0, 256, 256);
-      ctx.drawImage(img, 8, 8, 240, 240);
-      if (hp < def.hp) {
+      if (t === "color_lock_stone" && meta?.lockColor) {
+        ctx.save();
+        ctx.strokeStyle = LOCK_COLOR_HEX[meta.lockColor] || "#fbbf24";
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.arc(128, 128, 108, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.drawImage(img, 6, 6, 244, 244);
+      if (hp < (def.hp || 1)) {
         ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
         ctx.lineWidth = 6;
         ctx.beginPath();
@@ -565,6 +611,20 @@
         ctx.lineTo(118, 126);
         ctx.lineTo(82, 206);
         ctx.stroke();
+      }
+      if (t === "cursed_hourglass" && meta?.countdown > 0) {
+        ctx.fillStyle = meta.countdown <= 2 ? "#dc2626" : "#7c3aed";
+        ctx.beginPath();
+        ctx.arc(54, 54, 34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "900 36px Cairo, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(meta.countdown), 54, 56);
       }
       if (hp > 1) {
         ctx.fillStyle = def.boosterOnly ? "#4c1d95" : "#d82b59";
@@ -589,7 +649,7 @@
     mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
     mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
     mat.disableLighting = true;
-    mat.alpha = t === "single_ice" || t === "double_ice" ? 0.86 : 0.96;
+    mat.alpha = t === "single_ice" || t === "double_ice" ? 0.86 : 1.0;
     mat.useAlphaFromDiffuseTexture = true;
     mat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
     mat.backFaceCulling = false;
@@ -597,7 +657,48 @@
     return mat;
   }
 
+  function syncCandyPaletteForStage(level) {
+    if (!AnubisPack?.getCandyPaletteForStage) return false;
+    const info = AnubisPack.getCandyPaletteForStage(level);
+    if (!info || !info.candies) return false;
+    const changed = activeCandyTheme !== info.theme;
+    activeCandyTheme = info.theme;
+    for (let t = 1; t <= TYPES; t++) {
+      candyImages[t] = info.candies[t] || candyImages[t];
+    }
+    if (changed) {
+      for (let t = 1; t <= TYPES; t++) {
+        if (spriteMaterials[t]) {
+          try { spriteMaterials[t].dispose(false, true); } catch (_) {}
+          delete spriteMaterials[t];
+        }
+        if (spriteTextures[t]) {
+          try { spriteTextures[t].dispose(); } catch (_) {}
+          delete spriteTextures[t];
+        }
+        delete candyTrim[t];
+      }
+      void preloadCandyTextures();
+    }
+    return changed;
+  }
+
   async function preloadCandyTextures() {
+    // Async non-blocking img.decode() warmup for 120Hz/144Hz zero-stutter rendering
+    const decodeUrls = [
+      ...Object.values(candyImages),
+      ...Object.values(specialSpriteSources.striped),
+      ...Object.values(specialSpriteSources.wrapped),
+      specialSpriteSources.color,
+    ];
+    decodeUrls.forEach((src) => {
+      try {
+        const im = new Image();
+        im.decoding = "async";
+        im.src = src;
+        if (typeof im.decode === "function") im.decode().catch(() => {});
+      } catch (_) {}
+    });
     await Promise.all(Object.keys(candyImages).map(loadCandyTrim));
     await Promise.all(
       Object.keys(candyImages).map(async (type) => {
@@ -605,8 +706,8 @@
         const texture = spriteTextures[type];
         if (!texture || texture.isReady()) return;
         const started = Date.now();
-        while (!texture.isReady() && Date.now() - started < 3500) {
-          await wait(50);
+        while (!texture.isReady() && Date.now() - started < 2400) {
+          await wait(35);
         }
       })
     );
@@ -758,15 +859,23 @@
     const obs = obsOverride !== null ? obsOverride : state.grid[r]?.[c]?.obs || null;
     if (ice > 0) {
       const obsKey = obs || (ice >= 2 ? "double_ice" : "single_ice");
+      const def = OBSTACLE_DEFS[obsKey] || OBSTACLE_DEFS.single_ice;
+      const cellData = state.grid[r]?.[c] || null;
+      // Standalone solid 3D obstacles replace the candy tile visually so they look crisp & 3D
+      if (def.solidStandalone) {
+        for (const child of root.getChildMeshes()) {
+          child.setEnabled(false);
+        }
+      }
       const obsMesh = BABYLON.MeshBuilder.CreatePlane(
         "iceOverlay",
-        { width: SPACING * 0.9, height: SPACING * 0.9 },
+        { width: SPACING * 0.92, height: SPACING * 0.92 },
         scene
       );
       obsMesh.parent = root;
       obsMesh.position.y = 0.48;
       obsMesh.rotation.x = Math.PI / 2;
-      obsMesh.material = makeObstacleMaterial(obsKey, ice);
+      obsMesh.material = makeObstacleMaterial(obsKey, ice, cellData);
       obsMesh.isPickable = false;
       obsMesh.renderingGroupId = 2;
     }
@@ -982,20 +1091,49 @@
     state.obstaclesCleared = 0;
     state.obstacleGrowthTurns = 0;
 
-    // Place obstacles cleanly avoiding all-edge lockups
+    // Place obstacles cleanly (including 2x2 linked Sleeping Sphinx, 6-move Hourglass, Color-Locked Stone)
     const deck = Array.from({ length: cfg.obstacleCount }, (_, i) => cfg.obstacles[i % cfg.obstacles.length]);
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [deck[i], deck[j]] = [deck[j], deck[i]];
     }
+    const sphinxGroups = new Map();
+    let sphinxCounter = 0;
+
     for (let n = 0; n < deck.length; n++) {
+      const obsId = deck[n];
+      if (obsId === "sleeping_sphinx" && n <= deck.length - 4) {
+        // Place a linked 2x2 Sleeping Sphinx cluster
+        let placed = false;
+        for (let tries = 0; tries < 40 && !placed; tries++) {
+          const sr = Math.floor(Math.random() * (ROWS - 1));
+          const sc = Math.floor(Math.random() * (COLS - 1));
+          const idxs = [
+            sr * COLS + sc,
+            sr * COLS + sc + 1,
+            (sr + 1) * COLS + sc,
+            (sr + 1) * COLS + sc + 1,
+          ];
+          if (idxs.every((id) => !obsMap.has(id))) {
+            sphinxCounter++;
+            const gid = "sphinx_" + sphinxCounter;
+            idxs.forEach((id) => {
+              obsMap.set(id, "sleeping_sphinx");
+              sphinxGroups.set(id, gid);
+            });
+            n += 3;
+            placed = true;
+          }
+        }
+        if (placed) continue;
+      }
       let idx;
       let tries = 0;
       do {
         idx = Math.floor(Math.random() * ROWS * COLS);
         tries++;
       } while (obsMap.has(idx) && tries < 100);
-      if (!obsMap.has(idx)) obsMap.set(idx, deck[n]);
+      if (!obsMap.has(idx)) obsMap.set(idx, obsId);
     }
 
     state.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -1003,14 +1141,26 @@
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const type = randomType(r, c);
-        const obs = obsMap.get(r * COLS + c) || null;
+        const flatIdx = r * COLS + c;
+        const obs = obsMap.get(flatIdx) || null;
         const def = obs ? OBSTACLE_DEFS[obs] || OBSTACLE_DEFS.single_ice : null;
         const ice = obs ? (cfg.introSingleLayer ? def.introHp || 1 : def.hp || 1) : 0;
         if (obs) {
           targetCounts.set(obs, (targetCounts.get(obs) || 0) + 1);
         }
-        state.grid[r][c] = { type, special: null, ice, obs, originObs: obs, mesh: null };
-        state.grid[r][c].mesh = candyMesh(r, c, type, null, ice, obs);
+        const cellObj = {
+          type,
+          special: null,
+          ice,
+          obs,
+          originObs: obs,
+          sphinxGroupId: sphinxGroups.get(flatIdx) || null,
+          countdown: obs === "cursed_hourglass" ? 6 : 0,
+          lockColor: obs === "color_lock_stone" ? 1 + ((r + c) % TYPES) : 0,
+          mesh: null,
+        };
+        state.grid[r][c] = cellObj;
+        cellObj.mesh = candyMesh(r, c, type, null, ice, obs);
       }
     }
     state.missionTargets = Array.from(targetCounts.entries())
@@ -1086,7 +1236,7 @@
     }
   }
 
-  function damageIceAt(r, c, score = 25, source = "booster") {
+  function damageIceAt(r, c, score = 25, source = "booster", hitColor = 0, _fromSphinxLink = false) {
     const item = state.grid[r]?.[c];
     if (!item || (item.ice <= 0 && !item.obs)) return false;
     const obs = item.obs || (item.ice > 1 ? "double_ice" : "single_ice");
@@ -1096,6 +1246,25 @@
     if (source === "adj" && !def.adj) return false;
     if (source === "self" && !def.self) return false;
 
+    // Color-Locked Stone: breaks only from matching color or explosion/booster
+    if (obs === "color_lock_stone" && source !== "booster") {
+      if (AnubisPack?.canBreakColorLockStone && !AnubisPack.canBreakColorLockStone(item, hitColor, false)) {
+        return false;
+      }
+    }
+
+    // 2x2 Linked Sleeping Sphinx: hitting any cell damages the linked 2x2 group once
+    if (obs === "sleeping_sphinx" && item.sphinxGroupId && !_fromSphinxLink) {
+      const groupCells = AnubisPack?.getSleepingSphinxGroupCells
+        ? AnubisPack.getSleepingSphinxGroupCells(state.grid, ROWS, COLS, item.sphinxGroupId)
+        : [{ r, c }];
+      let anyHit = false;
+      for (const gc of groupCells) {
+        if (damageIceAt(gc.r, gc.c, score, source, hitColor, true)) anyHit = true;
+      }
+      return anyHit;
+    }
+
     const impactPosition = item.mesh?.position?.clone();
     item.ice = Math.max(0, (Number(item.ice) || def.hp || 1) - 1);
     if (obs === "double_ice" && item.ice === 1) item.obs = "single_ice";
@@ -1104,6 +1273,9 @@
       state.obstaclesCleared = Math.min(state.obstacleGoal, state.obstaclesCleared + 1);
       item.obs = null;
       item.originObs = null;
+      item.sphinxGroupId = null;
+      item.countdown = 0;
+      item.lockColor = 0;
       recordMissionBreak(originObs, obs);
 
       if (obs === "vault" || obs === "pyramid_safe") {
@@ -1114,8 +1286,21 @@
         state.coins += 50;
         state.score += 100;
         say(obs === "scarab_gem_box" ? "فتحت صندوق الجعران! +50 عملة" : "فتحت القفص الذهبي! +50 عملة");
+      } else if (obs === "surprise_coffin") {
+        const drop = AnubisPack?.pickSurpriseCoffinDrop
+          ? AnubisPack.pickSurpriseCoffinDrop()
+          : { kind: "coins", coins: 50 };
+        if (drop.kind === "rocket") {
+          item.special = "striped";
+          say("🎁 تابوت المفاجآت منحك صاروخ حلوى!");
+        } else if (drop.kind === "bomb") {
+          item.special = "wrapped";
+          say("🎁 تابوت المفاجآت منحك قنبلة حلوى!");
+        } else {
+          state.coins += drop.coins || 50;
+          say("🎁 تابوت المفاجآت منحك +50 عملة ذهبية!");
+        }
       } else if (def.lampBlast) {
-        // Magic Lamp fires a golden horizontal row-clearing beam!
         rocketSweepAt({ r, c });
         triggerBoardShake();
         triggerHaptic(30);
@@ -1193,17 +1378,74 @@
   }
 
   function spreadChocolateIfNeeded() {
-    // NEVER spread obstacles once the objective is already completed or terminal
+    // NEVER spread or hop obstacles once the objective is already completed or terminal
     if (stateMachine.isTerminal() || countObstacles() === 0) return;
-    const meta = Core.getStageMeta(state.level);
-    if (meta.palaceNumber < 3) return;
+
+    // 1. Tick 6-move Cursed Hourglasses
+    if (AnubisPack?.tickCursedHourglasses) {
+      const hgRes = AnubisPack.tickCursedHourglasses(state.grid, ROWS, COLS);
+      if (hgRes.ticked.length > 0) {
+        for (const h of hgRes.ticked) {
+          const cell = state.grid[h.r]?.[h.c];
+          if (cell && cell.mesh && !cell.mesh.isDisposed?.()) {
+            cell.mesh.dispose();
+            cell.mesh = candyMesh(h.r, h.c, cell.type, cell.special, cell.ice, cell.obs);
+          }
+        }
+      }
+      if (hgRes.exploded.length > 0) {
+        triggerBoardShake();
+        triggerHaptic([30, 30, 30]);
+        say("⏳ انفجرت الساعة الرملية الملعونة!");
+        for (const ex of hgRes.exploded) {
+          const cell = state.grid[ex.r]?.[ex.c];
+          if (cell) {
+            cell.countdown = 6;
+            if (cell.mesh && !cell.mesh.isDisposed?.()) cell.mesh.dispose();
+            cell.mesh = candyMesh(ex.r, ex.c, cell.type, cell.special, cell.ice, cell.obs);
+          }
+        }
+      }
+    }
+
+    // 2. Hop Jumping Bastet statues to adjacent free tile between turns
+    if (AnubisPack?.pickJumpingBastetDestination) {
+      const bastets = [];
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (state.grid[r]?.[c]?.obs === "jumping_bastet") bastets.push({ r, c });
+        }
+      }
+      for (const b of bastets) {
+        const dest = AnubisPack.pickJumpingBastetDestination(state.grid, ROWS, COLS, b.r, b.c);
+        if (!dest) continue;
+        const srcCell = state.grid[b.r][b.c];
+        const dstCell = state.grid[dest.r][dest.c];
+        if (!srcCell || !dstCell) continue;
+        dstCell.obs = srcCell.obs;
+        dstCell.originObs = srcCell.originObs;
+        dstCell.ice = srcCell.ice;
+        srcCell.obs = null;
+        srcCell.originObs = null;
+        srcCell.ice = 0;
+        if (srcCell.mesh && !srcCell.mesh.isDisposed?.()) srcCell.mesh.dispose();
+        if (dstCell.mesh && !dstCell.mesh.isDisposed?.()) dstCell.mesh.dispose();
+        srcCell.mesh = candyMesh(b.r, b.c, srcCell.type, srcCell.special, 0, null);
+        dstCell.mesh = candyMesh(dest.r, dest.c, dstCell.type, dstCell.special, dstCell.ice, dstCell.obs);
+      }
+    }
+
+    // 3. Spread Quicksand / Chocolate Fountain / Roots if none was broken this turn
+    if (state.turnBrokeObstacle || countObstacles() >= 24) return;
     state.obstacleGrowthTurns = (state.obstacleGrowthTurns || 0) + 1;
-    if (state.obstacleGrowthTurns % 2 !== 0 || countObstacles() >= 20) return;
+    if (state.obstacleGrowthTurns % 2 !== 0) return;
+
     const cands = [];
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const it = state.grid[r]?.[c];
-        if (it && it.obs === "roots") {
+        if (it && (it.obs === "roots" || it.obs === "quicksand" || it.obs === "chocolate_fountain")) {
+          const spreadType = it.obs === "chocolate_fountain" ? "caramel_jar" : it.obs;
           for (const [dr, dc] of [
             [-1, 0],
             [1, 0],
@@ -1213,18 +1455,21 @@
             const nr = r + dr,
               nc = c + dc,
               nb = state.grid[nr]?.[nc];
-            if (inBounds(nr, nc) && nb && !nb.obs && !nb.ice) cands.push({ item: nb, r: nr, c: nc });
+            if (inBounds(nr, nc) && nb && !nb.obs && !nb.ice) {
+              cands.push({ item: nb, r: nr, c: nc, spreadType });
+            }
           }
         }
       }
     }
     if (!cands.length) return;
     const pick = cands[Math.floor(Math.random() * cands.length)];
-    pick.item.obs = "roots";
+    pick.item.obs = pick.spreadType;
+    pick.item.originObs = pick.spreadType;
     pick.item.ice = 1;
     state.obstacleGoal++;
     if (pick.item.mesh && !pick.item.mesh.isDisposed?.()) pick.item.mesh.dispose();
-    pick.item.mesh = candyMesh(pick.r, pick.c, pick.item.type, pick.item.special, 1, "roots");
+    pick.item.mesh = candyMesh(pick.r, pick.c, pick.item.type, pick.item.special, 1, pick.spreadType);
     state.iceRemaining = countObstacles();
   }
 
@@ -1559,9 +1804,37 @@
         } else if (plan.comboType === "bomb_bomb") {
           wrappedDetonationAt(a, A?.type || 1);
           wrappedDetonationAt(b, B?.type || 1);
+        } else if (plan.comboType === "color_color") {
+          // Color Ball + Color Ball -> Crackling rainbow-cyan lightning across entire board sequentially
+          playSfx("color");
+          triggerBoardShake();
+          triggerHaptic([30, 35, 45]);
+          const allCells = [];
+          for (let rr = 0; rr < ROWS; rr++) {
+            for (let cc = 0; cc < COLS; cc++) allCells.push({ r: rr, c: cc });
+          }
+          window.CMRHeroBossVFX?.fireBoardLightningArc?.(b, allCells);
+          for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col < COLS; col++) {
+              const it = state.grid[row]?.[col];
+              if (!it) continue;
+              if (it.ice > 0 || it.obs) {
+                damageIceAt(row, col, 40, "booster");
+              } else {
+                if (it.mesh && !it.mesh.isDisposed?.()) {
+                  burstAt(it.mesh.position, it.type);
+                  it.mesh.dispose();
+                }
+                state.grid[row][col] = null;
+                state.score += 95;
+              }
+            }
+            updateHud();
+            await wait(45);
+          }
+          return;
         } else if (plan.comboType === "color_rocket" || plan.comboType === "color_bomb") {
           colorChainAt(A?.special === "color" ? a : b, plan.targetColor);
-          // Clear the two swapped anchors first
           for (const anc of [a, b]) {
             const item = state.grid[anc.r]?.[anc.c];
             if (item) {
@@ -1573,8 +1846,7 @@
               state.score += 100;
             }
           }
-          // Convert every matching-color candy into Rockets or Bombs visually
-          const targets = (plan.chainTargets || []).slice(0, 12);
+          const targets = (plan.chainTargets || []).slice(0, 16);
           for (const t of targets) {
             const cellItem = state.grid[t.r]?.[t.c];
             if (!cellItem || cellItem.obs || cellItem.ice > 0) continue;
@@ -1582,8 +1854,7 @@
             if (cellItem.mesh && !cellItem.mesh.isDisposed?.()) cellItem.mesh.dispose();
             cellItem.mesh = candyMesh(t.r, t.c, cellItem.type, plan.convertTo, 0, null);
           }
-          await wait(120);
-          // Detonate each converted piece in rapid 90ms chain reactions!
+          await wait(110);
           for (const t of targets) {
             if (plan.convertTo === "striped") {
               rocketSweepAt(t);
@@ -1596,8 +1867,13 @@
             triggerHaptic(12);
             const blastCells = new Set();
             if (plan.convertTo === "striped") {
-              for (let col = 0; col < COLS; col++) blastCells.add(t.r + "," + col);
-              for (let row = 0; row < ROWS; row++) blastCells.add(row + "," + t.c);
+              if (AnubisPack?.traceRocketWithMirrors) {
+                for (const key of AnubisPack.traceRocketWithMirrors(state.grid, ROWS, COLS, t, "horizontal")) blastCells.add(key);
+                for (const key of AnubisPack.traceRocketWithMirrors(state.grid, ROWS, COLS, t, "vertical")) blastCells.add(key);
+              } else {
+                for (let col = 0; col < COLS; col++) blastCells.add(t.r + "," + col);
+                for (let row = 0; row < ROWS; row++) blastCells.add(row + "," + t.c);
+              }
             } else {
               for (let rr = t.r - 1; rr <= t.r + 1; rr++) {
                 for (let cc = t.c - 1; cc <= t.c + 1; cc++) {
@@ -1617,11 +1893,11 @@
                   it.mesh.dispose();
                 }
                 state.grid[rr][cc] = null;
-                state.score += 70;
+                state.score += 75;
               }
             }
             updateHud();
-            await wait(plan.chainDelayMs || 90);
+            await wait(plan.chainDelayMs || 78);
           }
           return;
         } else {
@@ -1700,7 +1976,9 @@
 
       chain++;
       const pitchRate = Systems?.computeComboPitchRate ? Systems.computeComboPitchRate(chain) : 1;
-      playSfx("match", { playbackRate: pitchRate });
+      playSfx("match", { playbackRate: pitchRate, cascadeStep: chain });
+      // 10-Second English Streak Voice Announcer (3rd+ consecutive match within 10s -> SWEET! .. LEGENDARY!)
+      window.CMRAnubisAudio?.recordMatchForStreak?.(Date.now());
 
       if (chain >= 2) {
         const callout = Systems?.getComboCallout?.(chain);
@@ -1725,8 +2003,17 @@
           wrappedDetonationAt({ r, c }, item.type);
           if (Core.getStageMeta(state.level).isBossStage) damageBossFromBoard("bomb", { r, c }, 1);
         } else if (item.special === "striped") {
-          for (let x = 0; x < COLS; x++) matches.add(r + "," + x);
-          for (let y = 0; y < ROWS; y++) matches.add(y + "," + c);
+          if (AnubisPack?.traceRocketWithMirrors) {
+            for (const mk of AnubisPack.traceRocketWithMirrors(state.grid, ROWS, COLS, { r, c }, "horizontal")) {
+              matches.add(mk);
+            }
+            for (const mk of AnubisPack.traceRocketWithMirrors(state.grid, ROWS, COLS, { r, c }, "vertical")) {
+              matches.add(mk);
+            }
+          } else {
+            for (let x = 0; x < COLS; x++) matches.add(r + "," + x);
+            for (let y = 0; y < ROWS; y++) matches.add(y + "," + c);
+          }
           playSfx("rocket");
           triggerHaptic(30);
           triggerBoardShake();
@@ -1746,11 +2033,16 @@
 
       const remove = Array.from(matches).map((s) => s.split(",").map(Number));
       const obstacleHitCells = new Map();
+      const matchedFromSpecialExplosion = matchedSpecials.length > 0;
       for (const key of matches) {
         const [mr, mc] = key.split(",").map(Number);
         const current = state.grid[mr]?.[mc];
+        const hitCol = current?.type || 0;
         if (current && (current.obs || current.ice > 0)) {
-          obstacleHitCells.set(mr + "," + mc, "self");
+          obstacleHitCells.set(mr + "," + mc, {
+            source: matchedFromSpecialExplosion ? "booster" : "self",
+            hitColor: hitCol,
+          });
         }
         for (const [dr, dc] of [
           [-1, 0],
@@ -1762,13 +2054,13 @@
             ic = mc + dc,
             near = state.grid[ir]?.[ic];
           if (inBounds(ir, ic) && near && (near.obs || near.ice > 0) && !obstacleHitCells.has(ir + "," + ic)) {
-            obstacleHitCells.set(ir + "," + ic, "adj");
+            obstacleHitCells.set(ir + "," + ic, { source: "adj", hitColor: hitCol });
           }
         }
       }
-      for (const [key, source] of obstacleHitCells) {
+      for (const [key, info] of obstacleHitCells) {
         const [ir, ic] = key.split(",").map(Number);
-        damageIceAt(ir, ic, 25, source);
+        damageIceAt(ir, ic, 25, info.source, info.hitColor);
       }
 
       const specialCandidate =
@@ -1780,7 +2072,9 @@
         const it = state.grid[r]?.[c];
         if (keep && r === keep.r && c === keep.c) continue;
         if (it?.ice > 0 || it?.obs) {
-          if (!obstacleHitCells.has(r + "," + c)) damageIceAt(r, c, 25, "self");
+          if (!obstacleHitCells.has(r + "," + c)) {
+            damageIceAt(r, c, 25, matchedFromSpecialExplosion ? "booster" : "self", it.type || 0);
+          }
           if (state.grid[r]?.[c]?.ice > 0 || state.grid[r]?.[c]?.obs) continue;
         }
         if (it?.mesh && !it.mesh.isDisposed?.()) {
@@ -1796,6 +2090,7 @@
         it.special = groupSpecial;
         if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
         it.mesh = candyMesh(keep.r, keep.c, it.type, groupSpecial, it.ice || 0, it.obs || null);
+        playSfx("special_create");
         triggerHaptic(12);
       }
 
@@ -1872,7 +2167,15 @@
       if (A.mesh) A.mesh.metadata = { r: b.r, c: b.c, candy: true };
       if (B.mesh) B.mesh.metadata = { r: a.r, c: a.c, candy: true };
 
-      if (A.special || B.special) {
+      // STRICT CANDY CRUSH RULE:
+      // Direct Special Activation ONLY for: (1) Special + Special combo, or (2) Color Ball + any candy.
+      // A single Rocket or Bomb swapped with a normal candy MUST form a 3+ match or smoothly bounce back!
+      const isSpecialComboOrColor =
+        (Boolean(A.special) && Boolean(B.special)) ||
+        A.special === "color" ||
+        B.special === "color";
+
+      if (isSpecialComboOrColor) {
         state.moves = Math.max(0, state.moves - 1);
         state.turnConsumedMove = true;
         updateHud();
@@ -2156,10 +2459,11 @@
       const setup = HeroBossEngine.getStageCharacterSetup(state.level);
 
       if (side === "right") {
-        // Crystal Dragon: Cyan-Gold Crystal Energy Beam onto high-density obstacle cluster
+        // Golden Dragon: Cyan-Gold Crystal Energy Beam onto high-density obstacle cluster
         const plan = HeroBossEngine.pickDragonBeamTargets(state.grid, ROWS, COLS);
-        say("⚡ تنين الكريستال أطلق شعاع الطاقة الكريستالي!");
+        say("⚡ التنين الذهبي أطلق شعاع الطاقة الكريستالي!");
         showComboCallout("شعاع التنين! ⚡", 5, "#38bdf8");
+        playSfx("rocket");
         await new Promise((resolve) => {
           window.CMRHeroBossVFX?.fireDragonCrystalBeam?.(plan.anchor, plan.targets, () => {
             triggerBoardShake();
@@ -2186,39 +2490,15 @@
         await wait(240);
         if (stateMachine.getToken() !== token) return true;
         await settle(token);
-      } else if (setup.leftHeroId === "pharaoh_boy") {
-        // Pharaoh Boy: Ankh staff blasts 1 layer off ALL active obstacles
-        const obsTargets = HeroBossEngine.pickPharaohAnkhTargets(state.grid, ROWS, COLS);
-        say("✨ الأمير الفرعوني أطلق قوة مفتاح العنخ على جميع العوائق!");
-        showComboCallout("قوة العنخ! ✨", 5, "#fde047");
-        const boltTargets = obsTargets.slice(0, 6);
-        await new Promise((resolve) => {
-          window.CMRHeroBossVFX?.fireLeftHeroMagicBolts?.(
-            "pharaoh_boy",
-            boltTargets,
-            () => {},
-            () => {
-              triggerBoardShake();
-              triggerHaptic(30);
-              for (const t of obsTargets) {
-                damageIceAt(t.r, t.c, 40, "booster");
-              }
-              updateHud();
-              resolve();
-            }
-          );
-        });
-        await wait(200);
-        if (stateMachine.getToken() !== token) return true;
-        await settle(token);
       } else {
-        // Queen Luma: 3 pink-gold magic bolts transform 3 random candies into Candy Rockets
+        // Queen Cleopatra: 3 royal magic bolts transform 3 random candies into Candy Rockets
         const rocketTargets = HeroBossEngine.pickQueenRocketTargets(state.grid, ROWS, COLS, 3);
-        say("🪄 الملكة لوما حوّلت 3 قطع إلى صواريخ كاندي!");
-        showComboCallout("سحر الملكة! 🪄", 5, "#f472b6");
+        say("🪄 الملكة كليوباترا حوّلت 3 قطع إلى صواريخ حلوى!");
+        showComboCallout("سحر كليوباترا! 🪄", 5, "#f472b6");
+        playSfx("wand");
         await new Promise((resolve) => {
           window.CMRHeroBossVFX?.fireLeftHeroMagicBolts?.(
-            "queen_luma",
+            "cleopatra",
             rocketTargets,
             (cell) => {
               const it = state.grid[cell.r]?.[cell.c];
@@ -2257,10 +2537,11 @@
       return;
     }
     const cfg = Core.getLevelConfig(state.level);
-    const spawnObs = cfg.obstacles[0] || "single_ice";
-    const def = OBSTACLE_DEFS[spawnObs] || OBSTACLE_DEFS.single_ice;
+    const spawnObs = cfg.obstacles[0] || "sandstone_block";
+    const def = OBSTACLE_DEFS[spawnObs] || OBSTACLE_DEFS.sandstone_block;
 
-    say("⚡ زعيم ملك الحلوى يشن هجوم البرق الغاضب!");
+    say("⚡ الملك أنوبيس يشن صاعقة عنخ ويلقي 3 عوائق!");
+    playSfx("boss");
     triggerBoardShake();
 
     await new Promise((resolve) => {
@@ -2374,7 +2655,7 @@
           const a = state.grid[r][c],
             b = state.grid[nr][nc];
           if (!a || !b || isCellLocked(a) || isCellLocked(b)) continue;
-          if (a.special || b.special) return true;
+          if ((a.special && b.special) || a.special === "color" || b.special === "color") return true;
           state.grid[r][c] = b;
           state.grid[nr][nc] = a;
           const valid = findMatches().size > 0;
@@ -2632,14 +2913,10 @@
     const msg = $("characterMessage");
     if (msg) msg.textContent = tier === 3 ? "قوة سحرية هائلة!" : tier === 2 ? "كومبو رائع!" : "ممتاز!";
     window.CMRCharacters?.react?.("combo-" + tier);
-    if (chain >= 2) {
-      window.Dragon3DCharacter?.playCelebrate?.();
-    }
   }
 
   function triggerCharacterResult(won) {
     window.CMRCharacters?.react?.(won ? "celebrate" : "defeat");
-    if (won) window.Dragon3DCharacter?.playCelebrate?.();
   }
 
   // ---- HUD & Background Assignment ----
@@ -3283,11 +3560,84 @@
     syncMenuUI();
   }
 
+  let stageMissionToastTimer = null;
+  function showStageStartMissionToast(level, meta, targets) {
+    const el = $("stageStartMissionToast");
+    if (!el) return;
+    const itemsHtml = (targets || [])
+      .map(
+        (t) => `
+        <span class="ssm-target-chip">
+          <img src="${t.imgSrc}" alt="${t.nameAr}" draggable="false">
+          <b>×${t.required}</b>
+        </span>
+      `
+      )
+      .join("");
+    el.innerHTML = `
+      <div class="ssm-toast-title">${meta.isBossStage ? `👑 معركة ${meta.bossName}` : `المرحلة ${level}`}</div>
+      <div class="ssm-toast-sub">${meta.palace.name}</div>
+      <div class="ssm-toast-targets">${itemsHtml}</div>
+    `;
+    el.classList.remove("hidden", "is-visible");
+    void el.offsetWidth;
+    el.classList.add("is-visible");
+    clearTimeout(stageMissionToastTimer);
+    stageMissionToastTimer = setTimeout(() => {
+      el.classList.remove("is-visible");
+      el.classList.add("hidden");
+    }, 1850);
+  }
+
+  function applyPreLevelBoostersToBoard(preBoosters) {
+    if (!Array.isArray(preBoosters) || !preBoosters.length) return;
+    const freeCells = [];
+    for (let r = 1; r < ROWS - 1; r++) {
+      for (let c = 1; c < COLS - 1; c++) {
+        const it = state.grid[r]?.[c];
+        if (it && !it.obs && !it.ice && !it.special) freeCells.push({ r, c });
+      }
+    }
+    for (let i = freeCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [freeCells[i], freeCells[j]] = [freeCells[j], freeCells[i]];
+    }
+    for (const key of preBoosters) {
+      if (key === "rockets" && state.rockets > 0 && freeCells.length) {
+        state.rockets--;
+        const p = freeCells.pop();
+        const it = state.grid[p.r][p.c];
+        it.special = "striped";
+        if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+        it.mesh = candyMesh(p.r, p.c, it.type, "striped", 0, null);
+      } else if (key === "hammer" && state.hammer > 0 && freeCells.length) {
+        state.hammer--;
+        const p = freeCells.pop();
+        const it = state.grid[p.r][p.c];
+        it.special = "wrapped";
+        if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+        it.mesh = candyMesh(p.r, p.c, it.type, "wrapped", 0, null);
+      } else if (key === "colors" && state.colors > 0 && freeCells.length) {
+        state.colors--;
+        const p = freeCells.pop();
+        const it = state.grid[p.r][p.c];
+        it.special = "color";
+        if (it.mesh && !it.mesh.isDisposed?.()) it.mesh.dispose();
+        it.mesh = candyMesh(p.r, p.c, it.type, "color", 0, null);
+      } else if (key === "paints" && state.paints > 0) {
+        // Extra starting moves bonus when choosing Magic Wand pre-level booster
+        state.paints--;
+        state.moves += 3;
+      }
+    }
+  }
+
   // ---- Stage Lifecycle: Launch, Restart, Next Stage, Exit to Map ----
-  function startFreshBoardForCurrentLevel() {
+  function startFreshBoardForCurrentLevel(options = {}) {
     cancelAllAnimations();
     clearHintOverlay();
     window.CMRQueenTutorial?.cancelAll?.();
+    window.CMRAnubisAudio?.resetStreak?.();
     clearSelection();
     clearActiveBooster();
     hideResultModal();
@@ -3304,8 +3654,12 @@
 
     const meta = Core.getStageMeta(state.level);
     const cfg = Core.getLevelConfig(state.level);
+    syncCandyPaletteForStage(state.level);
     setBoardBackground(state.level);
     buildGrid();
+    if (options && Array.isArray(options.preBoosters) && options.preBoosters.length > 0) {
+      applyPreLevelBoostersToBoard(options.preBoosters);
+    }
     state.levelReady = true;
     state.turnBrokeObstacle = false;
     state.turnConsumedMove = false;
@@ -3326,6 +3680,8 @@
     updateHud();
     saveProgress(false);
 
+    showStageStartMissionToast(state.level, meta, state.missionTargets);
+
     if (meta.isBossStage) {
       playSfx("boss");
       const multTxt = cfg.coinMultiplier ? `×${cfg.coinMultiplier}` : "×2";
@@ -3337,7 +3693,7 @@
       showStageDifficultyBanner(`${cfg.difficultyTagAr} · ×2 عملات`, "hard");
     }
 
-    // First-time Stage 1 triggers the 6-Step Guided Queen Spotlight Tutorial
+    // First-time Stage 1 triggers the 6-Step Guided Queen Cleopatra Spotlight Tutorial
     if (state.level === 1 && window.CMRQueenTutorial && !window.CMRQueenTutorial.isTutorialDone()) {
       window.CMRQueenTutorial.beginStage1Tutorial();
     } else if (window.CMRQueenTutorial?.checkAndShowNewObstacles) {
@@ -3376,10 +3732,7 @@
   }
 
   function advanceToNextStage() {
-    if (state.level >= Core.TOTAL_STAGES) {
-      exitToWorldMap();
-      return;
-    }
+    // Infinite stage progression: 1 -> 1,000 -> 1,001 -> Infinity!
     state.level = Core.clampStage(state.level + 1);
     state.highestUnlocked = Math.max(state.highestUnlocked, state.level);
     state.hammer = Math.max(state.hammer, 3);
@@ -3394,6 +3747,7 @@
     clearHintOverlay();
     window.CMRQueenTutorial?.cancelAll?.();
     window.CMRHeroBossVFX?.stopAll?.();
+    window.CMRAnubisAudio?.resetStreak?.();
     clearSelection();
     clearActiveBooster();
     hideResultModal();
@@ -3408,7 +3762,7 @@
   function exitToPalaceWithVictoryTransition() {
     const payload = state.lastCompletedVictory || {
       completedStage: state.level,
-      nextStage: Math.min(Core.TOTAL_STAGES, state.level + 1),
+      nextStage: Core.clampStage(state.level + 1),
       starsEarned: Number(state.stageStars?.[String(state.level)] || 3),
     };
     state.lastCompletedVictory = null;
@@ -3416,6 +3770,7 @@
     clearHintOverlay();
     window.CMRQueenTutorial?.cancelAll?.();
     window.CMRHeroBossVFX?.stopAll?.();
+    window.CMRAnubisAudio?.resetStreak?.();
     clearSelection();
     clearActiveBooster();
     hideResultModal();
@@ -3663,6 +4018,10 @@
   }
 
   function formatShopPillPrice(item, claimedToday, heartsFull) {
+    if (item.currency === "real_money") {
+      // Strictly BLANK/EMPTY price tag under high-value packs (ready for Google Play Billing)
+      return `<span class="iap-blank-price" data-sku="${item.sku || item.id}" aria-label="سعر Google Play">${item.priceLabel || ""}</span>`;
+    }
     if (item.currency === "rewarded_ad") {
       return `<span>🎬 إعلان</span>`;
     }
@@ -3681,29 +4040,34 @@
   function renderFeaturedShopBundle() {
     const slot = $("shopFeaturedSlot");
     if (!slot) return;
+    const dailyCombo = AnubisPack?.getDailyShopComboBundle
+      ? AnubisPack.getDailyShopComboBundle(new Date())
+      : null;
     const featured = Core.getStoreItemById(Core.SHOP_FEATURED_BUNDLE_ID);
-    if (!featured) return;
+    const target = dailyCombo || featured;
+    if (!target) return;
 
+    const targetId = dailyCombo ? "daily_rotating_combo" : featured.id;
     const cantAfford =
-      (featured.currency === "coins" && state.coins < featured.price) ||
-      (featured.currency === "gems" && state.gems < featured.price);
+      (target.currency === "coins" && state.coins < target.price) ||
+      (target.currency === "gems" && state.gems < target.price);
 
     slot.innerHTML = `
-      <div class="rk-featured-card" data-item-id="${featured.id}">
+      <div class="rk-featured-card is-daily-combo" data-item-id="${targetId}">
         <div class="rk-featured-art">
-          <img src="${featured.image}" alt="${featured.name}" draggable="false">
+          <img src="${target.image}" alt="${target.titleAr || target.name}" draggable="false">
         </div>
         <div class="rk-featured-info">
-          <span class="rk-featured-badge">${featured.badge || "العرض المميز"}</span>
-          <h3 class="rk-featured-title">${featured.name}</h3>
-          <p class="rk-featured-qty">${featured.shortQty || ""}</p>
+          <span class="rk-featured-badge">${target.badgeAr || target.badge || "كومبو اليوم"}</span>
+          <h3 class="rk-featured-title">${target.titleAr || target.name}</h3>
+          <p class="rk-featured-qty">${target.shortQty || ""}</p>
           <button
             type="button"
             class="rk-featured-buy-btn ${cantAfford ? "is-muted" : ""}"
-            data-store-buy="${featured.id}"
-            aria-label="شراء ${featured.name}"
+            data-store-buy="${targetId}"
+            aria-label="شراء ${target.titleAr || target.name}"
           >
-            ${formatShopPillPrice(featured, false, false)}
+            ${formatShopPillPrice(target, false, false)}
           </button>
         </div>
       </div>
@@ -3711,7 +4075,28 @@
 
     const buyBtn = slot.querySelector("[data-store-buy]");
     if (buyBtn) {
-      buyBtn.addEventListener("click", () => handleStorePurchase(featured.id, buyBtn));
+      buyBtn.addEventListener("click", () => {
+        if (dailyCombo) {
+          if (dailyCombo.currency === "gems" && state.gems < dailyCombo.price) {
+            say(`رصيدك من الجواهر غير كافٍ (تحتاج ${dailyCombo.price} جوهرة).`);
+            return;
+          }
+          if (dailyCombo.currency === "coins" && state.coins < dailyCombo.price) {
+            say(`رصيدك من العملات غير كافٍ (تحتاج ${dailyCombo.price} عملة).`);
+            return;
+          }
+          const inv = getInventorySnapshot();
+          if (dailyCombo.currency === "gems") inv.gems -= dailyCombo.price;
+          else inv.coins -= dailyCombo.price;
+          const updated = Core.applyRewardToInventory(inv, dailyCombo.reward);
+          applyInventorySnapshot(updated);
+          triggerPurchaseVisualFeedback(targetId);
+          playSfx("coin");
+          say(`🎉 تم شراء ${dailyCombo.titleAr}: ${Core.formatRewardSummaryArabic(dailyCombo.reward)}`);
+        } else {
+          handleStorePurchase(featured.id, buyBtn);
+        }
+      });
     }
   }
 
@@ -3762,14 +4147,22 @@
 
     let items;
     if (!state.activeStoreCategory || state.activeStoreCategory === "featured") {
-      items = Core.SHOP_SHOWCASE_IDS.map((id) => Core.getStoreItemById(id)).filter(Boolean);
+      // Show mix of basic coin items, gem packs, and high-value real-money packs with blank price tags
+      const showcase = [
+        "iap_pharaoh_starter",
+        "iap_anubis_vault",
+        "booster_rocket_3",
+        "booster_bomb_3",
+        "chest_royal_gold",
+        "ad_free_coins",
+      ];
+      items = showcase.map((id) => Core.getStoreItemById(id)).filter(Boolean);
     } else {
       items = Core.STORE_ITEMS.filter(
         (item) => item.category === state.activeStoreCategory && item.id !== Core.SHOP_FEATURED_BUNDLE_ID
       ).slice(0, 6);
     }
 
-    // Pad up to 6 fixed visual card slots matching the 2x3 Royal Kingdom Blue frame geometry
     const slots = [];
     for (let i = 0; i < 6; i++) {
       const item = items[i] || null;
@@ -3783,6 +4176,7 @@
       }
 
       const isAd = item.currency === "rewarded_ad";
+      const isIap = item.currency === "real_money";
       const isDaily = item.currency === "free_daily";
       const claimedToday = isDaily && dailyClaims[item.id] === todayKey;
       const cantAfford =
@@ -3792,7 +4186,8 @@
       const pillHtml = formatShopPillPrice(item, claimedToday, heartsFull);
 
       slots.push(`
-        <article class="rk-offer-slot rk-slot-${i} ${isAd ? "is-ad-card" : ""}" data-item-id="${item.id}">
+        <article class="rk-offer-slot rk-slot-${i} ${isAd ? "is-ad-card" : ""} ${isIap ? "is-iap-card" : ""}" data-item-id="${item.id}">
+          ${item.badge ? `<span class="rk-offer-top-badge">${item.badge}</span>` : ""}
           <div class="rk-offer-body">
             <div class="rk-offer-art">
               <img src="${item.image}" alt="${item.name}" draggable="false">
@@ -3802,7 +4197,7 @@
           </div>
           <button
             type="button"
-            class="rk-offer-pill-btn ${cantAfford || heartsFull || claimedToday ? "is-muted" : ""}"
+            class="rk-offer-pill-btn ${isAd ? "cmr-pharaonic-ad-btn" : ""} ${isIap ? "is-iap-blank" : ""} ${cantAfford || heartsFull || claimedToday ? "is-muted" : ""}"
             data-store-buy="${item.id}"
             ${isAd ? 'data-ad-button="true"' : ""}
             aria-label="شراء ${item.name}"
@@ -4382,9 +4777,13 @@
     refreshBoosterBadges();
   }
 
-  window.CMRStartSelectedHouse = async (selectedLevel) => {
+  window.CMRStartSelectedHouse = async (selectedLevel, launchOptions = {}) => {
     window.CMRAudio?.setMapMusicActive?.(false);
+    window.CMRAnubisAudio?.preloadAll?.();
+    const shell = $("gameShell");
+    if (shell) shell.classList.remove("is-hidden-shell");
     document.body.classList.add("game-started");
+    document.body.dataset.state = "playing";
     window.CMRHideWorldMap?.();
     try {
       if (!gameInitialized) {
@@ -4394,8 +4793,7 @@
       const requested = Core.clampStage(selectedLevel || state.level);
       state.level = requested;
       state.replayMode = requested < state.highestUnlocked;
-      startFreshBoardForCurrentLevel();
-      window.Dragon3DCharacter?.resume?.();
+      startFreshBoardForCurrentLevel(launchOptions);
       if (engine) requestAnimationFrame(() => engine.resize());
       return true;
     } catch (error) {
@@ -4417,20 +4815,19 @@
     setFrame: setShopFrameTheme,
   };
 
-  // ---- Stage 1 Scripted Interactive Tutorial Board Builder ----
+  // ---- Stage 1 Scripted Interactive Tutorial Board Builder (8x8 + Strict Candy Crush Rules) ----
   function fillCleanNoMatchBoard(keepIceCells) {
     const iceSet = new Set((keepIceCells || []).map((p) => p.r + "," + p.c));
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        // Deterministic Latin-like pattern with zero accidental 3-matches
         const type = ((r * 2 + c) % 6) + 1;
         const isIce = iceSet.has(r + "," + c);
         state.grid[r][c] = {
           type,
           special: null,
           ice: isIce ? 1 : 0,
-          obs: isIce ? "single_ice" : null,
-          originObs: isIce ? "single_ice" : null,
+          obs: isIce ? "hieroglyph_tile" : null,
+          originObs: isIce ? "hieroglyph_tile" : null,
           mesh: null,
         };
       }
@@ -4439,10 +4836,9 @@
 
   function setupTutorialStep(stepKey) {
     if (!state.grid || !state.grid.length) return null;
-    // Keep 2 safe top-row ice tiles so tutorial never ends prematurely before Step 6
     const safeIce = [
       { r: 0, c: 0 },
-      { r: 0, c: 6 },
+      { r: 0, c: COLS - 1 },
     ];
     let result = null;
 
@@ -4450,9 +4846,8 @@
       fillCleanNoMatchBoard([
         { r: 3, c: 1 },
         { r: 0, c: 0 },
-        { r: 0, c: 6 },
+        { r: 0, c: COLS - 1 },
       ]);
-      // Swap (3,3) left to (3,2) -> forms vertical 3-match of type 1 at (2,2),(3,2),(4,2) next to ice at (3,1)
       state.grid[2][2].type = 1;
       state.grid[4][2].type = 1;
       state.grid[3][2].type = 3;
@@ -4462,7 +4857,6 @@
       result = { from: { r: 3, c: 3 }, to: { r: 3, c: 2 } };
     } else if (stepKey === "rocket_create") {
       fillCleanNoMatchBoard(safeIce);
-      // Swap (4,3) up to (3,3) -> horizontal 4-match of type 2 at row 3 cols 1,2,3,4
       state.grid[3][1].type = 2;
       state.grid[3][2].type = 2;
       state.grid[3][3].type = 5;
@@ -4471,14 +4865,16 @@
       state.grid[2][3].type = 4;
       result = { from: { r: 4, c: 3 }, to: { r: 3, c: 3 } };
     } else if (stepKey === "rocket_activate") {
+      // Strict Candy Crush Rule: Rocket swaps into a valid 3-match of same color (type 2)!
       fillCleanNoMatchBoard(safeIce);
       state.grid[3][3].type = 2;
       state.grid[3][3].special = "striped";
       state.grid[3][4].type = 4;
+      state.grid[2][4].type = 2;
+      state.grid[4][4].type = 2;
       result = { from: { r: 3, c: 3 }, to: { r: 3, c: 4 } };
     } else if (stepKey === "bomb_create") {
       fillCleanNoMatchBoard(safeIce);
-      // Swap (2,3) down to (3,3) -> T-match of type 3 at (3,2),(3,3),(3,4) & (3,3),(4,3),(5,3)
       state.grid[3][2].type = 3;
       state.grid[3][4].type = 3;
       state.grid[4][3].type = 3;
@@ -4487,14 +4883,16 @@
       state.grid[2][3].type = 3;
       result = { from: { r: 2, c: 3 }, to: { r: 3, c: 3 } };
     } else if (stepKey === "bomb_activate") {
+      // Strict Candy Crush Rule: Bomb swaps into a valid 3-match of same color (type 3)!
       fillCleanNoMatchBoard(safeIce);
       state.grid[3][3].type = 3;
       state.grid[3][3].special = "wrapped";
       state.grid[3][4].type = 5;
+      state.grid[2][4].type = 3;
+      state.grid[4][4].type = 3;
       result = { from: { r: 3, c: 3 }, to: { r: 3, c: 4 } };
     } else if (stepKey === "color_create") {
       fillCleanNoMatchBoard(safeIce);
-      // Swap (4,3) up to (3,3) -> horizontal 5-match of type 4 at row 3 cols 1,2,3,4,5
       state.grid[3][1].type = 4;
       state.grid[3][2].type = 4;
       state.grid[3][3].type = 1;
@@ -4624,6 +5022,26 @@
     setGuestProfile,
     syncMenuUI,
     exitToMap: exitToWorldMap,
+    getInventorySnapshot,
+    buyPreLevelBooster: (key, cost = 100) => {
+      const safeCost = Math.max(0, Math.floor(Number(cost) || 100));
+      if (state.coins < safeCost) {
+        return { ok: false, reason: "insufficient_coins", message: `تحتاج ${safeCost} عملة ذهبية.` };
+      }
+      if (!["rockets", "hammer", "colors", "paints"].includes(key)) {
+        return { ok: false, reason: "invalid_booster", message: "معزز غير صالح." };
+      }
+      state.coins -= safeCost;
+      state[key] = Math.min(Core.MAX_BOOSTER_STOCK, (state[key] || 0) + 1);
+      updateHud();
+      refreshBoosterBadges();
+      saveProgress(false);
+      syncMenuUI();
+      refreshShop();
+      window.CMRRefreshWorldMap?.();
+      playSfx("coin");
+      return { ok: true, inventory: getInventorySnapshot() };
+    },
     grantReward: (reward) => {
       if (!reward || typeof reward !== "object") return getInventorySnapshot();
       const nextInv = Core.applyRewardToInventory(getInventorySnapshot(), reward);

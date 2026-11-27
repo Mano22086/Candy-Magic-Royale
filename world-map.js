@@ -240,29 +240,39 @@
       <!-- Magical Palace Transition Veil -->
       <div class="vmap-magic-veil hidden" id="vmapMagicVeil" aria-hidden="true"></div>
 
-      <!-- Compact Bottom Royal Action Dock (All Extracted Circular UI Assets) -->
-      <nav class="vmap-dock" id="vmapDock" aria-label="Kingdom Actions">
+      <!-- Compact 7-Slot Bottom Royal Lobby Nav Bar (3 Right, Centered Green "اكمل", 3 Left) -->
+      <nav class="vmap-dock is-7-slot" id="vmapDock" aria-label="Kingdom Actions">
         <button type="button" class="vmap-dock-icon" id="dockStatsBtn" aria-label="${i18n("openAchievementsAria")}">
           <img src="./assets/extracted/ui/btn_stats.png" alt="">
+          <span class="vmap-dock-label">إنجازات</span>
           <span class="vmap-dock-badge hidden" id="dockAchBadge">0</span>
         </button>
         <button type="button" class="vmap-dock-icon" id="dockCalendarBtn" aria-label="${i18n("openCalendarAria")}">
           <img src="./assets/extracted/ui/btn_calendar.png" alt="">
+          <span class="vmap-dock-label">يومي</span>
           <span class="vmap-dock-badge hidden" id="dockCalBadge">!</span>
         </button>
-        <button type="button" class="vmap-dock-play" id="wmQuickPlay" aria-label="${i18n("playNow")}">
-          <img src="./assets/extracted/ui/btn_play_round.png" alt="">
-          <span id="wmQuickPlayLevel">1</span>
+        <button type="button" class="vmap-dock-icon" id="dockAlbumBtn" aria-label="ألبوم البطاقات">
+          <img src="./public/assets/aistudio/icon_card_pack_pharaoh_cbc27457.png" alt="">
+          <span class="vmap-dock-label">الألبوم</span>
+          <span class="vmap-dock-badge hidden" id="dockAlbumBadge">!</span>
+        </button>
+        <button type="button" class="vmap-dock-play is-akmal-cta" id="wmQuickPlay" aria-label="اكمل اللعب">
+          <strong class="vmap-akmal-text">اكمل</strong>
+          <span class="vmap-akmal-lvl" id="wmQuickPlayLevel">1</span>
         </button>
         <button type="button" class="vmap-dock-icon" id="dockFriendsBtn" aria-label="${i18n("openFriendsAria")}">
           <img src="./assets/extracted/ui/btn_friends.png" alt="">
+          <span class="vmap-dock-label">الأصدقاء</span>
         </button>
         <button type="button" class="vmap-dock-icon" id="dockMailBtn" aria-label="${i18n("openMailAria")}">
           <img src="./assets/extracted/ui/btn_mail.png" alt="">
+          <span class="vmap-dock-label">البريد</span>
           <span class="vmap-dock-badge hidden" id="dockMailBadge">0</span>
         </button>
         <button type="button" class="vmap-dock-icon" id="wmShopBtn" aria-label="${i18n("openShopAria")}">
           <img src="./assets/extracted/ui/btn_gift.png" alt="">
+          <span class="vmap-dock-label">المتجر</span>
         </button>
       </nav>
     `;
@@ -294,6 +304,10 @@
     overlay.querySelector("#dockCalendarBtn").addEventListener("click", () => {
       window.CMRProfile?.vibrate?.(12);
       window.CMRProfile?.openCalendar?.();
+    });
+    overlay.querySelector("#dockAlbumBtn")?.addEventListener("click", () => {
+      window.CMRProfile?.vibrate?.(12);
+      window.CMRCardAlbum?.open?.();
     });
     overlay.querySelector("#dockFriendsBtn").addEventListener("click", () => {
       window.CMRProfile?.vibrate?.(12);
@@ -505,6 +519,10 @@
       const dot = overlay.querySelector(selector);
       if (dot) dot.classList.toggle("hidden", !check());
     });
+    const albumBadge = overlay.querySelector("#dockAlbumBadge");
+    if (albumBadge) {
+      albumBadge.classList.toggle("hidden", !window.CMRCardAlbum?.hasNotification?.());
+    }
     syncFreeChestBadge();
   }
 
@@ -580,7 +598,33 @@
     }, 200);
   }
 
-  async function openStage(globalStage, triggerBtn) {
+  async function launchStageDirectly(globalStage, triggerBtn, launchOptions = {}) {
+    const launch = window.CMRStartSelectedHouse;
+    if (typeof launch !== "function") {
+      showToast("Game engine initializing...");
+      return;
+    }
+    // Immediately stop map background music the moment the player enters a gameplay stage
+    window.CMRAudio?.setMapMusicActive?.(false);
+    if (triggerBtn) triggerBtn.disabled = true;
+    try {
+      const ok = await launch(globalStage, launchOptions);
+      if (ok !== true) {
+        if (triggerBtn) triggerBtn.disabled = false;
+        if (overlay && !overlay.classList.contains("hidden")) {
+          window.CMRAudio?.setMapMusicActive?.(true);
+        }
+      }
+    } catch (err) {
+      console.error("[CMR Map] Failed to open stage:", err);
+      if (triggerBtn) triggerBtn.disabled = false;
+      if (overlay && !overlay.classList.contains("hidden")) {
+        window.CMRAudio?.setMapMusicActive?.(true);
+      }
+    }
+  }
+
+  async function openStage(globalStage, triggerBtn, options = {}) {
     const unlocked = getUnlockedStage();
     if (globalStage > unlocked) {
       window.CMRProfile?.vibrate?.([25, 30, 25]);
@@ -598,29 +642,15 @@
       }
       return;
     }
-    const launch = window.CMRStartSelectedHouse;
-    if (typeof launch !== "function") {
-      showToast("Game engine initializing...");
+
+    if (!options.direct && window.CMRPreLevelModal && typeof window.CMRPreLevelModal.open === "function") {
+      window.CMRPreLevelModal.open(globalStage, async (lvl, chosenBoosters) => {
+        await launchStageDirectly(lvl, triggerBtn, { preBoosters: chosenBoosters });
+      });
       return;
     }
-    // Immediately stop map background music the moment the player enters a gameplay stage
-    window.CMRAudio?.setMapMusicActive?.(false);
-    if (triggerBtn) triggerBtn.disabled = true;
-    try {
-      const ok = await launch(globalStage);
-      if (ok !== true) {
-        if (triggerBtn) triggerBtn.disabled = false;
-        if (overlay && !overlay.classList.contains("hidden")) {
-          window.CMRAudio?.setMapMusicActive?.(true);
-        }
-      }
-    } catch (err) {
-      console.error("[CMR Map] Failed to open stage:", err);
-      if (triggerBtn) triggerBtn.disabled = false;
-      if (overlay && !overlay.classList.contains("hidden")) {
-        window.CMRAudio?.setMapMusicActive?.(true);
-      }
-    }
+
+    await launchStageDirectly(globalStage, triggerBtn, options);
   }
 
   function buildAmbientParticlesHtml() {
@@ -658,8 +688,30 @@
     const en = isEnglish();
     const worldEl = overlay.querySelector("#wmWorld");
 
+    const palaceHeaderSrc =
+      window.CMRAnubisPack?.MEGA_PACK_ASSETS?.uiFrames?.palaceHeader ||
+      "./mega_pack/09_pharaonic_ui_frames/ui_pharaonic_palace_header.png";
+    const activeStageMeta = core().getStageMeta(unlocked);
+    const activeRealmTitle = en
+      ? activeStageMeta.palace?.nameEn || activeStageMeta.palace?.name || "Royal Kingdom"
+      : activeStageMeta.palace?.name || "قصر الشمس الذهبي";
+
     worldEl.className = "vmap-world-host is-world-view";
     worldEl.innerHTML = `
+      <div class="wm-pharaonic-header" id="wmPharaonicHeader">
+        <img class="wm-pharaonic-header-bg" src="${palaceHeaderSrc}" alt="" aria-hidden="true" draggable="false">
+        <div class="wm-pharaonic-header-copy">
+          <strong>${activeRealmTitle}</strong>
+          <small>المستوى الحالي ${unlocked}${activeStageMeta.isInfiniteRealm ? " · عوالم لا نهائية ∞" : ""}</small>
+        </div>
+      </div>
+      ${
+        unlocked > 1000
+          ? `<button type="button" class="vmap-infinite-portal-btn" id="vmapInfinitePortalBtn">
+              <span>✨ دخول ${activeRealmTitle} (المراحل ${Math.floor((unlocked - 1) / 100) * 100 + 1}–${Math.floor((unlocked - 1) / 100) * 100 + 100}) ∞</span>
+            </button>`
+          : ""
+      }
       <div class="vmap-canvas ${mapZoomed ? "is-zoomed" : ""}" id="vmapCanvas" data-testid="vertical-world-map">
         <img
           class="vmap-bg-img"
@@ -673,6 +725,12 @@
         <div class="vmap-palaces-layer" id="vmapPalacesLayer"></div>
       </div>
     `;
+
+    worldEl.querySelector("#vmapInfinitePortalBtn")?.addEventListener("click", () => {
+      const infPalaceIdx = Math.floor((unlocked - 1) / core().STAGES_PER_PALACE);
+      window.CMRProfile?.vibrate?.(16);
+      playMagicTransition(() => renderPalaceStages(infPalaceIdx));
+    });
 
     const layer = worldEl.querySelector("#vmapPalacesLayer");
 
@@ -752,7 +810,7 @@
   function renderPalaceStages(palaceIndex) {
     ensureOverlay();
     currentView = "stages";
-    activePalaceIndex = Math.max(0, Math.min(core().PALACES_COUNT - 1, palaceIndex));
+    activePalaceIndex = Math.max(0, Math.floor(Number(palaceIndex) || 0));
     updateBannerAndDock();
 
     const floatTools = overlay.querySelector("#vmapFloatTools");
@@ -761,21 +819,44 @@
     overlay.querySelector("#vmapEventsRailRight")?.classList.add("hidden");
     overlay.querySelector("#wmFreeChestBtn")?.classList.add("hidden");
 
-    const palace = core().PALACES[activePalaceIndex];
+    const basePalace = core().PALACES[activePalaceIndex % core().PALACES_COUNT];
+    const isInfiniteRealm = activePalaceIndex >= core().PALACES_COUNT;
+    const palaceBase = activePalaceIndex * core().STAGES_PER_PALACE;
+    const webpInfo = window.CMRAnubisPack?.getStageBoardWebp?.(palaceBase + 1);
     const st = getPlayerSummary();
     const unlocked = st.highestUnlocked;
     const stageStars = st.stageStars || {};
     const summary = core().getPalaceProgressSummary(activePalaceIndex, unlocked, stageStars);
     const en = isEnglish();
-    const name = en ? palace.nameEn || palace.name : palace.name;
-    const tag = en ? palace.tagEn || palace.tag : palace.tag;
-    const desc = en ? palace.descriptionEn || palace.description : palace.description;
-    const palaceBase = activePalaceIndex * core().STAGES_PER_PALACE;
+    const name =
+      isInfiniteRealm && webpInfo?.infiniteRealmTitleAr
+        ? webpInfo.infiniteRealmTitleAr
+        : en
+        ? basePalace.nameEn || basePalace.name
+        : basePalace.name;
+    const tag = isInfiniteRealm
+      ? `القصر اللانهائي ${activePalaceIndex + 1} ∞`
+      : en
+      ? basePalace.tagEn || basePalace.tag
+      : basePalace.tag;
+    const desc = en ? basePalace.descriptionEn || basePalace.description : basePalace.description;
+    const palaceHeaderSrc =
+      window.CMRAnubisPack?.MEGA_PACK_ASSETS?.uiFrames?.palaceHeader ||
+      "./mega_pack/09_pharaonic_ui_frames/ui_pharaonic_palace_header.png";
 
     const worldEl = overlay.querySelector("#wmWorld");
     worldEl.className = "vmap-world-host is-palace-levels";
     worldEl.innerHTML = `
-      <div class="pls-shell" style="--palace-accent:${palace.accent || "#ffd86b"}">
+      <div class="pls-shell" style="--palace-accent:${basePalace.accent || "#ffd86b"}">
+        <!-- Pharaonic Palace Banner Frame (ui_pharaonic_palace_header.png) -->
+        <div class="wm-pharaonic-header is-palace-interior">
+          <img class="wm-pharaonic-header-bg" src="${palaceHeaderSrc}" alt="" aria-hidden="true" draggable="false">
+          <div class="wm-pharaonic-header-copy">
+            <strong>${name}</strong>
+            <small>${summary.startStage}–${summary.endStage} · ⭐ ${summary.earnedStars}</small>
+          </div>
+        </div>
+
         <!-- Palace Hero Header with Transparent Palace Artwork & Return-to-Map Button -->
         <div class="pls-hero">
           <div class="pls-hero-top">
@@ -788,10 +869,10 @@
 
           <div class="pls-hero-main">
             <div class="pls-artwork-box">
-              <img class="pls-palace-png" src="${palace.castleArt}" alt="${name}">
+              <img class="pls-palace-png" src="${basePalace.castleArt}" alt="${name}">
             </div>
             <div class="pls-hero-copy">
-              <small class="pls-tag">${tag} (${activePalaceIndex + 1}/10)</small>
+              <small class="pls-tag">${tag}${isInfiniteRealm ? "" : ` (${activePalaceIndex + 1}/10)`}</small>
               <h1 id="plsPalaceTitle">${name}</h1>
               <p>${desc}</p>
               <div class="pls-stats-row">
@@ -836,7 +917,7 @@
         <div class="pls-map-canvas" id="plsPathContainer" data-testid="palace-levels-grid">
           <img
             class="pls-map-bg"
-            src="${palace.interiorMap}"
+            src="${basePalace.interiorMap}"
             alt="${name}"
             draggable="false"
           >
@@ -853,7 +934,7 @@
 
     const container = worldEl.querySelector("#plsPathContainer");
     const slotsLayer = worldEl.querySelector("#plsSlotsLayer");
-    const rowYs = activePalaceIndex === 0 ? PALACE_1_ROW_Y : INTERIOR_ROW_Y;
+    const rowYs = activePalaceIndex % core().PALACES_COUNT === 0 ? PALACE_1_ROW_Y : INTERIOR_ROW_Y;
     const nodesPerRow = INTERIOR_COL_X.length; // 5 columns
     const totalRows = rowYs.length; // 20 rows = 100 circular slots
 
@@ -918,8 +999,9 @@
         );
 
         const starIconUrl =
+          window.CMRAnubisPack?.MEGA_PACK_ASSETS?.uiFrames?.victoryStar ||
           window.CMROutcomeEngine?.OUTCOME_ASSETS?.victoryStar ||
-          "./public/assets/aistudio/icon_victory_star_8b503f69.png";
+          "./mega_pack/09_pharaonic_ui_frames/icon_victory_star.png";
         const buildMiniStarsHtml = (count) => {
           let out = '<span class="pls-slot-stars-img" aria-hidden="true">';
           for (let sIdx = 1; sIdx <= 3; sIdx++) {
@@ -971,14 +1053,11 @@
       }
     }
 
-    // Helper: pick player's golden-ring Avatar badge (profile avatar, or Queen Luma on Odd / Pharaoh Boy on Even palaces)
+    // Helper: pick player's golden-ring Avatar badge
     const getPalaceAvatarSrc = () => {
       const profileSrc = st.avatar?.img || st.avatar?.src || "";
       if (profileSrc) return profileSrc;
-      const isEvenPalace = (activePalaceIndex + 1) % 2 === 0;
-      return isEvenPalace
-        ? "./assets/extracted/avatars/avatar_pharaoh_boy.png"
-        : "./assets/extracted/avatars/avatar_queen_luma.png";
+      return "./assets/extracted/ui/avatar_pharaoh_portrait.png";
     };
 
     // Place the player's Golden-Ring Avatar Marker on the active unlocked slot (if inside this palace)
@@ -1063,20 +1142,17 @@
       activeWalkRaf = 0;
     }
 
-    const doneStage = Math.max(1, Math.min(core().TOTAL_STAGES, Math.floor(Number(completedStage) || 1)));
-    const targetStage = Math.max(
-      doneStage,
-      Math.min(core().TOTAL_STAGES, Math.floor(Number(nextStage) || doneStage + 1))
-    );
+    const doneStage = Math.max(1, Math.floor(Number(completedStage) || 1));
+    const targetStage = Math.max(doneStage, Math.floor(Number(nextStage) || doneStage + 1));
     const palaceIdx = Math.floor((doneStage - 1) / core().STAGES_PER_PALACE);
 
     const startScr = document.getElementById("startScreen");
     if (startScr) startScr.classList.add("hidden");
+    document.getElementById("gameShell")?.classList.add("is-hidden-shell");
     document.body.classList.add("game-started", "map-open");
     overlay.classList.remove("hidden");
     document.body.dataset.state = "map";
     window.CMRPauseGameRender?.();
-    window.Dragon3DCharacter?.pause?.();
     window.CMRAudio?.setMapMusicActive?.(true);
 
     renderPalaceStages(palaceIdx);
@@ -1194,11 +1270,11 @@
 
   function show() {
     ensureOverlay();
+    document.getElementById("gameShell")?.classList.add("is-hidden-shell");
     overlay.classList.remove("hidden");
     document.body.classList.add("map-open");
     document.body.dataset.state = "map";
     window.CMRPauseGameRender?.();
-    window.Dragon3DCharacter?.pause?.();
     window.CMRAudio?.setMapMusicActive?.(true);
     renderPalaces(true);
   }

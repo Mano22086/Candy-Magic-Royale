@@ -1,5 +1,6 @@
-/* Candy Magic Royale — Hero Ultimate Power, 16-Frame 4x4 Character Sprite Math,
- * & Boss HP Battle State Machine (Pure UMD module for browser + node:test).
+/* Candy Magic Royale — Hero Ultimate Power, 50-Frame 10x5 Character Sprite Math,
+ * & King Anubis Boss HP Battle State Machine (Pure UMD module for browser + node:test).
+ * New Cast ONLY: Queen Cleopatra (Left), Golden Dragon (Right), King Anubis (Boss 50 & 100).
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -10,50 +11,72 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SPRITE_SHEETS = Object.freeze({
-    queen_luma: "./public/assets/aistudio/sheet_queen_luma_16frames_4x4_d384e1eb.png",
-    pharaoh_boy: "./public/assets/aistudio/sheet_pharaoh_boy_16frames_4x4_d3af62fb.png",
-    pharaoh_dragon: "./public/assets/aistudio/sheet_pharaoh_dragon_16frames_4x4_f5e257ac.png",
-    boss_gummy_king: "./public/assets/aistudio/sheet_boss_gummy_king_16frames_4x4_fed3ebe7.png",
+  const SPRITE_GRID = Object.freeze({
+    COLS: 10,
+    ROWS: 5,
+    TOTAL_FRAMES: 50,
+    FRAME_W: 200,
+    FRAME_H: 200,
+    SHEET_W: 2000,
+    SHEET_H: 1000,
   });
 
-  const BOSS_HP_BAR_FRAME = "./public/assets/aistudio/image_5ccfa143-19dc-4aab-9a34-835ffcc3baf5_96da28e9.png";
+  const SPRITE_SHEETS = Object.freeze({
+    cleopatra: "./mega_pack/06_characters_50frames_10x5/sheet_cleopatra_queen_50frames_10x5.png",
+    golden_dragon: "./mega_pack/06_characters_50frames_10x5/sheet_golden_dragon_50frames_10x5.png",
+    boss_anubis: "./mega_pack/06_characters_50frames_10x5/sheet_boss_anubis_50frames_10x5.png",
+  });
+
+  const BOSS_HP_BAR_FRAME = "./mega_pack/09_pharaonic_ui_frames/ui_boss_hp_bar_empty.png";
 
   const BOSS_STAGE_NUMBERS_IN_PALACE = Object.freeze([50, 100]);
 
+  function rangeFrames(start, end) {
+    const out = [];
+    if (start <= end) {
+      for (let i = start; i <= end; i++) out.push(i);
+    } else {
+      for (let i = start; i >= end; i--) out.push(i);
+    }
+    return Object.freeze(out);
+  }
+
+  // Smooth 50-frame (0..49) sequences at ~20ms/step for 120Hz/144Hz buttery playback
   const FRAME_SEQUENCES = Object.freeze({
-    BLINK: Object.freeze([0, 1, 2, 3, 0]),
-    DRAGON_WING_LOOP: Object.freeze([0, 1, 2, 3]),
-    HERO_HAPPY_IN: Object.freeze([4, 5, 6, 7]),
-    HERO_HAPPY_OUT: Object.freeze([6, 5, 4, 0]),
-    HERO_CELEBRATE_IN: Object.freeze([8, 9, 10, 11]),
-    HERO_CELEBRATE_OUT: Object.freeze([12, 13, 14, 15]),
-    BOSS_EVIL_LAUGH: Object.freeze([0, 1, 2, 3, 2, 1, 0]),
-    BOSS_ANGRY_CHARGE: Object.freeze([4, 5, 6, 7]),
-    BOSS_LIGHTNING_STRIKE: Object.freeze([8, 9, 10, 11]),
-    BOSS_RETURN_IDLE: Object.freeze([12, 13, 14, 15]),
+    IDLE_LOOP: rangeFrames(0, 14),
+    BLINK: Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 6, 4, 2, 0]),
+    DRAGON_WING_LOOP: rangeFrames(0, 19),
+    HERO_HAPPY_IN: rangeFrames(15, 29),
+    HERO_HAPPY_OUT: rangeFrames(29, 15),
+    HERO_CELEBRATE_IN: rangeFrames(30, 44),
+    HERO_CELEBRATE_OUT: rangeFrames(44, 49),
+    BOSS_IDLE_LOOP: rangeFrames(0, 14),
+    BOSS_EVIL_LAUGH: Object.freeze([...rangeFrames(10, 24), ...rangeFrames(23, 10)]),
+    BOSS_ANGRY_CHARGE: rangeFrames(20, 34),
+    BOSS_LIGHTNING_STRIKE: rangeFrames(35, 44),
+    BOSS_RETURN_IDLE: rangeFrames(45, 49),
   });
 
   const TIMINGS = Object.freeze({
-    STEP_MS: 80,
-    BLINK_INTERVAL_MS: 3500,
-    DRAGON_FLAP_MS: 140,
-    HAPPY_HOLD_MS: 450,
-    CELEBRATE_HOLD_MS: 850,
+    STEP_MS: 20,
+    BLINK_INTERVAL_MS: 3200,
+    DRAGON_FLAP_MS: 32,
+    HAPPY_HOLD_MS: 360,
+    CELEBRATE_HOLD_MS: 640,
     BOSS_LAUGH_INTERVAL_MS: 15000,
-    BOSS_STRIKE_HOLD_MS: 850,
+    BOSS_STRIKE_HOLD_MS: 720,
   });
 
   /**
-   * Row-major 4x4 sprite sheet frame coordinates (indices 0..15).
-   * Returns exact CSS background-position percentages for background-size: 400% 400%.
+   * Row-major 10x5 sprite sheet frame coordinates (indices 0..49).
+   * Returns exact CSS background-position percentages for background-size: 1000% 500%.
    */
   function getSpriteFramePosition(frameIndex) {
-    const idx = Math.max(0, Math.min(15, Math.floor(Number(frameIndex) || 0)));
-    const col = idx % 4;
-    const row = Math.floor(idx / 4);
-    const xPct = (col * 100) / 3;
-    const yPct = (row * 100) / 3;
+    const idx = Math.max(0, Math.min(SPRITE_GRID.TOTAL_FRAMES - 1, Math.floor(Number(frameIndex) || 0)));
+    const col = idx % SPRITE_GRID.COLS;
+    const row = Math.floor(idx / SPRITE_GRID.COLS);
+    const xPct = (col * 100) / (SPRITE_GRID.COLS - 1);
+    const yPct = (row * 100) / (SPRITE_GRID.ROWS - 1);
     return {
       index: idx,
       col,
@@ -65,8 +88,8 @@
   }
 
   /**
-   * Determines whether a stage in a palace (1..100) is a Boss Stage.
-   * Stage 50 & Stage 100 of EVERY palace => 20 Boss stages total across 10 palaces.
+   * Determines whether a stage in a palace (1..100) is a King Anubis Boss Stage.
+   * Stage 50 & Stage 100 of EVERY palace (infinite realms supported!).
    */
   function isBossStageInPalace(stageInPalace) {
     const s = Math.floor(Number(stageInPalace) || 1);
@@ -74,33 +97,34 @@
   }
 
   /**
-   * Resolves character placement & roles for any global stage (1..1000).
-   * - Odd Palaces (1,3,5,7,9): Left = Queen Luma, Right = Crystal Dragon
-   * - Even Palaces (2,4,6,8,10) & Events: Left = Pharaoh Boy, Right = Crystal Dragon
-   * - Boss Stages (Stage 50 & Stage 100 of EVERY palace): Single centered Red Gummy Bear Boss
+   * Resolves character placement & roles for ANY global stage (1..Infinity).
+   * - Normal Stages: Left = Queen Cleopatra, Right = Golden Dragon
+   * - Boss Stages (Stage 50 & Stage 100 of EVERY palace): Single centered King Anubis
    */
-  function getStageCharacterSetup(globalStage, options = {}) {
-    const stage = Math.max(1, Math.min(1000, Math.floor(Number(globalStage) || 1)));
+  function getStageCharacterSetup(globalStage) {
+    const stage = Math.max(1, Math.floor(Number(globalStage) || 1));
     const palaceIndex = Math.floor((stage - 1) / 100);
-    const palaceNumber = palaceIndex + 1; // 1..10
+    const palaceNumber = palaceIndex + 1; // 1..Infinity
     const stageInPalace = ((stage - 1) % 100) + 1; // 1..100
     const isBossStage = isBossStageInPalace(stageInPalace);
 
     if (isBossStage) {
       const bossSlotInPalace = stageInPalace === 50 ? 1 : 2;
-      const bossNumber = palaceIndex * 2 + bossSlotInPalace; // 1..20
-      const punishmentMoveLimit = palaceNumber >= 3 ? 4 : 5;
+      const bossNumber = palaceIndex * 2 + bossSlotInPalace; // 1..Infinity
+      const bossBoardArtNum = ((bossNumber - 1) % 20) + 1; // 1..20 WebP boards
+      const punishmentMoveLimit = 5; // Every 5 moves Ankh Lightning throws 3 flying obstacles
       return {
         globalStage: stage,
         palaceNumber,
         stageInPalace,
         isBossStage: true,
         bossNumber,
-        bossBoardName: `boss_board_${String(bossNumber).padStart(2, "0")}`,
+        bossBoardName: `boss_anubis_board_${String(bossBoardArtNum).padStart(2, "0")}`,
+        bossBoardPath: `./mega_pack/08_boards_boss_anubis_20/boss_anubis_board_${String(bossBoardArtNum).padStart(2, "0")}.webp`,
         punishmentMoveLimit,
-        bossId: "boss_gummy_king",
-        bossSheet: SPRITE_SHEETS.boss_gummy_king,
-        bossNameAr: stageInPalace === 100 ? "ملك الحلوى الأعظم" : "زعيم ملك الحلوى",
+        bossId: "boss_anubis",
+        bossSheet: SPRITE_SHEETS.boss_anubis,
+        bossNameAr: stageInPalace === 100 ? "الملك أنوبيس الأعظم" : "الملك أنوبيس",
         leftHeroId: null,
         leftHeroSheet: null,
         rightHeroId: null,
@@ -108,8 +132,6 @@
       };
     }
 
-    const usePharaohBoy = Boolean(options.isEvent) || palaceNumber % 2 === 0;
-    const leftHeroId = usePharaohBoy ? "pharaoh_boy" : "queen_luma";
     return {
       globalStage: stage,
       palaceNumber,
@@ -117,16 +139,17 @@
       isBossStage: false,
       bossNumber: 0,
       bossBoardName: null,
+      bossBoardPath: null,
       punishmentMoveLimit: 0,
       bossId: null,
       bossSheet: null,
       bossNameAr: null,
-      leftHeroId,
-      leftHeroSheet: SPRITE_SHEETS[leftHeroId],
-      leftHeroNameAr: usePharaohBoy ? "الأمير الفرعوني" : "الملكة لوما",
-      rightHeroId: "pharaoh_dragon",
-      rightHeroSheet: SPRITE_SHEETS.pharaoh_dragon,
-      rightHeroNameAr: "تنين الكريستال",
+      leftHeroId: "cleopatra",
+      leftHeroSheet: SPRITE_SHEETS.cleopatra,
+      leftHeroNameAr: "الملكة كليوباترا",
+      rightHeroId: "golden_dragon",
+      rightHeroSheet: SPRITE_SHEETS.golden_dragon,
+      rightHeroNameAr: "التنين الذهبي",
     };
   }
 
@@ -141,8 +164,8 @@
 
   /**
    * Hero Ultimate Charge Tracker:
-   * - Left Hero Ring (Magenta-Gold): +8% per normal match, +20% per special/obstacle break
-   * - Right Dragon Ring (Cyan-Gold): +10% per match/cascade
+   * - Left Hero Ring (Queen Cleopatra, Magenta-Gold): +8% per normal match, +20% per special/obstacle break
+   * - Right Dragon Ring (Golden Dragon, Cyan-Gold): +10% per match/cascade
    */
   function createHeroChargeTracker() {
     let left = 0;
@@ -204,11 +227,10 @@
   }
 
   /**
-   * Crystal Dragon Ultimate Planner:
-   * Finds the highest-density obstacle row/diagonal cluster on the board and
-   * returns an ordered beam path + impact cluster ({ anchor, targets }).
+   * Golden Dragon Ultimate Planner:
+   * Finds the highest-density obstacle row/diagonal cluster on the 8x8 board.
    */
-  function pickDragonBeamTargets(grid, rows, cols) {
+  function pickDragonBeamTargets(grid, rows = 8, cols = 8) {
     if (!Array.isArray(grid) || rows <= 0 || cols <= 0) {
       return { anchor: { r: 3, c: 3 }, targets: [] };
     }
@@ -237,7 +259,6 @@
       }
     }
 
-    // Collect 3x3 high-density cluster around bestAnchor plus diagonal beam corridor from top-right
     const seen = new Set();
     const targets = [];
     const pushCell = (r, c) => {
@@ -249,7 +270,6 @@
       targets.push({ r, c });
     };
 
-    // Diagonal sweep leading from upper-right toward anchor
     const steps = Math.max(Math.abs(bestAnchor.r), Math.abs(cols - 1 - bestAnchor.c), 1);
     for (let s = 1; s <= steps; s++) {
       const rr = Math.round((bestAnchor.r * s) / steps);
@@ -257,7 +277,6 @@
       pushCell(rr, cc);
     }
 
-    // Full 3x3 impact cluster around bestAnchor
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         pushCell(bestAnchor.r + dr, bestAnchor.c + dc);
@@ -268,11 +287,10 @@
   }
 
   /**
-   * Queen Luma Ultimate Planner:
-   * Picks up to `count` (default 3) random normal candies (no obstacle, no special)
-   * to transform into Candy Rockets.
+   * Queen Cleopatra Ultimate Planner:
+   * Picks up to `count` (default 3) random normal candies to transform into Candy Rockets.
    */
-  function pickQueenRocketTargets(grid, rows, cols, count = 3, rng = Math.random) {
+  function pickQueenRocketTargets(grid, rows = 8, cols = 8, count = 3, rng = Math.random) {
     const candidates = [];
     const fallback = [];
     for (let r = 0; r < rows; r++) {
@@ -295,10 +313,9 @@
   }
 
   /**
-   * Pharaoh Boy Ultimate Planner:
-   * Returns all active obstacle cells on the board so his Ankh staff blasts 1 layer off all of them.
+   * Utility Planner: returns all active obstacle cells on the board.
    */
-  function pickPharaohAnkhTargets(grid, rows, cols) {
+  function pickPharaohAnkhTargets(grid, rows = 8, cols = 8) {
     const targets = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -312,16 +329,13 @@
   }
 
   /**
-   * Boss HP Battle & Counter-Attack State Machine (Stage 50 & Stage 100 of Every Palace).
-   * - Scales Max HP cleanly so breaking stage obstacles & special blasts drains HP smoothly from 100% -> 0%.
-   * - Tracks 5-move punishment counter (4 moves in Palace 3+).
+   * King Anubis Boss HP Battle & 5-Move Ankh Lightning Counter-Attack State Machine.
    */
-  function createBossBattleState(globalStage, obstacleGoal = 12) {
+  function createBossBattleState(globalStage, obstacleGoal = 14) {
     const setup = getStageCharacterSetup(globalStage);
-    const goal = Math.max(6, Math.floor(Number(obstacleGoal) || 12));
-    const palaceBonus = (setup.palaceNumber - 1) * 14 + (setup.stageInPalace === 100 ? 30 : 0);
-    // Calibrated so breaking ~all stage obstacles + a few special blasts drains 100% -> 0% smoothly
-    const maxHp = Math.max(100, goal * 12 + palaceBonus);
+    const goal = Math.max(6, Math.floor(Number(obstacleGoal) || 14));
+    const palaceBonus = Math.min(20, setup.palaceNumber - 1) * 14 + (setup.stageInPalace === 100 ? 32 : 0);
+    const maxHp = Math.max(110, goal * 12 + palaceBonus);
     let hp = maxHp;
     let movesWithoutBreak = 0;
     let totalOrbsFired = 0;
@@ -348,10 +362,6 @@
           totalOrbsFired,
         };
       },
-      /**
-       * Apply Boss damage from obstacle break, rocket, bomb, or color ball.
-       * Returns 2-4 Golden Magic Energy Orbs + updated HP state.
-       */
       applyDamage(source = "obstacle", magnitude = 1) {
         if (hp <= 0) {
           return { orbsCount: 0, damage: 0, ...this.getState() };
@@ -384,20 +394,11 @@
           ...this.getState(),
         };
       },
-      /**
-       * Sync victory when all board obstacles are cleared on a Boss stage
-       * (drains any sliver of remaining HP cleanly to 0%).
-       */
       drainRemainingToZero() {
         const remaining = hp;
         hp = 0;
         return { orbsCount: remaining > 0 ? 4 : 0, damage: remaining, ...this.getState() };
       },
-      /**
-       * Records a player move on a Boss stage:
-       * - If an obstacle was broken this turn, resets counter to 0.
-       * - Otherwise increments counter and triggers counter-attack when hitting limit (5 or 4).
-       */
       recordMoveOutcome(brokeObstacle) {
         if (hp <= 0) {
           movesWithoutBreak = 0;
@@ -423,9 +424,9 @@
   }
 
   /**
-   * Picks 3 valid normal candy cells (no existing obstacles) for Boss Lightning Strike punishment.
+   * Picks 3 valid normal candy cells (no existing obstacles) for King Anubis Ankh Lightning punishment.
    */
-  function pickBossLightningTargets(grid, rows, cols, count = 3, rng = Math.random) {
+  function pickBossLightningTargets(grid, rows = 8, cols = 8, count = 3, rng = Math.random) {
     const valid = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -443,6 +444,7 @@
   }
 
   return Object.freeze({
+    SPRITE_GRID,
     SPRITE_SHEETS,
     BOSS_HP_BAR_FRAME,
     BOSS_STAGE_NUMBERS_IN_PALACE,

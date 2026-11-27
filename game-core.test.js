@@ -23,13 +23,13 @@ test("10 palaces x 100 stages = 1,000 stages with Candy King boss at stage 50 of
     assert.equal(bossMeta.palaceIndex, p);
     assert.equal(bossMeta.stageInPalace, 50);
     assert.equal(bossMeta.isBossStage, true);
-    assert.equal(bossMeta.bossName, "زعيم ملك الحلوى");
+    assert.equal(bossMeta.bossName, "الملك أنوبيس");
 
     const lastMeta = core.getStageMeta(lastStage);
     assert.equal(lastMeta.palaceIndex, p);
     assert.equal(lastMeta.stageInPalace, 100);
     assert.equal(lastMeta.isBossStage, true);
-    assert.equal(lastMeta.bossName, "ملك الحلوى الأعظم");
+    assert.equal(lastMeta.bossName, "الملك أنوبيس الأعظم");
   }
 });
 

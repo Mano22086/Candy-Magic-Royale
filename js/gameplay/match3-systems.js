@@ -12,15 +12,15 @@
   "use strict";
 
   const HUD_OBJECTIVE_PANEL_SRC =
-    "./public/assets/aistudio/image_69bf8423-4605-4734-9fac-cdd0dee86c04_121d90de.png";
+    "./mega_pack/09_pharaonic_ui_frames/hud_objective_panel_empty.png";
 
   const SHOP_CHEST_ICON = "./public/assets/aistudio/07_shop_treasure_chest_b7263fcf.png";
   const SHOP_COIN_ICON = "./public/assets/aistudio/06_shop_gold_coin_50095eb1.png";
   const BOOSTER_ICONS = Object.freeze({
-    rockets: "./public/assets/aistudio/01_booster_candy_rocket_b53df03d.png",
+    rockets: "./mega_pack/03_special_rockets_6/rocket_red.png",
     paints: "./public/assets/aistudio/02_booster_magic_wand_e83e8cc8.png",
-    hammer: "./public/assets/aistudio/03_booster_candy_bomb_8bfca840.png",
-    colors: "./public/assets/aistudio/04_booster_striped_candy_7749b182.png",
+    hammer: "./mega_pack/04_special_bombs_6/bomb_purple.png",
+    colors: "./mega_pack/05_special_color_ball/special_color_ball.png",
   });
 
   // Complete 20-Obstacle Catalog (8/9 Legacy Blockers + 12 New Egyptian Obstacles Pack)
@@ -144,55 +144,59 @@
       tutorialAr: "طابق بجانب الدوامة لتنطلق وتزيل قطعة مجاورة معها!",
     },
 
-    // 12 New Egyptian Obstacles Pack (obs_09 .. obs_20)
+    // 12 Standalone Egyptian 3D Obstacles (mega_pack/10_obstacles_all/obs_09 .. obs_20)
     sandstone_block: {
       id: "sandstone_block",
       nameAr: "الحجر الرملي",
-      imgSrc: "./public/assets/aistudio/obs_09_sandstone_block_fca5cec3.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_09_sandstone_block.png",
       hp: 3,
       introHp: 1,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: false,
       boosterOnly: false,
       lampBlast: false,
-      tutorialAr: "طابق الحلوى بجانبه 3 مرات لكسره!",
+      tutorialAr: "طابق الحلوى بجانب الحجر الرملي لتكسير طبقاته حتى يتحطم!",
     },
     scarab_gem_box: {
       id: "scarab_gem_box",
       nameAr: "صندوق الجعران",
-      imgSrc: "./public/assets/aistudio/obs_10_scarab_gem_box_7a11add0.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_10_scarab_gem_box.png",
       hp: 2,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: true,
       boosterOnly: false,
       lampBlast: false,
-      tutorialAr: "طابق الحلوى بجانبه مرتين لفتح صندوق الجعران وكسب مكافأة!",
+      tutorialAr: "طابق الحلوى بجانبه مرتين لفتح صندوق الجعران وكسب الذهب!",
     },
     caramel_jar: {
       id: "caramel_jar",
       nameAr: "جرة العسل والكراميل",
-      imgSrc: "./public/assets/aistudio/obs_11_caramel_jar_f762ea23.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_11_caramel_jar.png",
       hp: 2,
       introHp: 1,
       adj: true,
       self: true,
+      solidStandalone: false,
       spread: false,
       reward: false,
       boosterOnly: false,
       lampBlast: false,
-      tutorialAr: "طابق الحلوى بجانب جرة العسل أو فوقها لتكسيرها وتنظيف الخانة!",
+      tutorialAr: "طابق الحلوى بجانب جرة العسل أو فوقها لتنظيف الخانة!",
     },
     crystal_egg: {
       id: "crystal_egg",
       nameAr: "بيضة الكريستال",
-      imgSrc: "./public/assets/aistudio/obs_12_crystal_egg_96b93eb5.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_12_crystal_egg.png",
       hp: 2,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: true,
       boosterOnly: false,
@@ -202,10 +206,11 @@
     mummy_bandage: {
       id: "mummy_bandage",
       nameAr: "ضمادات المومياء",
-      imgSrc: "./public/assets/aistudio/obs_13_mummy_bandage_72b48c89.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_13_mummy_bandage.png",
       hp: 2,
       adj: true,
       self: true,
+      solidStandalone: false,
       spread: false,
       reward: false,
       boosterOnly: false,
@@ -215,10 +220,11 @@
     fire_brazier: {
       id: "fire_brazier",
       nameAr: "موقد النار الفرعوني",
-      imgSrc: "./public/assets/aistudio/obs_14_fire_brazier_484db0b1.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_14_fire_brazier.png",
       hp: 3,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: false,
       boosterOnly: false,
@@ -228,10 +234,11 @@
     bubble_gum: {
       id: "bubble_gum",
       nameAr: "فقاعة الحلوى",
-      imgSrc: "./public/assets/aistudio/obs_15_bubble_gum_ac9cdae2.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_15_bubble_gum.png",
       hp: 1,
       adj: true,
       self: true,
+      solidStandalone: false,
       spread: false,
       reward: false,
       boosterOnly: false,
@@ -241,10 +248,11 @@
     pharaoh_vase: {
       id: "pharaoh_vase",
       nameAr: "مزهرية الفرعون",
-      imgSrc: "./public/assets/aistudio/obs_16_pharaoh_vase_4003049d.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_16_pharaoh_vase.png",
       hp: 2,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: false,
       boosterOnly: false,
@@ -254,10 +262,11 @@
     lotus_flower: {
       id: "lotus_flower",
       nameAr: "زهرة اللوتس",
-      imgSrc: "./public/assets/aistudio/obs_17_lotus_flower_4d8d49db.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_17_lotus_flower.png",
       hp: 2,
       adj: true,
       self: true,
+      solidStandalone: false,
       spread: false,
       reward: false,
       boosterOnly: false,
@@ -267,43 +276,208 @@
     magic_lamp: {
       id: "magic_lamp",
       nameAr: "المصباح السحري",
-      imgSrc: "./public/assets/aistudio/obs_18_magic_lamp_c3fc8954.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_18_magic_lamp.png",
       hp: 3,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: true,
       boosterOnly: false,
       lampBlast: true,
-      tutorialAr: "اضربه 3 مرات ليطلق شعاعاً يمسح الصف!",
+      tutorialAr: "اضرب المصباح السحري 3 مرات ليطلق شعاعاً يمسح الصف بالكامل!",
     },
     obsidian_shield: {
       id: "obsidian_shield",
       nameAr: "درع الأوبسيديان",
-      imgSrc: "./public/assets/aistudio/obs_19_obsidian_shield_3294233b.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_19_obsidian_shield.png",
       hp: 2,
       adj: false,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: false,
       boosterOnly: true,
       lampBlast: false,
-      tutorialAr: "لا يتكسر إلا بالصاروخ أو القنبلة!",
+      tutorialAr: "درع الأوبسيديان صلب جداً — لا يتكسر إلا بالصاروخ أو القنبلة!",
     },
     pyramid_safe: {
       id: "pyramid_safe",
       nameAr: "خزنة الهرم",
-      imgSrc: "./public/assets/aistudio/obs_20_pyramid_safe_29871687.png",
+      imgSrc: "./mega_pack/10_obstacles_all/obs_20_pyramid_safe.png",
       hp: 3,
       adj: true,
       self: false,
+      solidStandalone: true,
       spread: false,
       reward: true,
       boosterOnly: false,
       lampBlast: false,
       tutorialAr: "طابق بجانب خزنة الهرم 3 مرات أو استخدم قنبلة لفتحها وكسب الذهب!",
     },
+
+    // 10 Smart Animated 3D Obstacles (mega_pack/10_obstacles_all/smart_obs_01 .. smart_obs_10)
+    sleeping_sphinx: {
+      id: "sleeping_sphinx",
+      nameAr: "أبو الهول النائم",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_01_sleeping_sphinx.png",
+      hp: 3,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      size2x2: true,
+      spread: false,
+      reward: true,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "أبو الهول النائم يشغل مربع 2×2 — أي مطابقة بجانب أي جزء منه تُضعفه بالكامل!",
+    },
+    magic_mirror: {
+      id: "magic_mirror",
+      nameAr: "المرآة السحرية",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_02_magic_mirror.png",
+      hp: 2,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      deflectsRocket90: true,
+      spread: false,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "المرآة السحرية تعكس شعاع الصاروخ بزاوية 90° وتتكسر بمطابقتين مجاورتين!",
+    },
+    quicksand: {
+      id: "quicksand",
+      nameAr: "الرمال المتحركة",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_03_quicksand.png",
+      hp: 1,
+      adj: true,
+      self: true,
+      solidStandalone: false,
+      spread: true,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "اكسر الرمال المتحركة سريعاً قبل أن تنتشر لخانة مجاورة في الدور التالي!",
+    },
+    surprise_coffin: {
+      id: "surprise_coffin",
+      nameAr: "تابوت المفاجآت",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_04_surprise_coffin.png",
+      hp: 2,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      dropsLoot: true,
+      spread: false,
+      reward: true,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "افتح تابوت المفاجآت بمطابقتين مجاورتين ليسقط صاروخاً أو قنبلة أو ذهباً!",
+    },
+    hieroglyph_tile: {
+      id: "hieroglyph_tile",
+      nameAr: "بلاطة الهيروغليفية",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_05_hieroglyph_tile.png",
+      hp: 1,
+      adj: true,
+      self: true,
+      solidStandalone: false,
+      spread: false,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "طابق الحلوى فوق بلاطة الهيروغليفية أو بجانبها لتنير وتتحرر!",
+    },
+    cursed_hourglass: {
+      id: "cursed_hourglass",
+      nameAr: "الساعة الرملية الملعونة",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_06_cursed_hourglass.png",
+      hp: 2,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      countdownTurns: 6,
+      spread: false,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "احذر! الساعة الرملية تبدأ عدّاً تنازلياً من 6 حركات — حطّمها قبل الصفر!",
+    },
+    chocolate_fountain: {
+      id: "chocolate_fountain",
+      nameAr: "نافورة الشوكولاتة",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_07_chocolate_fountain.png",
+      hp: 2,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      spread: true,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "نافورة الشوكولاتة تنشر الشوكولاتة على الخانات المجاورة — أوقفها سريعاً!",
+    },
+    color_lock_stone: {
+      id: "color_lock_stone",
+      nameAr: "حجر القفل اللوني",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_08_color_lock_stone.png",
+      hp: 1,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      requiresColorMatch: true,
+      spread: false,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "حجر القفل اللوني يتكسر بمطابقة نفس لونه بجانبه أو بانفجار صاروخ وقنبلة!",
+    },
+    jumping_bastet: {
+      id: "jumping_bastet",
+      nameAr: "باستيت القافزة",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_09_jumping_bastet.png",
+      hp: 2,
+      adj: true,
+      self: false,
+      solidStandalone: true,
+      hopsEachTurn: true,
+      spread: false,
+      reward: true,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "تمثال باستيت يقفز لخانة مجاورة بين الأدوار — طابق بجانبه مرتين لإمساكه!",
+    },
+    golden_spiderweb: {
+      id: "golden_spiderweb",
+      nameAr: "شبكة العنكبوت الذهبية",
+      imgSrc: "./mega_pack/10_obstacles_all/smart_obs_10_golden_spiderweb.png",
+      hp: 1,
+      adj: false,
+      self: true,
+      solidStandalone: false,
+      swapLocked: true,
+      spread: false,
+      reward: false,
+      boosterOnly: false,
+      lampBlast: false,
+      tutorialAr: "تمنع تحريك الحلوى بداخلها — طابقها مع حلوى مماثلة أو فجّرها لتحريرها!",
+    },
   });
+
+  const SMART_OBSTACLE_IDS = Object.freeze([
+    "sleeping_sphinx",
+    "magic_mirror",
+    "quicksand",
+    "surprise_coffin",
+    "hieroglyph_tile",
+    "cursed_hourglass",
+    "chocolate_fountain",
+    "color_lock_stone",
+    "jumping_bastet",
+    "golden_spiderweb",
+  ]);
 
   const NEW_OBSTACLE_IDS = Object.freeze([
     "sandstone_block",
@@ -318,6 +492,11 @@
     "magic_lamp",
     "obsidian_shield",
     "pyramid_safe",
+  ]);
+
+  const ALL_22_OBSTACLE_IDS = Object.freeze([
+    ...SMART_OBSTACLE_IDS,
+    ...NEW_OBSTACLE_IDS,
   ]);
 
   // -------------------------------------------------------------------------
@@ -345,14 +524,14 @@
 
   function getStageDifficultyTier(stageInPalace) {
     const s = Math.max(1, Math.min(100, Math.floor(Number(stageInPalace) || 1)));
-    if (s === 50) {
+    if (s === 50 || s === 100) {
       return {
         tier: "boss",
         isHard: false,
         isSuperHard: false,
         isBoss: true,
-        tagAr: "زعيم ملك الحلوى 👑",
-        coinMultiplier: 2,
+        tagAr: s === 100 ? "الملك أنوبيس الأعظم 👑" : "الملك أنوبيس 👑",
+        coinMultiplier: s === 100 ? 3 : 2,
       };
     }
     if (SUPER_HARD_STAGES.has(s)) {
@@ -424,7 +603,7 @@
       for (let r = 0; r < rows; r++) cells.add(r + "," + cell.c);
     };
 
-    // 1. Color + Color -> Entire board mega wipe
+    // 1. Color + Color -> Crackling rainbow-cyan lightning across entire board sequentially
     if (spA === "color" && spB === "color") {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) cells.add(r + "," + c);
@@ -432,7 +611,8 @@
       return {
         comboType: "color_color",
         isSuperCombo: true,
-        bannerAr: "انفجار كوني فرعوني! ✨",
+        sequentialLightning: true,
+        bannerAr: "صاعقة البرق الكونية! ⚡✨",
         hapticMs: 30,
         shake: true,
         cells,
@@ -441,14 +621,18 @@
       };
     }
 
-    // 2. Color Ball + Rocket (or Bomb) -> Convert all candies of most common color into Rockets/Bombs and detonate in 90ms chain
+    // 2. Color Ball + Rocket (or Bomb) -> Converts EVERY candy of that Rocket/Bomb's color into Rockets/Bombs and fires rapidly
     if (
       (spA === "color" && (spB === "striped" || spB === "wrapped")) ||
       (spB === "color" && (spA === "striped" || spA === "wrapped"))
     ) {
-      const convertTo = spA === "color" ? spB : spA;
+      const specialItem = spA === "color" ? B : A;
+      const convertTo = specialItem.special;
       const exclude = new Set([a.r + "," + a.c, b.r + "," + b.c]);
-      const targetColor = findMostCommonColorOnGrid(grid, rows, cols, exclude);
+      const targetColor =
+        specialItem.type >= 1 && specialItem.type <= 6
+          ? specialItem.type
+          : findMostCommonColorOnGrid(grid, rows, cols, exclude);
       const chainTargets = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -470,7 +654,7 @@
         targetColor,
         convertTo,
         chainTargets,
-        chainDelayMs: 90,
+        chainDelayMs: convertTo === "striped" ? 75 : 85,
       };
     }
 
@@ -540,7 +724,7 @@
       };
     }
 
-    // Single special swapped with regular candy
+    // Single Color Ball swapped with any regular candy (always legal in Candy Crush)
     if (spA === "color" || spB === "color") {
       const other = spA === "color" ? B : A;
       const targetColor = other?.type || findMostCommonColorOnGrid(grid, rows, cols);
@@ -562,40 +746,9 @@
       };
     }
 
-    if (spA === "wrapped" || spB === "wrapped") {
-      const center = spA === "wrapped" ? a : b;
-      for (let r = center.r - 1; r <= center.r + 1; r++) {
-        for (let c = center.c - 1; c <= center.c + 1; c++) {
-          if (inBounds(r, c)) cells.add(r + "," + c);
-        }
-      }
-      return {
-        comboType: "single_bomb",
-        isSuperCombo: false,
-        bannerAr: null,
-        hapticMs: 30,
-        shake: true,
-        center,
-        cells,
-        chainTargets: [],
-        convertTo: null,
-      };
-    }
-
-    // Single Rocket (striped)
-    const center = spA === "striped" ? a : b;
-    addCross(center);
-    return {
-      comboType: "single_rocket",
-      isSuperCombo: false,
-      bannerAr: null,
-      hapticMs: 30,
-      shake: true,
-      center,
-      cells,
-      chainTargets: [],
-      convertTo: null,
-    };
+    // STRICT CANDY CRUSH RULE: A single Rocket (striped) or Bomb (wrapped) swapped with a normal
+    // candy does NOT detonate by itself — it only triggers if the swap creates a valid 3+ match.
+    return null;
   }
 
   // -------------------------------------------------------------------------
@@ -687,17 +840,17 @@
             });
             continue;
           }
-          if (a.special || b.special) {
+          if (a.special === "color" || b.special === "color") {
             consider({
               from: { r, c },
               to: { r: nr, c: nc },
-              priority: 55,
+              priority: 92,
               kind: "special_use",
             });
             continue;
           }
 
-          // Simulate swap in-place and immediately revert
+          // Simulate swap in-place and immediately revert (enforces strict Candy Crush rule for single Rocket/Bomb!)
           grid[r][c] = b;
           grid[nr][nc] = a;
           const s1 = scoreSwappedBoardForCell(grid, rows, cols, r, c);
@@ -708,17 +861,18 @@
           const maxRun = Math.max(s1.maxRun, s2.maxRun);
           const isLT = s1.isLT || s2.isLT;
           if (maxRun >= 3 || isLT) {
-            let priority = 30;
-            let kind = "match3";
+            const usesSpecial = Boolean(a.special || b.special);
+            let priority = usesSpecial ? 78 : 30;
+            let kind = usesSpecial ? "special_match" : "match3";
             if (maxRun >= 5) {
-              priority = 85;
+              priority = 88;
               kind = "create_color_ball";
             } else if (isLT) {
-              priority = 75;
-              kind = "create_bomb";
+              priority = Math.max(priority, 75);
+              kind = usesSpecial ? "special_match" : "create_bomb";
             } else if (maxRun === 4) {
-              priority = 65;
-              kind = "create_rocket";
+              priority = Math.max(priority, 65);
+              kind = usesSpecial ? "special_match" : "create_rocket";
             }
             priority += Math.min(8, (s1.adjObstacles + s2.adjObstacles) * 2);
             consider({
@@ -990,7 +1144,9 @@
     SHOP_COIN_ICON,
     BOOSTER_ICONS,
     OBSTACLE_CATALOG,
+    SMART_OBSTACLE_IDS,
     NEW_OBSTACLE_IDS,
+    ALL_22_OBSTACLE_IDS,
     FREE_CHEST_COOLDOWN_MS,
     getComboCallout,
     computeComboPitchRate,
